@@ -108,7 +108,8 @@ minutes of runs: vr237-vr240 the reload check the owner asked for). Releases: 0.
    sh3.log), first of all whether the 0.1.0 launcher's updater offered and installed 0.1.1 (its first real test;
    the path checked here: releases/latest v0.1.1, the asset's name and digest, github.com's redirect to
    release-assets.githubusercontent.com, which UpdatePolicy allows, 200 with the right size).
-2. LIST 45: the far door by hand (door231 with a point at the hall's start, above).
+2. LIST 45: the far door by hand: door231.txt is ready (regenerated with a point 0.9 m into the hall, 16450 19300,
+   before point 4; vr236 stuck in the doorway at 15964 19387); run it (about 5 minutes) with the header's switches.
 3. LIST 45: floor items by hand via the death skip (door228.txt, SH3_HP=1; the SH3_HP hold now lets go once a hit
    takes her to 0, so a death goes on).
 4. The headset-only items (docs/HEADSET_CHECKLIST.md, AUDIT-2026-11-25.md).

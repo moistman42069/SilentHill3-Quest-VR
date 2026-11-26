@@ -1,6 +1,8 @@
 """Writes tools/sim/door231.txt (session 16): door229's knife swings (kill the hall's dog first, SH3_STEER_AT_ATTACKER)
 then door230's route round the circular hall to its far door (event 48), the left hand held ahead and closing every
-30 frames from 9300 to 12500, pictures every 300 frames, quitting at 12600 (vr236: the last point 24400 18170, vr235 stood 0.15 m short).
+30 frames from 9300 to 12500, pictures every 300 frames, quitting at 12600 (vr236: the last point 24400 18170, vr235
+stood 0.15 m short; then a point 0.9 m into the hall, 16450 19300, before point 4: vr236 was stuck in the doorway at
+15964 19387 heading straight for point 4).
 Run: C:/SH3Quest/venv/Scripts/python.exe -I tools/sim/make_door231.py (from the repository's root)."""
 import pathlib
 
@@ -39,7 +41,7 @@ events.sort(key=lambda e: e[0])
 
 header = """# SH3 Quest VR, the PC rig (session 16, build 198+), about 5 minutes. Made by tools/sim/make_door231.py. Run with
 # QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
-# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16541,17832;17472,16372;18932,15441;20300,15200;21668,15441;23128,16372;24059,17832;24400,18170;17500,-19640;22200,-19000"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300;16541,17832;17472,16372;18932,15441;20300,15200;21668,15441;23128,16372;24059,17832;24400,18170;17500,-19640;22200,-19000"
 # SH3_STEER_AT_ATTACKER=1 SH3_EVENT_SCAN=8100 SH3_EVENT_SCAN_EVERY=120 SH3_HAND_RAY_LOG=8 SH3_HP=100
 # LIST 45, the hall's far door by hand, with LIST 27's knife first: vr234 (door230) was held at the hall's start by
 # its dog all run; vr233 (door229) killed the dog with the knife at frame 9817 and walked on. So: the entrance door by
