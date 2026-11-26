@@ -10,7 +10,8 @@ Map: X.   Inventory: Y.   Supplies (health): B, or grip at the belt pouch.
 Search view: right stick click.
 Strafe (third person): off grip held with the left stick left or right.
 Pause, skip a scene: left menu button, a short press.
-First / third person: hold the left menu button for a second.
+VR menu (every VR option): hold the left menu button for a second, anywhere; in play the game pauses under it.
+First / third person: VR menu, View, First person.
 
 WEAPONS (first person)
 Draw: main hand to the holster, grip. Your gun (handgun, shotgun, submachine gun, stun gun) over your right
@@ -34,7 +35,8 @@ back and let go; pump the shotgun back and forward. Manual reload off: the game 
 MENUS, MAP, MEMOS, PUZZLES
 Point with either controller (the last trigger pulled) and pull the trigger to choose; or the left stick and A.
 Back: B. Map zoom: right grip.
-VR menu (every VR option): pause, then hold the left menu button. In it: point and pull the trigger (left half of a
-value steps down, right half up), or the left stick and A. Close: B, Y or the left menu button.
+VR menu: hold the left menu button for a second. In it: point and pull the trigger (left half of a
+value steps down, right half up), or the left stick and A. Close: B, Y or the left menu button; opened in play, a
+short press of the left menu button then goes back to play.
 
 Left-handed (Options, Hands and weapons) swaps the hands: weapons, triggers and grips.

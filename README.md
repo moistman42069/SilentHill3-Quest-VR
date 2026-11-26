@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.1</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.2</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -21,18 +21,18 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > sh3.exe and data (about 5 GB). The launcher copies it onto the headset from a folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.0's release notes](docs/RELEASE-NOTES-0.1.0.md), the first release's
-full guide; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md), its patch). In short: install SH3QuestVR-0.1.1.apk (developer
-mode, SideQuest or adb), copy your game folder or a .zip of it to the headset, open SH3 Quest VR, CHOOSE THE GAME
-FOLDER, then PLAY IN VR. Already on 0.1.0? The launcher offers 0.1.1 itself (Updates). The first release has not yet
-been played on a headset: reports are very welcome (the launcher's "Save a report to Download" holds the game's own
-logs).
+with everything you need to install it ([0.1.2's release notes](docs/RELEASE-NOTES-0.1.2.md): the fog fixed, the
+VR menu on a held button, the PC VR mod's picture settings; [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first
+release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short: install SH3QuestVR-0.1.2.apk (developer mode, SideQuest
+or adb), copy your game folder or a .zip of it to the headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY
+IN VR. Already on 0.1.0 or 0.1.1? The launcher offers 0.1.2 itself (Updates). Reports from a headset are very welcome
+(the launcher's "Save a report to Download" holds the game's own logs).
 
 ## Features
 
 - **First person, 6DoF**: eyes at Heather's head, head and hands tracked; walking in the room moves her; your height
-  matched to hers; the world life size. **Third person** with the game's own camera, in stereo: hold the left menu
-  button for a second, any time. Places that need the game's camera switch by themselves.
+  matched to hers; the world life size. **Third person** with the game's own camera, in stereo: the VR menu's
+  "First person" switch (View). Places that need the game's camera switch by themselves.
 - **Cutscenes in VR** by default, in the scene at the game's camera (or first person, or a cinema screen);
   **dynamic cutscenes** go through Heather's eyes where that makes sense. The **movies** play on a big cinema screen
   with their sound.
@@ -59,15 +59,19 @@ logs).
 - **A Silent Hill pointer** for every screen: menus, the inventory, the map, memos, puzzles, the VR menu; point and
   pull, the hand ticks on what a pull can choose.
 - **Dynamic resolution**: the world drawn a little smaller only while frames come late, text and hands always sharp.
+- **The picture**: the game's drifting fog on a far layer in the world (as the PC VR mod draws it), a lamp's lens
+  flare at the lamp; **Brightness, Contrast, Color saturation, Darker edges** (the PC VR mod's picture settings, the
+  game's own look by default) and **Smooth edges** (FXAA, on).
 - **Every input mapped**, none missing, no conflicts: [docs/CONTROLS.md](docs/CONTROLS.md).
-- **The VR menu** in the game and **the launcher** (game files import and check, Options, PC saves import, logs and a
+- **The VR menu** (hold the left menu button for a second, anywhere; in play the game pauses under it) in the game and
+  **the launcher** (game files import and check, Options, PC saves import, logs and a
   report, What's new, updates from GitHub releases); every VR feature on and the best performance options by default.
 - **Crash records that explain themselves**: sh3-crash.log with the guest and host stacks, the game's state and VR's.
 
 ## For developers
 
 - The whole first release: [docs/LIST-0.1.0.md](docs/LIST-0.1.0.md). The game's addresses: [docs/GAME_FACTS.md](docs/GAME_FACTS.md).
-  The latest handoff: docs/HANDOFF-2026-11-25-SESSION16.md.
+  The latest handoff: docs/HANDOFF-2026-11-25-SESSION17.md.
 - Recompile: `PY=<venv python> sh tools/regen.sh` (Git Bash; `--recomp-only` after changing src/game/sh3.c).
 - PC test build: tools/build_pc.bat. Quest APK: tools/build_quest.py (NDK 27.2, SDK 34, JDK 17).
 - sh3-nx's own README (the Switch port, building the NRO, its credits): [docs/README-sh3-nx.md](docs/README-sh3-nx.md).

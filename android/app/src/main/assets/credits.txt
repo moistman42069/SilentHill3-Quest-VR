@@ -2,7 +2,8 @@ SH3 Quest VR is built directly on other people's work.
 
 cutarev: sh3-nx (and sh2-nx), the port underneath: the recompiled game and its runtime.
 NotGodlikeUwU: the Silent Hill 3 VR mod for PC, whose findings (weapons in the hand, their calibration, physical
-melee through the game's own hit volumes, aiming, movement, world scale) are taken and refined here.
+melee through the game's own hit volumes, aiming, movement, world scale, the drifting fog's far layer, the picture
+settings) are taken and refined here.
 heathercherymason-beep: SH3AndroidEvolved, sh3-nx on Android.
 sp00nznet: xboxrecomp, the recompiler (MIT).
 ThirteenAG: WidescreenFixesPack (MIT).

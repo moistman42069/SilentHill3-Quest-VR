@@ -1760,6 +1760,9 @@ float weapon_clearance(int hand, Vec3 a, Vec3 b) {
     return best * wf.scale;
 }
 int weapon_hand_role(int hand) { return hand >= 0 && hand < 2 ? hand_role[hand] : 0; }
+// The other hand's share of the second grip (0 at its controller .. 1 on the grip; 0 for the main hand): letting go it
+// eases back to the controller over about 0.15 s (session 17: the body's surface hold leaves it alone until then).
+float weapon_two_share(int hand) { return hand == off_hand() ? two_w : 0.0f; }
 int native_hand_group(int hand) { return hand >= 0 && hand < 2 && wf.placed ? native_shown[hand] : -1; }
 float weapon_hold_curl(int hand) {
     if (!wf.placed) return 0.8f;
@@ -2681,13 +2684,36 @@ float combat_block(const float at[3], const float way[3], const float from[3], i
         }
     }
     const Vec3 wv{way[0], way[1], way[2]};
-    rt_log("VR: frame %d: a hit on her (kind %d, %.1f damage, its point %.0f cm from her chest, its way %.2f %.2f %.2f; "
-           "from %s): %s (the weapon's or forearms' middles from her chest, off the attack's line: %s)", rt_frame, kind,
-           damage, length(hit - chest) / kUnitsPerMetre * 100.0f, wv.x, wv.y, wv.z, by,
-           what ? "guarded" : "not guarded", seen_n ? seen : "none to try");
+    // Logged: every hit on her for the first 40, then at most one a second with how many went unwritten since
+    // (session 16: a monster's touch is a hit every frame, the hall's dog's 0.2 a frame; vr230 and vr234 wrote over
+    // 4,000 of these lines in five minutes, each a flushed write on the game's thread on the Quest).
+    static int hits_logged = 0, hits_quiet = 0, quiet_guarded = 0;
+    static float quiet_damage = 0.0f, quiet_kept = 0.0f;
+    static double hit_logged_at = -10.0;
+    const bool log_hit = hits_logged < 40 || now - hit_logged_at >= 1.0;
+    if (log_hit) {
+        char since[160] = "";
+        if (hits_quiet)
+            std::snprintf(since, sizeof since, " [since the last written: %d more hits, %d guarded, %.1f damage of which "
+                          "%.1f kept]", hits_quiet, quiet_guarded, quiet_damage, quiet_kept);
+        rt_log("VR: frame %d: a hit on her (kind %d, %.1f damage, its point %.0f cm from her chest, its way %.2f %.2f "
+               "%.2f; from %s): %s (the weapon's or forearms' middles from her chest, off the attack's line: %s)%s",
+               rt_frame, kind, damage, length(hit - chest) / kUnitsPerMetre * 100.0f, wv.x, wv.y, wv.z, by,
+               what ? "guarded" : "not guarded", seen_n ? seen : "none to try", since);
+        hits_logged++;
+        hit_logged_at = now;
+        hits_quiet = quiet_guarded = 0;
+        quiet_damage = quiet_kept = 0.0f;
+    } else {
+        hits_quiet++;
+        quiet_guarded += what ? 1 : 0;
+        quiet_damage += damage;
+        quiet_kept += what ? damage * keep : damage;
+    }
     if (!what) return 1.0f;
-    rt_log("VR: frame %d: guarded by %s (%.0f degrees off the attack's line): %.1f of %.1f damage kept", rt_frame, what,
-           std::acos(std::clamp(c, -1.0f, 1.0f)) * 180.0f / kPi, damage * keep, damage);
+    if (log_hit)
+        rt_log("VR: frame %d: guarded by %s (%.0f degrees off the attack's line): %.1f of %.1f damage kept", rt_frame,
+               what, std::acos(std::clamp(c, -1.0f, 1.0f)) * 180.0f / kPi, damage * keep, damage);
     buzz(h_by, 0.9f, 0.12f, 120.0f);
     hand_sound(w && h_by == mh && in_hand ? kSoundWeaponWall : kSoundHandSurface, mid, 400);
     return keep;

@@ -1263,9 +1263,16 @@ int ik_heather_bones(float* bones, int n, const Sh3VrModel* m) {
         posed = true;
         if (st.beyond[h] != st.beyond_logged[h]) {
             st.beyond_logged[h] = st.beyond[h];
-            rt_log("VR body: frame %d: the %s controller is %s", rt_frame, h == kLeft ? "left" : "right",
-                   st.beyond[h] ? "past her arm's reach (her hand stays on the arm; no ghost: only for a hand in a surface)"
-                                : "back within her reach");
+            // The first 40 changes a hand, then every 50th (session 16: a hand held at the edge of her reach flips it
+            // often; vr236 wrote 200 of these lines).
+            static int changes[2];
+            if (changes[h] < 40 || changes[h] % 50 == 0)
+                rt_log("VR body: frame %d: the %s controller is %s (change %d)", rt_frame, h == kLeft ? "left" : "right",
+                       st.beyond[h] ? "past her arm's reach (her hand stays on the arm; no ghost: only for a hand in a "
+                                      "surface)"
+                                    : "back within her reach",
+                       changes[h] + 1);
+            changes[h]++;
         }
     }
     st.ghost_bits = 0;

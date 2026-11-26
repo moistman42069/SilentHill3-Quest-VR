@@ -7,7 +7,8 @@ controllers are turned into that pad by src/vr/sh3vr.cpp `map_pad` and src/vr/sh
 
 Checked by reading the code (2026-11-24): every one of the game's 12 pad actions has a control in play, none shares
 one with another in the same state, and every VR-only action (holsters, the pouch, the light pocket, grabbing, the
-view toggle, the VR menu) is a place on the body or a hold, not a button the game also uses.
+VR menu) is a place on the body or a hold, not a button the game also uses. First / third person is the VR menu's
+switch (owner 80, session 16: the left menu button held is the VR menu everywhere).
 
 ## In play
 
@@ -26,7 +27,8 @@ view toggle, the VR menu) is a place on the body or a hold, not a button the gam
 | Search view            | Right stick click                                      | Right stick click                     |
 | Strafe left / right    | (free movement: not needed)                            | Off grip held + left stick left / right |
 | Pause (and skip a scene) | Left menu button, a short press                      | Left menu button, a short press       |
-| First / third person   | Left menu button held 1 second                         | Left menu button held 1 second        |
+| VR menu                | Left menu button held 1 second (the game pauses under it) | Left menu button held 1 second (the game pauses under it) |
+| First / third person   | VR menu, View, "First person"                          | VR menu, View, "First person"         |
 
 ## Hands and weapons (first person)
 
@@ -64,7 +66,7 @@ low in your view. Options, View: "Menus open in front of you", "Messages next to
 | Back / cancel        | B                                                                        |
 | Map zoom             | Right grip                                                               |
 | Pause menu           | Left menu button, a short press                                          |
-| VR menu              | Left menu button held 1 second outside play (paused, menus)             |
+| VR menu              | Left menu button held 1 second, anywhere: in play (the game pauses under it), cutscenes, menus, the title |
 
 ## The VR menu
 
@@ -72,6 +74,7 @@ low in your view. Options, View: "Menus open in front of you", "Messages next to
 |---------------------|---------------------------------------------------------------------------|
 | Pick a row, change it | Point and pull the trigger: the value's left half steps down, right half up |
 | Without the pointer | Left stick up / down: the row; left / right: the value; A: change or next page |
-| Close               | B, Y, or the left menu button                                             |
+| Close               | B, Y, or the left menu button (a short press, or held again)              |
 
-The game gets none of the controllers while the VR menu is open.
+The game gets none of the controllers while the VR menu is open. Opened in play, the game's pause is under it when it
+closes: a short press of the left menu button goes back to play. Opening and closing it each play a sound.

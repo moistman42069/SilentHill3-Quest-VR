@@ -1,11 +1,13 @@
 # SH3 Quest VR, the PC rig (session 15, build 194), about 9 minutes. Run with
 # QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
-# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16541,17832;17472,16372;18932,15441"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300;16541,17832;17472,16372;18932,15441"
 # SH3_EVENT_SCAN=8100 SH3_EVENT_SCAN_EVERY=120 SH3_HAND_RAY_LOG=8 SH3_HP=1
 # LIST 45: to the mall's first floor items the short way (hxchector.com: dying in the nightmare skips it): her health
 # held at 1%, the hall's dog's bite ends the nightmare (vr225-226: game frames 8655-8668), then the left menu button
 # (the game's pause, which skips a scene) every 200 frames, pictures between; the mall's rooms' tables logged as they
 # load (the Ladies' Room first: its save point on the mirror, the window out).
+# Session 17 (vr249: stuck at the hall's start, 15849 19377, the line to point 4 into the railing, as vr236; and the
+# dog never came): the point 0.9 m into the hall (16450 19300) from door231 before point 4.
 7740 left_y 1
 8100 left_y 0
 8105 shot j08105-at-the-door

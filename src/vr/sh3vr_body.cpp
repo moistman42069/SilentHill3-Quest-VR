@@ -1598,7 +1598,8 @@ void body_frame() {
         // crossing in front of her to a short gun's front, passes behind the gun and her other arm as the eyes see it,
         // and the probes took that for a wall: "the left hand is held at a surface (the arm's line met it)", the hand
         // held by her chest and the two-hand line swinging the submachine gun 90 degrees to the left.
-        const bool on_weapon = s.on_foregrip;
+        // (and while it eases off the grip after letting go: vr197, "held at a surface" the frame after the let-go)
+        const bool on_weapon = s.on_foregrip || weapon_two_share(h) > 0.001f;
         if (answer.valid && answer.age <= 3 && !on_weapon) {
             constexpr float kSkin = 0.0085f;  // her finger's half thickness
             for (int f = 0; f < 5; f++) {

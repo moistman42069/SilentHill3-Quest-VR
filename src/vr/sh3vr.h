@@ -305,6 +305,16 @@ void sh3vr_struggle_done(int freed, int buttons);
 /* One such draw (its middle in the game's clip space: ndc x, y and D3D z) that is the gun's own, just after a shot near
  * the game's gun: 1 and the map (GL column-major, the game's clip to its clip) that moves it with the gun to the hand. */
 int sh3vr_effect_map(const float ndc[3], int tex_w, float out_gl[16]);
+/* Owner 79 (session 16): the game's drifting fog (d3d8.c vr_route_pick: 0x5F572E's fans at z just past 1) on a far layer
+ * fixed in the world: 1 and the map (GL column-major, the game's clip to its clip) that moves each point halfway to the
+ * game's camera along its own ray (the same place in the game's picture, inside every eye's far plane), so each eye's
+ * correction puts it where that eye sees it; 0 while the eyes have no corrections. "Drifting fog": whether it is drawn. */
+int sh3vr_far_layer_map(float out_gl[16]);
+int sh3vr_drifting_fog(void);
+/* Session 17: the game's lens flare round a lamp (d3d8.c vr_route_pick: 0x468CDA, 0x468F6E, drawn at z 0.50003) at the
+ * lamp's view depth (its flare record's, 0x898438): 1 and the map (GL column-major, the game's clip to its clip) that
+ * sets each point's depth to the lamp's at (ndc_x, ndc_y), the draw's middle; 0 when the depth is no lamp's. */
+int sh3vr_depth_layer_map(float view_depth, float ndc_x, float ndc_y, unsigned from, float out_gl[16]);
 /* Owner 61 (session 15): the beam saber's beam is a 3D mesh of the game's at the saber in her animated hand. One small
  * blended draw of the frame camera's while the saber is lit (`count` its vertices, for the log): 1 and the map (GL
  * column-major, the game's clip to its clip) that moves it with the saber to the VR hand; 0: no saber in the VR hand. */

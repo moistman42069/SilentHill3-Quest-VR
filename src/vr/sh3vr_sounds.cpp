@@ -36,11 +36,13 @@ namespace sh3q {
 
 namespace {
 
-const char* const kSoundNames[kSoundCount] = {
+const char* const kSoundNames[] = {
     "magazine released", "part taken", "magazine seated", "shell in", "slide back", "slide forward", "pump back",
     "pump forward", "holster draw", "holster put", "supplies pouch", "flashlight pocket", "item taken", "dry click",
     "part on the floor", "weapon on a wall", "second grip taken", "hand on a surface", "struggle shake",
+    "the VR menu",
 };
+static_assert(sizeof kSoundNames / sizeof *kSoundNames == kSoundCount, "a name for every VR sound");
 
 struct Ask {
     int what = -1;
@@ -282,6 +284,16 @@ void make_clip(int what, int variant, Maker& m) {
         m.noise(0.02f, 0.08f, 700, 0.8f, 0.6f, 0.5f, 0.5f);
         m.thump(0.03f, 150, 100, 0.03f, 0.35f);
         break;
+    case kSoundMenu:  // the VR menu (owner 80): a soft two-note tick, rising as it opens (variant 0), falling as it
+                      // closes (1)
+        if (variant == 1) {
+            m.modes(0.0f, {2400, 3600}, {0.012f, 0.008f}, 0.7f);
+            m.modes(0.055f, {1700, 2550}, {0.016f, 0.010f}, 0.6f);
+        } else {
+            m.modes(0.0f, {1700, 2550}, {0.012f, 0.008f}, 0.6f);
+            m.modes(0.055f, {2400, 3600}, {0.016f, 0.010f}, 0.7f);
+        }
+        break;
     default:
         break;
     }
@@ -309,6 +321,7 @@ float base_gain(int what) {
     case kSoundGrabWeapon: return 0.20f;
     case kSoundHandSurface: return 0.22f;
     case kSoundStruggle: return 0.24f;
+    case kSoundMenu: return 0.20f;
     default: return 0.25f;
     }
 }
@@ -475,6 +488,10 @@ const Clip* clip_for(const Ask& a, int& variant) {
         return &game_reload[gun];
     if (a.what == kSoundPartFloor) {
         variant = a.detail == kPartShell ? 1 : a.detail == kPartBattery ? 2 : 0;
+        return &made[a.what][variant];
+    }
+    if (a.what == kSoundMenu) {  // opened (detail 1): rising; closed: falling
+        variant = a.detail == 1 ? 0 : 1;
         return &made[a.what][variant];
     }
     static int last[kSoundCount];

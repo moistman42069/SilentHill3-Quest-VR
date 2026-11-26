@@ -17,7 +17,8 @@ get free.
 Controls
 Left stick walks (click it to run), right stick turns. The main trigger fires; melee weapons you swing. A is the action
 button, X the map, Y the inventory, B the supplies. A short press of the left menu button pauses; hold it for a second
-for third person; pause and hold it for the VR menu. The Controls tab has the whole list.
+for the VR menu, anywhere (in play the game pauses under it). First or third person: the VR menu's View page, "First
+person". The Controls tab has the whole list.
 
 Comfort
 Snap or smooth turning, a vignette while turning, seated play and your height are on the Options tab, Comfort.
@@ -27,5 +28,11 @@ Picture and performance
 Dynamic resolution drawing the 3D picture a little smaller for a moment if the headset starts falling behind. Both
 eyes are drawn together in one pass: each of the game's draws goes to both eyes at once, so the work of a frame is done
 once.
+
+The picture
+The game's drifting fog hangs far off in the world, not in front of your eyes ("Drifting fog", on), and a lamp's lens
+flare sits at the lamp. Brightness, Contrast, Color saturation and Darker edges set the picture the way the PC VR
+mod's settings do (at first the game's own look), and Smooth edges (on) takes the jaggies off. Options tab, View, or
+the VR menu in the game.
 
 Every VR feature is on from the start; each one can be turned off on the Options tab or in the VR menu in the game.

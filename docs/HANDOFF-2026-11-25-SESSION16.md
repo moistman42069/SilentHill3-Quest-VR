@@ -102,7 +102,93 @@ minutes of runs: vr237-vr240 the reload check the owner asked for). Releases: 0.
 - docs/RELEASE-NOTES-0.1.0.md: what you need (the exe SHA-1s, the data by size), installing, everything in 0.1.0,
   controls, logs and reports, known for now, updating, credits, files.
 
-## Open, in order
+## Part 2 (owners 78-81, after 0.1.1): STOPPED on the owner's "wrap up and do a handoff"; NOTHING COMMITTED
+
+Owner messages (also in C:/SH3Quest/notes/owner-messages-sessions1-7.txt):
+- 78: double-check and verify whatever is left.
+- 79: "just new release going forward" (0.1.2 next; never change v0.1.0/v0.1.1). A player: "theres like a weird
+  overlay that looks like fog. unplayable." The owner had asked for the noise off. "dont fuck this up again".
+- 80: holding the left menu button should open the VR menu (in cutscenes as before, and from now on in play too), not
+  switch first/third person. First/third must stay reachable without input conflicts.
+- 81: don't miss any QOL that the PC VR mod (NotGodlikeUwU's, C:/SH3Quest/refs/Silent-Hill-3-VR-Mod) already has.
+
+Builds 203-205 (PC, all BUILD OK: build_pc_203/204/205.log); runs vr241-vr245. The Quest APK is NOT built yet.
+
+- Build 203: log caps (sh3vr_combat.cpp combat_block: 40 lines, then 1 a second with counts; sh3vr_ik.cpp reach
+  toggles: 40, then every 50th). Per-frame flushed lines had cost about 5,000 a run on the Quest.
+- LIST 45, the far door by hand: DONE in vr242 (door231.txt, last point 24550 18170, uncommitted; event 48).
+  vr241 had stopped 0.2 m short.
+- LIST 50, blocking against a monster: seen in vr230/vr234 (the dog: "guarded by knife ... 0.7 of 2.0 damage
+  kept"). LIST-0.1.0.md 45 and 50 are not updated yet.
+- THE FOG (owner 79), what was wrong: the film grain was off ("film grain: off" in every run). The overlay is the
+  game's drifting fog: 0x5F572E's fans (6 vertices, FVF 0x144, a 512x512 texture, blended, z test off; 171 a frame,
+  vr243). Their screen z is no real depth: 0.60-0.98 here (vr244). The game's depths 0.5 / 0.9 / 0.95 / 1 lie
+  0.40 / 1.87 / 3.4 / 20.6 m from its camera (vr245). d3d8.c's world-effect path reprojected them per eye at that z,
+  so the fog patches floated 0.5-5 m in front of the face, drawn over everything.
+  The fix (builds 204-205): d3d8.c vr_route_pick sends exactly these fans through sh3vr_far_layer_map (sh3vr.cpp).
+  It sets their depth to the far plane, moves them halfway in (about 10 m), then applies each eye's correction: the
+  PC VR mod's far-layer replay. A new "Drifting fog" option (View, on; VR menu + launcher Options.java) leaves them
+  out when off. The change is logged ("drifting fog on a far layer ... the game's depths ..."). The route dump
+  (SH3_ROUTE_DUMP) now logs each screen-space draw's box, depth range and world/moved flags.
+  vr245 confirmed it in the LOG ONLY. ITS PICTURES ARE NOT CHECKED YET:
+  C:/SH3Quest/shots/vr245 (f07600, f07650 head turned 20 degrees, left/right/headset). Compare them with
+  vr243 (before the fix).
+- NEXT SUSPECT (same cause, not fixed): the lamps' halos, 0x468CDA / 0x468F6E (128x128, z test ON, z 0.50003
+  fixed). They go the world-effect path at depth 0.5 = 0.40 m from the eyes. Check pictures of a lamp (both eyes)
+  and decide (far layer is wrong with the z test on; maybe the scene depth at the halo's middle).
+  Also 0x5F68CC / 0x5F6937 (the blood / muzzle-flash composite, z 1.0 full screen): as drawn, which is right.
+- Menu button (owner 80), sh3vr.cpp map_pad: held 1 s = the VR menu everywhere. In play it first pauses the game
+  (pause_pulse, passed through while the menu is up). A short press closes the menu (back in the game's pause), and
+  another resumes. First/third person = the menu's "First person" switch (the third_person toggle is gone). The menu
+  plays a new sound on open and close (kSoundMenu, rising/falling, sh3vr_sounds.cpp; names table now
+  compile-checked) with a left-hand tick. vr244/vr245: opened in play, game paused, closed, resumed: all in log and
+  pictures (f07820 panel shows the VR menu).
+  DOCS NOT UPDATED: CONTROLS.md lines 29 and 67, the launcher's controls.txt 13/37, features.txt 20, README 34,
+  release notes ("hold for first/third", "pause, then hold").
+- PC VR mod audit (owner 81). Read: README, docs/steamvr.md, every sh3vr.ini.example key, the ini keys the code
+  reads, and d3d9_hook's fog / noise / composite checks.
+  Already in the port:
+  - frame rate at the headset's (the game scales by 60/fps);
+  - 6DoF; roomscale from the neck; height matched; first person after cutscenes;
+  - flashlight where you look; snap/smooth turn with angle and speed;
+  - knife-easier physical melee; trigger readies and fires; damage pulse; shot/hit vibration;
+  - culling from the head (sh3.c); input cleared on focus loss;
+  - noise per eye (off by default); muzzle effects moved to the gun;
+  - UI and subtitles on the panel.
+  ADDED (builds 204-205): the mod's picture settings, as an eye pass in place of the blit (sh3vr.cpp
+  picture_pass; falls back to the blit if its shader fails):
+  - "Brightness" 50-300 %, "Contrast" 50-150 %, "Color saturation" 0-200 %, all at 100 % = the game's own;
+  - "Darker edges" 0-100 % (0);
+  - "Smooth edges" FXAA (ON, as the mod's default).
+  These are in the VR menu's View page and Options.java. vr245: the pass ran ("through the picture's pass ...
+  smooth edges 1"). ITS PICTURES ARE NOT CHECKED YET against vr243's (orientation, brightness unchanged at 100 %).
+  NOT ADDED, on purpose:
+  - "Shoot while walking": experimental and off in the mod; the port keeps the game's rule, the mod's default.
+  - Per-weapon calibration ini: the port has fixed per-gun calibrations.
+  - PC-only items: SteamVR / Index / Vive runtime selection, D3D12, MSAA.
+
+Files changed in part 2 (all uncommitted):
+- src/d3d8/d3d8.c (fog route, frame_fog log, route-dump place lines).
+- src/vr/sh3vr.cpp (far layer map, options rows and clamps, picture pass, menu hold).
+- src/vr/sh3vr.h; src/vr/sh3vr_internal.h (options, kSoundMenu).
+- src/vr/sh3vr_menu.cpp (sound and tick); src/vr/sh3vr_sounds.cpp; src/vr/sh3vr_combat.cpp and sh3vr_ik.cpp (log
+  caps).
+- android/.../Options.java (Drifting fog and the picture options).
+- tools/sim/fog.txt (new); tools/sim/make_door231.py and door231.txt (last point 24550).
+
+## Open, in order (part 2)
+
+1. Check vr245's pictures whole: fog in both eyes and after the head turn; the picture pass the right way up and
+   the same brightness as vr243.
+2. The lamps' halos at 0.40 m (above): pictures, then a fix.
+3. Docs for the menu hold and the new options: CONTROLS.md, controls.txt, features.txt, README, whats_new.txt.
+4. LIST 45 (far door done, vr242) and LIST 50 (dog, vr230/vr234); door228 floor items via the death skip (~9 min).
+5. Release 0.1.2 as a NEW release (versionCode 3, "0.1.2"; RELEASE-NOTES-0.1.2.md: the fog fix, the menu hold,
+   the picture options, the log caps). Re-verify on the exact build (reload.txt, fog.txt). Then build_quest_7,
+   static checks against 0.1.1, commit, push, tag v0.1.2, gh release create, check releases/latest. Ask nothing:
+   the owner said "just new release going forward".
+
+## Open, in order (part 1, still standing)
 
 1. The players' and the owner's reports on 0.1.0 and 0.1.1 (GitHub issues, the launcher's report: sh3-crash.log,
    sh3.log), first of all whether the 0.1.0 launcher's updater offered and installed 0.1.1 (its first real test;

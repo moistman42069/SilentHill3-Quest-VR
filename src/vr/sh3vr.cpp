@@ -89,6 +89,12 @@ const OptionRow kRows[] = {
     SW(hide_arms_near, "Hide arms near your eyes", "View", false),
     SW(spatial_sound, "Spatial sound", "View", false),
     SW(film_grain, "Film grain", "View", false),
+    SW(drifting_fog, "Drifting fog", "View", false),
+    NU(brightness, "Brightness", "View", 50.0f, 300.0f, 10.0f, "%", false),
+    NU(contrast, "Contrast", "View", 50.0f, 150.0f, 5.0f, "%", false),
+    NU(saturation, "Color saturation", "View", 0.0f, 200.0f, 10.0f, "%", false),
+    NU(dark_edges, "Darker edges", "View", 0.0f, 100.0f, 10.0f, "%", false),
+    SW(smooth_edges, "Smooth edges", "View", false),
     SW(her_shadow, "Heather's shadow", "View", false),
     NU(panel_distance, "Screen distance", "View", 0.8f, 3.0f, 0.1f, "m", false),
     NU(panel_width, "Screen size", "View", 0.6f, 2.5f, 0.1f, "m", false),
@@ -165,6 +171,10 @@ void clamp_options() {
     opt.smooth_degrees = std::clamp(opt.smooth_degrees, 10.0f, 720.0f);
     opt.vignette_strength = std::clamp(opt.vignette_strength, 0.0f, 100.0f);
     opt.haptics_strength = std::clamp(opt.haptics_strength, 0.0f, 100.0f);
+    opt.brightness = std::clamp(opt.brightness, 50.0f, 300.0f);
+    opt.contrast = std::clamp(opt.contrast, 50.0f, 150.0f);
+    opt.saturation = std::clamp(opt.saturation, 0.0f, 200.0f);
+    opt.dark_edges = std::clamp(opt.dark_edges, 0.0f, 100.0f);
 }
 
 }  // namespace
@@ -1066,6 +1076,130 @@ bool ui_gl() {
     return true;
 }
 
+// Owner 81 (session 16: "lets be sure we dont miss any other QOL things the pcvr mod does already"): the PC VR mod's
+// picture settings (its sh3vr_host64.cpp ApplyImageCorrection: ExposureStops, Saturation, Contrast about 0.18,
+// VignetteStrength; and EnableFXAA, on there by default). "Brightness", "Contrast", "Color saturation", "Darker edges"
+// and "Smooth edges" (View): each eye's picture drawn into the headset's image through this pass in place of the blit
+// when any is off the game's own look (the game's values are sRGB-like, so the light is worked on at their power 2.2).
+GLuint pic_prog = 0, pic_vao = 0, pic_sampler = 0;
+GLint pic_u_layer = -1, pic_u_adj = -1, pic_u_px = -1;
+bool pic_gl_failed = false;
+
+const char* kPicVs =
+    "#version 300 es\nprecision highp float;\nout vec2 vT;\n"
+    "void main() {\n"
+    "    vec2 k = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1));\n"
+    "    vT = vec2(k.x, 1.0 - k.y);\n"  // the game's pictures are top row first, the swapchain's bottom row first
+    "    gl_Position = vec4(k * 2.0 - 1.0, 0.0, 1.0);\n"
+    "}\n";
+// uAdj: brightness (a multiple of the light), contrast, saturation, darker edges (0..1); uPx: a texel (1/w, 1/h),
+// smooth edges (1). The smoothing: FXAA (the console version: the edge's way from the four diagonal neighbours' luma,
+// two or four taps along it, the four kept only while they stay in the neighbourhood's range).
+const char* kPicFs =
+    "#version 300 es\nprecision highp float;\nprecision highp sampler2DArray;\n"
+    "uniform sampler2DArray uTex;\nuniform float uLayer;\nuniform vec4 uAdj;\nuniform vec4 uPx;\nin vec2 vT;\n"
+    "out vec4 oColor;\n"
+    "vec3 at(vec2 t) { return texture(uTex, vec3(t, uLayer)).rgb; }\n"
+    "float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }\n"
+    "void main() {\n"
+    "    vec3 c = at(vT);\n"
+    "    if (uPx.z > 0.5) {\n"
+    "        float nw = luma(at(vT + vec2(-1.0, -1.0) * uPx.xy)), ne = luma(at(vT + vec2(1.0, -1.0) * uPx.xy));\n"
+    "        float sw = luma(at(vT + vec2(-1.0, 1.0) * uPx.xy)), se = luma(at(vT + vec2(1.0, 1.0) * uPx.xy));\n"
+    "        float m = luma(c);\n"
+    "        float lo = min(m, min(min(nw, ne), min(sw, se))), hi = max(m, max(max(nw, ne), max(sw, se)));\n"
+    "        vec2 d = vec2(-((nw + ne) - (sw + se)), (nw + sw) - (ne + se));\n"
+    "        float reduce = max((nw + ne + sw + se) * 0.03125, 1.0 / 128.0);\n"
+    "        d = clamp(d / (min(abs(d.x), abs(d.y)) + reduce), vec2(-8.0), vec2(8.0)) * uPx.xy;\n"
+    "        vec3 a = 0.5 * (at(vT + d * (1.0 / 3.0 - 0.5)) + at(vT + d * (2.0 / 3.0 - 0.5)));\n"
+    "        vec3 b = a * 0.5 + 0.25 * (at(vT - d * 0.5) + at(vT + d * 0.5));\n"
+    "        float lb = luma(b);\n"
+    "        c = lb < lo || lb > hi ? a : b;\n"
+    "    }\n"
+    "    vec3 l = pow(max(c, vec3(0.0)), vec3(2.2)) * uAdj.x;\n"
+    "    l = mix(vec3(dot(l, vec3(0.2126, 0.7152, 0.0722))), l, uAdj.z);\n"
+    "    l = max((l - 0.18) * uAdj.y + 0.18, vec3(0.0));\n"
+    "    l *= 1.0 - uAdj.w * smoothstep(0.55, 1.0, length((vT - 0.5) * vec2(1.0, 0.9)) * 1.4142);\n"
+    "    oColor = vec4(pow(clamp(l, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2)), 1.0);\n"
+    "}\n";
+
+// Whether the picture settings are off the game's own look (the pass needed).
+bool picture_changed() {
+    return opt.smooth_edges || std::fabs(opt.brightness - 100.0f) > 0.5f || std::fabs(opt.contrast - 100.0f) > 0.5f ||
+           std::fabs(opt.saturation - 100.0f) > 0.5f || opt.dark_edges > 0.5f;
+}
+
+// Eye `layer` of the array `src` (w x h) into the bound draw framebuffer's tw x th image with the picture settings;
+// false: not needed or not possible (the caller blits as before).
+bool picture_pass(unsigned src, int layer, int w, int h, int tw, int th) {
+    if (!picture_changed() || pic_gl_failed) return false;
+    if (!pic_prog) {
+        pic_prog = gl_link_program(kPicVs, kPicFs, "the picture's");
+        if (!pic_prog) {
+            pic_gl_failed = true;
+            rt_log("VR: the picture's shader failed: the eyes' pictures as the game draws them (Brightness, Contrast, Color "
+                   "saturation, Darker edges and Smooth edges left out)");
+            return false;
+        }
+        pic_u_layer = glGetUniformLocation(pic_prog, "uLayer");
+        pic_u_adj = glGetUniformLocation(pic_prog, "uAdj");
+        pic_u_px = glGetUniformLocation(pic_prog, "uPx");
+        GLint prog = 0, vao = 0;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+        glUseProgram(pic_prog);
+        glUniform1i(glGetUniformLocation(pic_prog, "uTex"), 0);
+        glUseProgram((GLuint)prog);
+        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vao);
+        glGenVertexArrays(1, &pic_vao);
+        glBindVertexArray((GLuint)vao);
+        glGenSamplers(1, &pic_sampler);
+        glSamplerParameteri(pic_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glSamplerParameteri(pic_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glSamplerParameteri(pic_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glSamplerParameteri(pic_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    {
+        static float told[5] = {-1, -1, -1, -1, -1};
+        const float now[5] = {opt.brightness, opt.contrast, opt.saturation, opt.dark_edges, opt.smooth_edges ? 1.0f : 0.0f};
+        if (std::memcmp(told, now, sizeof now)) {
+            std::memcpy(told, now, sizeof now);
+            rt_log("VR: frame %d: the eyes' pictures through the picture's pass: brightness %.0f%%, contrast %.0f%%, color "
+                   "saturation %.0f%%, darker edges %.0f%%, smooth edges %d (%dx%d into %dx%d)", rt_frame, now[0], now[1],
+                   now[2], now[3], opt.smooth_edges ? 1 : 0, w, h, tw, th);
+        }
+    }
+    GLint prog = 0, vao = 0, tex = 0, active_tex = 0, sampler = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vao);
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &active_tex);
+    glActiveTexture(GL_TEXTURE0);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D_ARRAY, &tex);
+    glGetIntegerv(GL_SAMPLER_BINDING, &sampler);
+    glViewport(0, 0, tw, th);
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_STENCIL_TEST);
+    glColorMask(1, 1, 1, 1);
+    glUseProgram(pic_prog);
+    glBindVertexArray(pic_vao);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, src);
+    glBindSampler(0, pic_sampler);
+    glUniform1f(pic_u_layer, (float)layer);
+    const float adj[4] = {opt.brightness / 100.0f, opt.contrast / 100.0f, opt.saturation / 100.0f, opt.dark_edges / 100.0f};
+    const float px[4] = {1.0f / (float)std::max(w, 1), 1.0f / (float)std::max(h, 1), opt.smooth_edges ? 1.0f : 0.0f, 0.0f};
+    glUniform4fv(pic_u_adj, 1, adj);
+    glUniform4fv(pic_u_px, 1, px);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindSampler(0, (GLuint)sampler);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)tex);
+    glActiveTexture((GLenum)active_tex);
+    glBindVertexArray((GLuint)vao);
+    glUseProgram((GLuint)prog);
+    return true;
+}
+
 // Turned so its face (+z) looks at the eyes.
 Quat face_eyes(Vec3 at, Vec3 eyes) {
     const Vec3 d = eyes - at;
@@ -1525,19 +1659,22 @@ void map_pad() {
     const float main_grip = mh == kRight ? c.right_grip : c.left_grip;
     const float off_grip = mh == kRight ? c.left_grip : c.right_grip;
 
-    // The left menu button: a short press is the pause (and skip; closes the VR menu); held a second, first/third
-    // person in play, the VR menu elsewhere (paused).
+    // The left menu button: a short press is the pause (and skip; closes the VR menu); held a second, the VR menu,
+    // everywhere (owner 80, session 16: "i actually like it being the vr menu, so leave that as is, or adjust it so it
+    // works like that going forward": it had been first/third person in play). In play the game is paused first, its
+    // pause under the menu as in its menus; cutscenes, menus and the title as before. First/third person is the menu's
+    // "First person" switch (View).
     if (c.menu) {
         menu_held_frames++;
         if (!menu_long_done && menu_held_frames >= (int)(display_hz > 0 ? display_hz : 72)) {
             menu_long_done = true;
             if (vr_menu_open) menu_close();
-            else if (play) {
-                third_person = !third_person;
-                rig.set = false;
-                rt_log("VR: %s person", third_person ? "third" : "first");
-                buzz(kLeft, 0.5f, 0.08f);
-            } else menu_open("the left menu button held in a menu");
+            else {
+                if (play && !movie_playing) pause_pulse = 4;  // the game's pause (sent while the menu is up, below)
+                menu_open(play ? "the left menu button held in play: the game paused under it"
+                          : game.cutscene ? "the left menu button held in a cutscene"
+                                          : "the left menu button held in a menu");
+            }
         }
     } else {
         if (menu_held_frames > 0 && !menu_long_done) {
@@ -1552,6 +1689,11 @@ void map_pad() {
         // The VR menu has the controllers; the game gets none of them.
         const float trig = point_hand ? c.right_trigger : c.left_trigger;
         menu_update(c, mouse_on, mouse_u, mouse_v, trig > 0.6f);
+        // (owner 80: the game's pause asked for as the menu opened in play still reaches it)
+        if (pause_pulse > 0) {
+            set(kBack, true);
+            pause_pulse--;
+        }
         pad = p;
         return;
     }
@@ -2124,8 +2266,10 @@ int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
                     hs->target_size(e == 0 ? kTargetLeftEye : kTargetRightEye, tw, th);
                     glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, bb_tex, 0, e);
                     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
-                    // The game's images are top row first (D3D's); the swapchain's bottom row first: flipped here.
-                    glBlitFramebuffer(0, 0, w, h, 0, th, tw, 0, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                    // The game's images are top row first (D3D's); the swapchain's bottom row first: flipped here
+                    // (through the picture's pass when a picture setting is in use, owner 81).
+                    if (!picture_pass(bb_tex, e, w, h, tw, th))
+                        glBlitFramebuffer(0, 0, w, h, 0, th, tw, 0, GL_COLOR_BUFFER_BIT, GL_LINEAR);
                 }
             }
             ptarget = hs->acquire(kTargetPanel);
@@ -2363,6 +2507,102 @@ int sh3vr_effect_map(const float ndc[3], int tex_w, float out_gl[16]) {
                "it to %.0f %.0f %.0f (the flash's or beam's middle at %.0f %.0f %.0f; ndc %.3f %.3f %.4f)", rt_frame, p[0], p[1],
                p[2], info[0], info[1], info[2], info[3], tex_w, q[0], q[1], q[2], info[4], info[5], info[6], ndc[0], ndc[1],
                ndc[2]);
+    }
+    return 1;
+}
+
+// Owner 79 (session 16; a player: "theres like a weird overlay that looks like fog. unplayable"): the game's drifting fog
+// is screen-space quads (d3d8.c vr_route_pick: 0x5F572E's fans, 171 a frame in vr243), drawn without the z test. Their
+// z is no real depth: here 0.60 to 0.98 (vr244; the PC VR mod saw them just past 1), so the world effects' path put
+// each eye's view of them at that depth, patches of fog floating close in front of the eyes. The PC VR mod (NotGodlikeUwU's,
+// d3d9_hook.cpp TransformBatchedFogVertex8) puts each one back through the game's view and projection on its far plane
+// and then through each eye's: a far layer fixed in the world. Here the same with the eyes' corrections (the frame
+// camera's draws' way): the map sets each point's depth to the far plane (clip z = w), takes it to the world, moves it
+// halfway to the game's camera along its own ray (10 m: the game's picture keeps it where it was; half the far plane
+// stays inside every eye's) and back to the game's clip; d3d8_shader.c then applies each eye's correction.
+int sh3vr_far_layer_map(float out_gl[16]) {
+    if (!sh3vr_world_effects()) return 0;
+    M4 inv;
+    if (!invert(vp_m, inv)) return 0;
+    // the game's camera: the one point its projection sends to w = 0 at the middle, (0, 0, 1, 0) in its clip
+    const float cw = inv.m[3][2];
+    if (!(std::fabs(cw) > 1e-12f)) return 0;
+    const float cam[3] = {inv.m[0][2] / cw, inv.m[1][2] / cw, inv.m[2][2] / cw};
+    const float k = 0.5f;
+    M4 S = M4::identity();
+    for (int i = 0; i < 3; i++) S.m[i][i] = k, S.m[i][3] = (1.0f - k) * cam[i];
+    M4 F = M4::identity();  // the depth to the far plane: clip z = w
+    F.m[2][2] = 0.0f, F.m[2][3] = 1.0f;
+    const M4 map = vp_m * S * inv * F;
+    float g[16];
+    map.to_gl(g);
+    for (float v : g)
+        if (!std::isfinite(v)) return 0;
+    std::memcpy(out_gl, g, sizeof g);
+    static int told_frame = -1000;
+    if (rt_frame - told_frame >= 3600) {  // once a minute or so: where the layer is, and what the game's depths mean
+        told_frame = rt_frame;
+        float d[4];
+        const float zs[4] = {0.5f, 0.9f, 0.95f, 1.0f};
+        for (int n = 0; n < 4; n++) {
+            float q[4];
+            for (int i = 0; i < 4; i++) q[i] = inv.m[i][2] * zs[n] + inv.m[i][3];
+            d[n] = std::fabs(q[3]) > 1e-12f ? std::sqrt((q[0] / q[3] - cam[0]) * (q[0] / q[3] - cam[0]) +
+                                                         (q[1] / q[3] - cam[1]) * (q[1] / q[3] - cam[1]) +
+                                                         (q[2] / q[3] - cam[2]) * (q[2] / q[3] - cam[2]))
+                                              : -1.0f;
+        }
+        rt_log("VR: frame %d: the game's drifting fog on a far layer in the world, %.1f m off (the game's camera at %.0f "
+               "%.0f %.0f; each eye's own view); the game's depths 0.5, 0.9, 0.95 and 1 lie %.2f, %.2f, %.2f and %.2f m "
+               "from its camera", rt_frame, d[3] * k / kUnitsPerMetre, cam[0], cam[1], cam[2], d[0] / kUnitsPerMetre,
+               d[1] / kUnitsPerMetre, d[2] / kUnitsPerMetre, d[3] / kUnitsPerMetre);
+    }
+    return 1;
+}
+int sh3vr_drifting_fog(void) { return opt.drifting_fog ? 1 : 0; }
+
+// Session 17 (the handoff's item 2): the game's lens flare round a lamp (d3d8.c vr_route_pick: 0x468CDA's streaks,
+// 0x468F6E's rings) is drawn at a fixed depth, z 0.50003: 0.40 m from the eyes in VR, a double image in front of the
+// wall the lamp is on. The game's own view depth of the lamp (its flare record, 0x898420 + 0x18) is where it belongs:
+// the map sets each point's depth to that one (the game's clip w is the view depth: 0x72C460's projection, vr246), and
+// each eye's correction (d3d8_shader.c) then puts that eye's view of it at the lamp. 0 when the depth is no lamp's.
+int sh3vr_depth_layer_map(float view_depth, float ndc_x, float ndc_y, unsigned from, float out_gl[16]) {
+    if (!sh3vr_world_effects()) return 0;
+    if (!(view_depth > 30.0f && view_depth < 1.0e6f)) return 0;  // 6 cm .. 2 km: the record's, nothing else
+    M4 inv;
+    if (!invert(vp_m, inv)) return 0;
+    // the game's clip w of the point at (x, y, z) in its ndc is 1 / (inv's last row . (x, y, z, 1))
+    const float a = inv.m[3][2], b = inv.m[3][0] * ndc_x + inv.m[3][1] * ndc_y + inv.m[3][3];
+    if (!(std::fabs(a) > 1e-12f)) return 0;
+    float zn = (1.0f / view_depth - b) / a;
+    if (!std::isfinite(zn)) return 0;
+    zn = std::clamp(zn, 1.0e-4f, 0.9999f);
+    M4 F = M4::identity();  // each point's depth set to the lamp's: clip z = zn * w
+    F.m[2][2] = 0.0f, F.m[2][3] = zn;
+    float g[16];
+    F.to_gl(g);
+    std::memcpy(out_gl, g, sizeof g);
+    static int told = 0, told_frame = -100000;
+    if (told < 4 || rt_frame - told_frame >= 3600) {  // the first few, then once a minute or so
+        told++, told_frame = rt_frame;
+        const float cw = inv.m[3][2];
+        float dist = -1.0f, half = -1.0f;
+        if (std::fabs(cw) > 1e-12f) {
+            const float cam[3] = {inv.m[0][2] / cw, inv.m[1][2] / cw, inv.m[2][2] / cw};
+            const float zs[2] = {zn, 0.5f};
+            for (int n = 0; n < 2; n++) {
+                float q[4];
+                for (int i = 0; i < 4; i++)
+                    q[i] = inv.m[i][0] * ndc_x + inv.m[i][1] * ndc_y + inv.m[i][2] * zs[n] + inv.m[i][3];
+                if (!(std::fabs(q[3]) > 1e-12f)) continue;
+                const float dx = q[0] / q[3] - cam[0], dy = q[1] / q[3] - cam[1], dz = q[2] / q[3] - cam[2];
+                (n == 0 ? dist : half) = std::sqrt(dx * dx + dy * dy + dz * dz) / kUnitsPerMetre;
+            }
+        }
+        rt_log("VR: frame %d: the game's lens flare (%s, from %06X) at its lamp, %.2f m ahead (%.0f units; depth %.5f in "
+               "place of the game's 0.50003, which lies %.2f m off; %.2f m from the game's camera along its ray), over "
+               "everything, each eye's own view", rt_frame, from == 0x468CDAu ? "its streaks" : "a ring", from,
+               view_depth / kUnitsPerMetre, view_depth, zn, half, dist);
     }
     return 1;
 }

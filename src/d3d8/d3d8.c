@@ -11,6 +11,7 @@ static int panel_has_picture;  /* SH3 Quest VR: the panel got a draw this frame 
 /* Session 11: this frame's 3D draws with the frame camera (the world) and with others, its 2D sent whole to the panel
  * as a full screen; whether the last frame drew the world (vr_route) */
 static int frame_world, frame_other, frame_screen, world_last = 1;
+static int frame_fog;  /* owner 79 (session 16): the game's drifting fog's draws this frame (vr_route_pick) */
 static uint32_t d3d_obj;
 
 /* What a state block holds: everything for CreateStateBlock, only what was set while recording for
@@ -411,6 +412,18 @@ METHOD(dev_Present, 5) {
                                             : "the world's frames: the 2D on the panel, the world in the eyes",
                        frame_world, frame_other, frame_screen);
             was_screen = screen_now;
+            {
+                /* owner 79 (session 16): the drifting fog seen or gone, told when it changes (how many, where) */
+                static int had_fog = -1;
+                if ((frame_fog > 0) != had_fog) {
+                    had_fog = frame_fog > 0;
+                    rt_log("VR: frame %d: %s", rt_frame, !had_fog ? "no drifting fog"
+                           : !sh3vr_drifting_fog() ? "the game's drifting fog left out (the VR option Drifting fog off)"
+                           : sh3vr_world_effects() ? "the game's drifting fog on a far layer in the world, each eye's view"
+                                                   : "the game's drifting fog as drawn (no eye corrections yet)");
+                }
+                frame_fog = 0;
+            }
             sh3vr_frame_world(frame_world > 0);
             world_last = frame_world > 0;
             frame_world = frame_other = frame_screen = 0;
@@ -878,6 +891,21 @@ static int vr_route(uint32_t va, uint32_t stride, uint32_t count) {
                dev->views, dev->rt == dev->backbuffer, rt ? rt->w : 0, rt ? rt->h : 0, rt ? res_layers(rt) : 0, dev->vs,
                count, dev->rs[27], t0 ? t0->w : 0, t0 ? t0->h : 0, t0 ? res_layers(t0) : 0, dev->rs[7], world_last,
                MEM32(g_esp), dev->draw_nv, dev->draw_np, dev->beam_mesh);
+        /* (session 16, owner 79: a screen-space draw's place: its box and depths, and whether it went in the world) */
+        const int rhw = dev->vs < 0xF0000000u && (dev->vs & 0xE) == 4;
+        if (rhw && va && count) {
+            float b[6] = {1e30f, -1e30f, 1e30f, -1e30f, 1e30f, -1e30f};
+            for (uint32_t i = 0; i < count && i < 4096; i++) {
+                const float *p = (const float *)GPTR(va + i * stride);
+                for (int k = 0; k < 3; k++) {
+                    if (p[k] < b[2 * k]) b[2 * k] = p[k];
+                    if (p[k] > b[2 * k + 1]) b[2 * k + 1] = p[k];
+                }
+            }
+            rt_log("  its place: x %.0f to %.0f, y %.0f to %.0f, z %.5f to %.5f (viewport %.0f %.0f %.0f %.0f); in the world %d, "
+                   "moved %d", b[0], b[1], b[2], b[3], b[4], b[5], dev->vp_x, dev->vp_y, dev->vp_w, dev->vp_h,
+                   dev->rhw_world, dev->rhw_mapped);
+        }
     }
     {
         /* testing (session 15, owner 61: the beam saber's strip): SH3_BEAM_VERTS=N logs the first N screen-space draws
@@ -929,7 +957,7 @@ static int vr_route(uint32_t va, uint32_t stride, uint32_t count) {
     return r;
 }
 static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
-    dev->rhw_world = dev->rhw_mapped = dev->beam_mesh = 0;
+    dev->rhw_world = dev->rhw_mapped = dev->beam_mesh = dev->no_ztest = 0;
     dev->saber_out = MEM8(0x712C656u) == 9;  /* the beam saber out (its light: d3d8_shader.c; 0x712C66B drops while the blade stays out, vr218) */
     {
         /* testing (session 6, the muzzle flash): SH3_VSC_DUMP_SHOT=N logs each draw of N frames after Heather's first
@@ -1017,6 +1045,56 @@ static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
         frame_screen++;
         return 1;
     }
+    {
+        /* Owner 79 (session 16; a player on 0.1.0: "theres like a weird overlay that looks like fog. unplayable"): the
+         * game's drifting fog is 0x5F572E's fans of four (6 vertices, 0x144, a 512x512 texture, blended, the z test
+         * off; vr243: 171 a frame). Their z is no real depth (vr244: 0.60 to 0.98 here; the PC VR mod saw "z slightly
+         * above 1.0"), and the world effects' path below put each eye's view of them at it: patches of fog floating
+         * close in front of the eyes. Now on a far layer fixed in the world (their depth set to the far plane, then
+         * halfway in: 10 m), each eye's own view of it (sh3vr_far_layer_map), as the PC VR mod replays them; the option
+         * "Drifting fog" off leaves them out. (0x5F572E is the game's draw helper: other draws come from it too, the
+         * light composite's strip among them; only these fans are the fog.) */
+        Res *t0 = res_of(dev->tex[0]);
+        if (dev->vs == 0x144u && count == 6 && dev->rs[27] && MEM32(g_esp) == 0x5F572Eu && t0 && t0->w == 512 &&
+            t0->h == 512) {
+            frame_fog++;
+            if (!sh3vr_drifting_fog()) return 3;
+            if (sh3vr_far_layer_map(dev->rhw_map)) {
+                dev->rhw_world = dev->rhw_mapped = 1;
+                return 0;
+            }
+        }
+    }
+    {
+        /* testing (session 17): SH3_HALO_DUMP=1 logs the lamps' halos (0x468CDA, 0x468F6E: 128x128 sprites at z 0.50003,
+         * which the world effects' path below puts 0.40 m from the eyes) with what the game placed them from: the record
+         * at 0x898420 (0x4681F0 fills it through 0x678450 from the light array at 0x8983E0) and the scene's camera */
+        static int dump = -1, told;
+        if (dump < 0) dump = getenv("SH3_HALO_DUMP") ? 1 : 0;
+        const uint32_t ret = MEM32(g_esp);
+        if (dump && (ret == 0x468CDAu || ret == 0x468F6Eu) && va && (told < 8 || rt_frame % 300 == 0) && told < 40) {
+            told++;
+            char line[1600];
+            int n = snprintf(line, sizeof line, "halo dump: frame %d from %06X, %u vertices:", rt_frame, ret, count);
+            for (uint32_t i = 0; i < count && i < 6 && n < (int)sizeof line - 80; i++) {
+                const float *v = (const float *)GPTR(va + i * stride);
+                n += snprintf(line + n, sizeof line - n, " (%.1f %.1f %.5f %.4f)", v[0], v[1], v[2], v[3]);
+            }
+            n += snprintf(line + n, sizeof line - n, "; 0x8983E0..0x898480 as floats:");
+            for (uint32_t a = 0x8983E0u; a < 0x898480u && n < (int)sizeof line - 24; a += 4)
+                n += snprintf(line + n, sizeof line - n, " %g", MEMF(a));
+            rt_log("%s", line);
+            n = snprintf(line, sizeof line, "halo dump: as ints:");
+            for (uint32_t a = 0x8983E0u; a < 0x898480u && n < (int)sizeof line - 16; a += 4)
+                n += snprintf(line + n, sizeof line - n, " %d", (int)MEM32(a));
+            n += snprintf(line + n, sizeof line - n, "; 0x72C460:");
+            for (uint32_t a = 0x72C460u; a < 0x72C4A0u && n < (int)sizeof line - 16; a += 4)
+                n += snprintf(line + n, sizeof line - n, " %g", MEMF(a));
+            n += snprintf(line + n, sizeof line - n, "; viewport %.0f %.0f %.0f %.0f", dev->vp_x, dev->vp_y, dev->vp_w,
+                          dev->vp_h);
+            rt_log("%s", line);
+        }
+    }
     float x0 = 1e30f, y0 = 1e30f, x1 = -1e30f, y1 = -1e30f, z0 = 1e30f, z1 = -1e30f;
     double sx = 0, sy = 0, sz = 0;
     uint32_t nv = 0;
@@ -1031,6 +1109,23 @@ static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
         sx += p[0], sy += p[1], sz += p[2];
     }
     int full = x1 - x0 >= 0.95f * dev->vp_w && y1 - y0 >= 0.95f * dev->vp_h;
+    /* Session 17 (the handoff's item 2): the game's lens flare round a lamp, 0x468CDA's streaks and 0x468F6E's rings
+     * (128x128 sprites, the z test on), is drawn at a fixed depth, z 0.50003, which the world effects' path below put
+     * 0.40 m from the eyes: a double image in VR, nearer than the wall the lamp is on (vr245, vr246: about 60 px more
+     * between the eyes than the wall's bench). The lamp's glow itself the game draws at the lamp's depth (vr246: z
+     * 0.90321 for a lamp 936 units off), which is right as it is. The game's own view depth of the lamp is in its flare
+     * record (0x898420 + 0x18, filled with its screen place through 0x678450; vr246: the record's view point projects
+     * to the streaks' middle exactly), so the flare goes at that depth (sh3vr_depth_layer_map), each eye's own view,
+     * and over everything (no z test), as on the flat screen, where 0.40 m was in front of it all. */
+    if (!full && nv && (MEM32(g_esp) == 0x468CDAu || MEM32(g_esp) == 0x468F6Eu) && z0 > 0.4999f && z1 < 0.5002f &&
+        dev->vp_w > 0 && dev->vp_h > 0 && sh3vr_world_effects()) {
+        const float fx = (float)((sx / nv - dev->vp_x) / dev->vp_w * 2.0 - 1.0),
+                    fy = (float)(1.0 - (sy / nv - dev->vp_y) / dev->vp_h * 2.0);
+        if (sh3vr_depth_layer_map(MEMF(0x898438u), fx, fy, MEM32(g_esp), dev->rhw_map)) {
+            dev->rhw_world = dev->rhw_mapped = dev->no_ztest = 1;
+            return 0;
+        }
+    }
     /* The game's effects it projected itself (session 6: the muzzle flash, its smoke, dust, sparks): their depth is
      * real, strictly between 0 and 1 (its 2D sits at exactly 0 or 1). In the eyes, put right per eye as the frame
      * camera's draws are, so they stand in the world (they were on the panel, flat: the flash in the left palm). The
@@ -1085,7 +1180,7 @@ static void panel_target(int on) {
 static void apply_render_states(void) {
     uint32_t *rs = dev->rs;
     apply_viewport_scissor(0);
-    if (rs[7] && dev->ds) { glEnable(GL_DEPTH_TEST); glDepthFunc(cmp_func(rs[23])); }
+    if (rs[7] && dev->ds && !dev->no_ztest) { glEnable(GL_DEPTH_TEST); glDepthFunc(cmp_func(rs[23])); }
     else glDisable(GL_DEPTH_TEST);
     /* session 14 (vr204): the game's blended screen-space effects put in the world (its fog, the beam saber's beam, the
      * muzzle flash) never write the eyes' depth: the hands' and the weapon's depth probes took the beam for a wall */
@@ -1280,8 +1375,9 @@ static void vr_her_shadow(void) {
     memcpy(view_keep, dev->view, sizeof view_keep);
     memcpy(proj_keep, dev->proj, sizeof proj_keep);
     const uint32_t vs_keep = dev->vs, ps_keep = dev->ps, colorop_keep = dev->tss[0][1], alphaop_keep = dev->tss[0][4];
-    const int rhw_world_keep = dev->rhw_world, rhw_mapped_keep = dev->rhw_mapped, beam_mesh_keep = dev->beam_mesh;
-    dev->beam_mesh = 0;
+    const int rhw_world_keep = dev->rhw_world, rhw_mapped_keep = dev->rhw_mapped, beam_mesh_keep = dev->beam_mesh,
+              no_ztest_keep = dev->no_ztest;
+    dev->beam_mesh = dev->no_ztest = 0;
     static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
     memcpy(dev->world[0], ident, sizeof ident);
     memcpy(dev->view, vol_view, sizeof vol_view);
@@ -1314,6 +1410,7 @@ static void vr_her_shadow(void) {
     memcpy(dev->proj, proj_keep, sizeof proj_keep);
     dev->vs = vs_keep, dev->ps = ps_keep, dev->tss[0][1] = colorop_keep, dev->tss[0][4] = alphaop_keep;
     dev->rhw_world = rhw_world_keep, dev->rhw_mapped = rhw_mapped_keep, dev->beam_mesh = beam_mesh_keep;
+    dev->no_ztest = no_ztest_keep;
 }
 
 /* The GL buffer of a vertex or index buffer, created and refreshed from the guest copy on the render

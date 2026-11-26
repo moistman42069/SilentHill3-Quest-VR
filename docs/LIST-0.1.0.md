@@ -81,8 +81,9 @@ Marks: [ ] open, [~] started, [x] done (with how it was checked), [?] needs the 
     in the scene at the camera"); VR cutscenes ON by default (owner 2026-11-24: "make sure vr cutscenes are on by
     default too"): real-time cutscenes play in VR, in stereo with head tracking, at the scene's own camera (the
     cinema screen is the switch's other setting, not the default); movies on the screen (A5).
-14. [~] 1st/3rd person toggle mid-game: hold the left menu button ~1 s (a short press stays the pause), also in the
-    VR menu; third person = the game's own camera in stereo with head look, comfortable placement; the switch keeps
+14. [~] 1st/3rd person toggle mid-game: the VR menu's "First person" switch (owner 80, session 16: the left menu
+    button held ~1 s is now the VR menu everywhere, the game paused under it in play; a short press stays the pause);
+    third person = the game's own camera in stereo with head look, comfortable placement; the switch keeps
     aim and movement right in both.
 15. [~] Every input mapped, none missing, no conflicts: action, confirm, cancel, attack, ready weapon, flashlight,
     dash, strafe, map, map zoom, inventory, supplies, search view, pause, skip, menus' directions, recenter, the VR
@@ -350,6 +351,16 @@ Marks: [ ] open, [~] started, [x] done (with how it was checked), [?] needs the 
     door's trigger (the game's own check finds it from 24500; vr226's hand met it from 24323); vr236 (the last point
     24400 18170) was stuck at the hall's start after the kill (the line to point 4 runs into the railing). Next: a
     point at the hall's start before point 4, then the same run. The death skip to the mall (door228.txt) not run yet.
+    Session 16, the far door DONE (vr242, door231.txt with a point 0.9 m into the hall and the last at 24550 18170;
+    vr241 had stopped 0.2 m short): at frame 11742 "the left hand can use event 48" (its light tick), then "the left
+    hand used event 48 at 24770 -626 18209": the game's own door, by hand. Left here: floor items by hand, through the
+    death skip to the mall (door228.txt).
+    Session 17, the death skip on build 207: vr249 lived (her knife guarded the dog's blow at 1%: Block is on by
+    default); vr251, the same with Block off for that run only, died at frame 8940 ("SH3_HP lets go"), and the game
+    went on to the mall: at frame 10217 a new room table (0ECA0A50), "floor items: 0 in the room", and from frame
+    10658 she stood at -60600 0 -20625 in the mall's women's restroom (the red seal on the mirror), the pause menu's
+    panel working there (the script's menu presses). No crash. Left: the mall's first floor items need a route out of
+    the restroom (door228 has none after the death); the headset covers it too (HEADSET_CHECKLIST: "Reach and grip at an item").
 
 46. [~] **Manual reload, on by default, as good as possible** (the owner, 2026-11-24, session 3: "we already had a
     similar thing done in our halo decomp work, just make it more accurate and efficient in this port"): every gun
@@ -434,10 +445,15 @@ The owner's words for each are in docs/HANDOFF-2026-11-24-SESSIONS5-7.md ("The o
     (an arm), with a buzz and a knock; "Block with your weapon or arms" (on). To see with a monster.
     Later in session 9 (vr149): checked with the game's damage step: health 100 -> 85 guarded by the gun, 85 -> 55
     unguarded, 55 -> 37 and 37 -> 19 guarded by the forearm (the guard keeps 0.5 and 0.6 of the damage, as written).
-    Session 15, against a REAL monster (vr227, build 194: the circular hall's Closer held her at the hall's start from
-    game frame 8303 to the run's end, her health held): of its 2782 hits (2781 of its arm's kind 120 at 0.2 damage a
+    Session 15, against a REAL monster (vr227, build 194: the circular hall's Closer (session 16: its dog) held her
+    at the hall's start from game frame 8303 to the run's end, her health held): of its 2782 hits (2781 of its arm's kind 120 at 0.2 damage a
     frame, one blow of kind 121 at 2.0), 2451 were guarded: 2419 by the knife (a third kept; the log rounds it to "0.0
     of 0.2 damage kept"), 31 by her right forearm (0.6 kept), the 2.0 blow by the knife (0.7 kept); 331 came from off the guard's line.
+    Session 16 (vr230 and vr234, builds 195 and 198: the circular hall's dog, 25 bones by session 16's bone dump,
+    0.67 m off, 12 degrees right of her facing, its health 712.5): 2106 and 2561 hits guarded by the knife, its 2.0
+    blows (kind 121) 33 and 20 degrees off the attack's line ("0.7 of 2.0 damage kept"), its 0.2 a frame (kind 120)
+    at a third ("0.0 of 0.2 kept", rounded). The block works against a real monster in both runs; its feel (the
+    guard's angle) is for the headset.
 51. [~] Launcher: a features popup after the game files are verified (first dynamic cutscenes and how to turn them off
     for steady third-person cutscenes, then controls and first-time tips); the updater and What's new as in the Jak and
     Ratchet launchers; the best graphics by default (top resolution with dynamic resolution, AppSW, 120 Hz).
@@ -593,7 +609,8 @@ each piece risks).
    still met none: the screen had not registered them yet; the game's own second click opens it as before). Left: a
    slider dragged, the save screen and puzzles (HEADSET_CHECKLIST).
 13. Written: "In the scene at the camera" the default; movies wait on 5.
-14. Written: hold the left menu button 1 s; a short press pauses.
+14. Written: hold the left menu button 1 s; a short press pauses. Session 16 (owner 80): the hold is the VR menu
+    everywhere; first/third person is its "First person" switch (CONTROLS.md, controls.txt, features.txt, README).
 15. Written: docs/CONTROLS.md, every one of the game's 12 pad actions reachable, no two in one state; the other 13
    entries (stick, camera, menus) stay the game's. The keyboard check needs the run.
 16. Written: snap 45° (default) and smooth, head or hand direction, vignette, seated, recentre (VR menu).

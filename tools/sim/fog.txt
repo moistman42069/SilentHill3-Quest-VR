@@ -1,0 +1,25 @@
+# SH3 Quest VR, the PC rig (session 16, owners 79-81), about 3 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_ROUTE_DUMP=7600: where every draw of frames 7600-7602 goes, with each screen-space draw's place (owner 79: "a
+# weird overlay that looks like fog": the fog billboards, FVF 0x144, 4-primitive fans, a 512x512 texture, drawn from
+# 0x5F572E as the PC VR mod found them; build 204 puts them on a far layer in the world). Build 204+: the head turned
+# 20 degrees (the fog stays with the world), the picture's pass (Smooth edges on by default, owner 81), and owner 80:
+# the left menu button held in play opens the VR menu with the game paused under it; a short press closes it, another
+# unpauses.
+7400 shot f07400-start
+7500 left_y 1
+7560 left_y 0
+7600 shot f07600-route-dump
+7620 head_yaw 20
+7650 shot f07650-head-turned-20
+7660 head_yaw 0
+7680 menu 1
+7790 menu 0
+7820 shot f07820-vr-menu-held-in-play
+7840 menu 1
+7846 menu 0
+7880 shot f07880-vr-menu-closed
+7900 menu 1
+7906 menu 0
+7960 shot f07960-back-in-play
+7980 quit 0

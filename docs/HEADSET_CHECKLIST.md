@@ -23,6 +23,13 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       Never in her eyes with something right before them: the opening's bridge walk, where she stands at the ride's
       fence, stays at the game's camera (sh3.log "the world N cm before her eyes"). Turned off: always the game's camera.
 - [ ] No film grain (the game's noise filter off by default); "Film grain" in the VR menu puts it back.
+- [ ] 0.1.2, the fog (owner 79, a player's "weird overlay that looks like fog"): in the opening's alley and the
+      circular hall the game's drifting fog hangs far off in the world (about 10 m), the same in both eyes, never as
+      patches in front of the face; turn the head: it stays where it is. "Drifting fog" off in the VR menu: none.
+- [ ] 0.1.2, the lamps' lens flare (the opening's wall lamps): the starburst and its rings sit on the lamp, one image
+      in both eyes, not a double image near the face (sh3.log "the game's lens flare ... at its lamp, N m ahead").
+- [ ] 0.1.2, the picture (View): Brightness, Contrast, Color saturation and Darker edges change the picture at once
+      (100 / 100 / 100 / 0 % the game's own look); Smooth edges (on) takes the jaggies off without blurring text.
 - [ ] Her shadow (LIST 56): with the flashlight on, raise a hand into its beam: the beam's spot on the floor or wall
       ahead darkens in the hand's shape and moves with it (fingers, a thumbs up, a fist); look down: her legs' shadows
       at her feet, rounded, following your steps; a gun, the pipe or the katana held out casts its own; her arms and
@@ -36,8 +43,10 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       swimming picture when moving the head; nothing missing at the edges of the eyes.
 - [ ] Walk in the room: Heather follows; a wall stops her (the view never goes through a wall without darkening).
 - [ ] Left stick walks where the head looks (the default; the left hand when chosen); the right stick snap-turns 45°; the vignette while moving.
-- [ ] Hold the left menu button 1 s: third person (the game's camera, in stereo); again: first person. A short press
-      pauses. Paused, hold it: the VR menu; every row changes, and the launcher shows the change afterwards.
+- [ ] Hold the left menu button 1 s, anywhere (play, a cutscene, a menu): the VR menu, with its sound; in play the
+      game pauses under it. A short press closes it (the game's pause menu under it), another goes back to play. A
+      short press in play pauses, as before. The menu's View page, "First person" off: third person (the game's
+      camera, in stereo); on: first person. Every row changes, and the launcher shows the change afterwards.
 - [ ] A place where the game's camera matters (a fixed-camera room, a chase): third person comes and goes by itself.
 - [ ] Performance: steady at 120 Hz with Show performance on (Smoother frames, AppSW, on; boost, foveation Medium;
       a Quest 3 or 3S at Render resolution 1.5x, others 1.0x); both eyes are drawn in one pass (multiview: VR does not
@@ -77,7 +86,7 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       health on top (yellow, red under a quarter; under half it pulses as the game's Life Display does) and her stamina
       under it (green; run a while and it drains, stand and it fills); turn the wrist away or look off: they fade out.
       Not shown in menus or cutscenes. With the game's Life Gauge and Life Display on (Extra options): in first person
-      no bars at the view's top left and no red cross (the watch has them); hold the left menu button for third person:
+      no bars at the view's top left and no red cross (the watch has them); third person (VR menu, View, "First person" off):
       the game's normal HUD, its two bars at the view's top left (about 22 degrees left, 16 up, easy to read, following
       the view gently) and the cross on the panel, no watch; back to first person: the top left empty, the watch again.
       "Health bar on your wrist" off: the normal HUD in first person too.

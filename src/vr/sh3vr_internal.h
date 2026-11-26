@@ -73,6 +73,15 @@ struct Options {
     bool spatial_sound = true;   // LIST 34: 3D sounds placed from the head (sh3.c, the listener of 0x46CDF0 / 0x46CFE0)
     bool film_grain = false;     // the game's noise effect (session 7, the owner: "sh3's built in noise/film grain effect should
                                  // be disabled by default. can be re-enabled via in game settings"): sh3.c 0x41C090
+    bool drifting_fog = true;    // owner 79 (session 16): the game's drifting fog, on a far layer in the world (d3d8.c,
+                                 // sh3vr_far_layer_map)
+    // owner 81 (session 16): the PC VR mod's picture settings ([Image] ExposureStops, Contrast, Saturation,
+    // VignetteStrength; [OpenXR] EnableFXAA), sh3vr.cpp picture_pass; 100 % = the game's own look
+    float brightness = 100.0f;   // %, the picture's light (a multiple of it)
+    float contrast = 100.0f;     // %
+    float saturation = 100.0f;   // %, "Color saturation"
+    float dark_edges = 0.0f;     // %, "Darker edges" (the PC VR mod's vignette)
+    bool smooth_edges = true;    // FXAA (the PC VR mod's EnableFXAA, on there by default)
     bool her_shadow = true;      // LIST 56 (session 12, owner messages 49-50): her IK body, her weapon and a part held cast
                                  // shadows from the flashlight in the game's own stencil shadows (her_shadow_tris, d3d8.c)
     float panel_distance = 1.4f;
@@ -371,6 +380,7 @@ float weapon_clearance(int hand, Vec3 a, Vec3 b);
 // How a hand holds the weapon: 0 not, 1 the main hand round its grip, 2 the other hand on its second grip, 3 the other
 // hand on the slide or the cocking knob. Its fingers' curl round that grip when nothing stops them (the measured one).
 int weapon_hand_role(int hand);
+float weapon_two_share(int hand);  // the other hand's share of the second grip, eased (0 .. 1)
 float weapon_hold_curl(int hand);
 // The game's own gripping hand shown for hand h on the weapon held (its group in Heather's model), -1 her finger hand.
 int native_hand_group(int hand);
@@ -482,6 +492,7 @@ enum HandSound {
     kSoundGrabWeapon,       // the other hand takes the weapon's second grip
     kSoundHandSurface,      // a hand laid on a wall, a table or the floor (session 8)
     kSoundStruggle,         // a shake of a controller counted toward breaking free of a hold (owner message 38)
+    kSoundMenu,             // the VR menu opened (detail 1) or closed (0) (owner 80, session 16: held left menu button)
     kSoundCount
 };
 // A hand action's sound at a place (world), heard from there (session 9: mixed over the game's sound, src/win32/dsound.c

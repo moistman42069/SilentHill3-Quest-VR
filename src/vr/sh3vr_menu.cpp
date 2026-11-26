@@ -193,6 +193,9 @@ void menu_open(const char* why) {
     note.clear();
     build_items();
     dirty = true;
+    // session 16 (owner 80): its sound and a tick in the left hand (the menu button's), opening and closing
+    hand_sound(kSoundMenu, world_point(hands[kLeft].grip.position), 1);
+    buzz(kLeft, 0.4f, 0.05f);
     rt_log("VR: the VR menu opened (%s)", why);
 }
 
@@ -200,6 +203,8 @@ void menu_close() {
     if (!vr_menu_open) return;
     save_options();
     vr_menu_open = false;
+    hand_sound(kSoundMenu, world_point(hands[kLeft].grip.position), 0);
+    buzz(kLeft, 0.3f, 0.04f);
     rt_log("VR: the VR menu closed (options saved)");
 }
 

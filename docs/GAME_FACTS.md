@@ -670,6 +670,25 @@ The room's floor items: 0xBA9610 lists indices into the room table's items ([[0x
   0x4B6C30 that walk the shape's edges. Op 0x12 (event 5, event 48) is a corner and one step: event 5 a line at x
   -13157 from z 22453 to about 23950, event 48 a line at x 24809 from z 17840 toward +z (found by the hand from
   24323 18169, vr226). The door's face stands about 0.8 m before its line; the 1.02 m test reaches it from there.
-- Monsters' hits on her (vr225-vr227): the hall's dog bites with kind 122 (5.0); the Closer's arm kind 120 (0.2 a
+- Monsters' hits on her (vr225-vr227; CORRECTED in session 16, "Combat": kinds 120 and 121 are the hall's dog's, a
+  25-bone model): the hall's dog bites with kind 122 (5.0); the Closer's arm kind 120 (0.2 a
   frame while it sweeps), its blow kind 121 (2.0). The runs are not frame-exact: which monster comes first, and when,
   changes run to run.
+
+## Sessions 16-17 (2026-11-25): the drifting fog and the lamps' lens flare (runs vr243-vr247)
+- The drifting fog: 0x5F572E (a draw helper; other draws come from it too) draws it as fans of four (6 vertices, FVF
+  0x144, a 512x512 texture, blended, the z test off; 171 a frame in vr243). Their screen z (0.60-0.98 here) is no
+  depth. The game's D3D depths 0.5 / 0.9 / 0.95 / 1 lie 0.40 / 1.86-1.87 / 3.4 / 18.4-20.6 m from its camera (vr245,
+  vr247: the projection's w is the view depth in world units, 490 a metre).
+- The lens flare round a lamp: 0x469E70 (flag 0x898420, byte 0x898422) checks the lamp (0x468180: 0x49FAC0(record +
+  0x30, record + 0x40)), then calls 0x4690A0 (eax = the record 0x898420; the visibility, the viewport box at 0x715D3F0
+  from 0x43AC40-0x43ACA0, 0). 0x4681F0 fills the record from the light at 0x8983E0 + index * 48 through 0x678450 (the
+  game's projection). The record: +0x10 / +0x14 the lamp's screen place (float, around 2048), +0x18 its view depth
+  (world units), +0x20 / +0x24 angles, +0x30.. ints (x * 16, y * 16, ?, the depth), +0x40 the lamp's view-space point
+  (x, y, z, 1). vr246: that point through the projection at 0x72C460 (x 1.60975, y -2.09058, w = z) lands exactly on
+  the streaks' middle (577.7 575.4 of 1000 x 1000).
+- Its draws (128x128 sprites, 7 floats a vertex: x y z rhw colour u v; the z test on): 0x468CDA the streaks (rotated
+  quads round the lamp, z 0.50003 / 0.50005), 0x468F6E the rings along the line through the screen's middle (z 0.50003)
+  and the lamp's glow (at the lamp's own depth: z 0.90321 for a lamp 936 units off, vr246). VR puts the streaks and
+  rings at the record's depth (d3d8.c vr_route_pick, sh3vr_depth_layer_map: build 207; vr247: the flare's offset
+  between the eyes 206-208 px against the wall's 204-206, where it had been 266).

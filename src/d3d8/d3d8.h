@@ -80,6 +80,7 @@ typedef struct Dev {
     float rhw_map[16];
     int beam_mesh;               /* SH3 Quest VR (session 15): this draw is the beam saber's beam, moved by beam_map */
     float beam_map[16];          /* ... the game's clip -> its world -> moved with the saber to the hand -> its clip */
+    int no_ztest;                /* SH3 Quest VR (session 17): the game's lens flare at its lamp's depth, drawn over all (vr_route_pick) */
     int saber_out;               /* SH3 Quest VR (session 15): the beam saber out (0x712C656 9) */
     uint32_t *palette[65536];    /* PALETTEENTRY[256] per palette number, allocated by SetPaletteEntries */
     uint32_t pal_version[65536]; /* bumped by SetPaletteEntries: a P8 texture expanded with an older one is redone */

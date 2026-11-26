@@ -1,3 +1,17 @@
+0.1.2:
+
+- The fog: a player saw a weird overlay like fog in front of their eyes. It was the game's own drifting fog, which
+  VR drew as patches close in front of your face. It now hangs far off in the world, the way the PC VR mod draws it,
+  and stays put as you turn your head. "Drifting fog" (Options, View) leaves it out altogether.
+- A lamp's lens flare now sits at the lamp, no longer close in front of your face.
+- Hold the left menu button for a second for the VR menu, anywhere: in play the game pauses under it. A short press
+  closes it, and another goes back to play. Opening and closing it make a soft sound. First or third person is now
+  the VR menu's "First person" switch (View).
+- The picture, as the PC VR mod has it: Brightness, Contrast, Color saturation and Darker edges (at first the game's
+  own look), and Smooth edges, on (Options, View, or the VR menu).
+- Letting go of a two-hand grip: the other hand no longer jumps for a frame.
+- Fewer log lines while blocking or reaching, so a long session writes much less.
+
 0.1.1, a patch for 0.1.0:
 
 - Manual reload, the shotgun: its shells now go into its loading port where you see it, under the receiver just in
