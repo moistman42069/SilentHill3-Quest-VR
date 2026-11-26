@@ -279,6 +279,11 @@ public:
         out.focused = true;
         out.views_valid = true;
         out.frame_seconds = m_period_blips > 0 && m_frame % m_period_blips == 0 ? 2.0 / m_hz : 1.0 / m_hz;
+        // 0.1.3 (owner 84): the frame's display time, one period on, two for a "late" frame (a headset shows a late
+        // frame a display later): the VR layer's hand speeds take the real time between frames (motion_dt)
+        m_display_ns += static_cast<std::int64_t>(1e9 / m_hz) * (number("late") != 0 ? 2 : 1);
+        out.display_time = m_display_ns;
+        m_work_start = std::chrono::steady_clock::now();  // 0.1.3: the frame's work from here (last_work_seconds)
         // head_yaw_rate / head_pitch_rate (0.1.8): degrees a second the head keeps turning or nodding, a frame's share
         // each frame, so a script's head moves all the time as a player's does (LIST-0.1.8 item 9, the shadows in each
         // eye); a line setting head_yaw or head_pitch sets where it is, and a rate of 0 stops it.
@@ -410,6 +415,7 @@ public:
 
     bool makes_frames() const override { return m_space_warp; }
     long displays_missed() const override { return m_missed; }
+    double last_work_seconds() const override { return m_last_work; }
 
     void space_warp(const SpaceWarpFrame& warp) override {
         m_warp = warp;
@@ -421,6 +427,7 @@ public:
     }
 
     void finish_frame(bool eyes, bool eyes_kept, const PanelLayer& panel) override {
+        m_last_work = std::chrono::duration<double>(std::chrono::steady_clock::now() - m_work_start).count();  // 0.1.3
         char line[200];
         const bool warped = m_warp_set && eyes && !eyes_kept && m_warp.drawn[0] && m_warp.drawn[1] && !m_warp.skip;
         m_warp_set = false;
@@ -874,6 +881,9 @@ private:
     long m_frame = 0;
     long m_align = -1;        // QUEST_SIM_ALIGN, -1 without
     long m_missed = 0;        // the script's "late" frames so far (displays_missed)
+    std::int64_t m_display_ns = 0;  // 0.1.3: each frame's display time (a "late" frame two periods on: motion_dt)
+    std::chrono::steady_clock::time_point m_work_start = std::chrono::steady_clock::now();  // 0.1.3: begin_frame's end
+    double m_last_work = 0;   // 0.1.3: the last frame's work, wall time (last_work_seconds: dynamic resolution)
     float m_grip_tilt = 0;    // QUEST_SIM_GRIP_TILT, radians
     double m_hz = 72.0;       // QUEST_SIM_HZ, the refresh rate told
     int m_period_blips = 0;   // QUEST_SIM_PERIOD_BLIPS (0.1.5)

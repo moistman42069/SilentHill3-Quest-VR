@@ -1,3 +1,30 @@
+0.1.3:
+
+- No fuzz and no screen filters to start. The fine grey fuzz over everything lit was a second film grain the game
+  draws every frame, apart from its Noise Effect, so turning Film grain off never took it away. Both are gone now
+  unless you turn "Film grain" on (Options, View), and the picture keeps its brightness (the darkest parts a shade
+  darker, as the grain's specks no longer lift them). Drifting fog, sharpening, Smooth edges and the comfort vignette
+  are off to start too.
+- Smooth turning is the default (snap 45 degrees: Options, Comfort). It now turns at its set speed even when the game
+  runs slower than the headset.
+- Physical melee: moving your arm gently no longer swings, with any weapon or your fists (knife, steel pipe, katana,
+  maul, stun gun, a gun as a club, punches). A swing's speed is now measured in real time (at the game's 50 to 60
+  frames a second on a 120 Hz headset, hands were read as moving twice as fast as they did); a swing needs more
+  speed and a longer path than before, and has to stay fast for a moment. Real swings hit as before.
+- Heather's shadow is softer: half as dark where only she shades the beam, no darker where the room's own shadow
+  already is, and none from her hand right at the flashlight's lens.
+- Updating from 0.1.2: your options take 0.1.3's new defaults once (the ones above, and the picture at 100%); your
+  saves are kept, and anything you change afterwards stays.
+- "Cutscenes" in the VR menu (View) reads "Dynamic (her eyes or the camera)", the default. "At the camera" keeps
+  every scene at the game's camera. 0.1.2's separate "Dynamic cutscenes" switch is part of this row now (your choice
+  kept). Every VR option is in the VR menu (hold the left menu button for a second) and on the Options tab, not in
+  the game's own menus.
+- Quitting the game no longer ends in a crash: the logs are saved and the game closes cleanly.
+- Dynamic resolution takes its step back when drawing smaller does not make the frames quicker (it only blurred the
+  picture before).
+- "Smoother frames (AppSW)" is gone from the options: Silent Hill 3 never gave the headset the motion it needs for it,
+  so it did nothing. It comes back once it works.
+
 0.1.2:
 
 - The fog: a player saw a weird overlay like fog in front of their eyes. It was the game's own drifting fog, which

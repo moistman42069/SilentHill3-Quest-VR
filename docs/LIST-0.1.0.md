@@ -205,6 +205,16 @@ Marks: [ ] open, [~] started, [x] done (with how it was checked), [?] needs the 
     the message pump called address 0 ("indirect call to non-code address 00000000", the save of disp.ini first).
     Every hit at contact followed by the game's attack would have crashed on the headset. The same missing pop fixed
     in the "no free ammo" wrapper (sub_00497800: a gun fired at 0 loaded); every other wrapper checked (44).
+    0.1.3 (owner 84: "physical melee seems to sensitive. im just simply moving the knife arm gently/arm in
+    general"; owner 89: "melee should be fixed for eveyrthing, not just knife ofc"): 0.1.2 read the hands'
+    speeds on the headset's frames while the game made half as many (a gentle move read twice as fast). Now the
+    real time between frames (motion_dt), a swing's travel only above 60% of its speed, the speed held 25 ms, a
+    sweep from 80% and half the travel, and higher thresholds (knife 2.4 m/s over 20 cm, stun gun 2.0 / 14,
+    heavy 3.0 / 26, a gun as a club 2.8 / 24, a punch 2.8 / 22). Checked (gentle 0.86 m/s, moderate 1.8 m/s and
+    the same with late frames: no swing; real swings at 5.8 m/s: each counted): vr257 the knife 6 of 6; vr258 the
+    fists and the handgun 2 of 2, the heavy weapons 1 of 2 (0.32 m then: the 40 cm swing missed by a hair, so
+    the heavy and gun paths shortened, build 209); vr259 (build 209) the steel pipe, katana, maul, stun gun and
+    handgun 2 of 2 each, none of the other moves.
 28. [x] Holsters on the body, on by default (the owner, 2026-11-24, session 3: "for silent hill you can only really
     have one weapon equipped at a time anyway. so go ahead and make it so right shoulder is gun holster, and right
     hip is melee. both can be grabbed whenever, recognizing whichever gun/melee weapon you last holstered"): **the
@@ -360,7 +370,11 @@ Marks: [ ] open, [~] started, [x] done (with how it was checked), [?] needs the 
     went on to the mall: at frame 10217 a new room table (0ECA0A50), "floor items: 0 in the room", and from frame
     10658 she stood at -60600 0 -20625 in the mall's women's restroom (the red seal on the mirror), the pause menu's
     panel working there (the script's menu presses). No crash. Left: the mall's first floor items need a route out of
-    the restroom (door228 has none after the death); the headset covers it too (HEADSET_CHECKLIST: "Reach and grip at an item").
+    the restroom (door228 has none after the death); the headset covers it too (HEADSET_CHECKLIST: "Reach and grip
+    at an item"). vr252 (door252.txt: the same death, then the restroom's window by hand): the game never started
+    her death that time (SH3_HP writes her health from outside the hit; she walked on at 0), so on the rig the skip is
+    a coin toss. No scan in any run ever found a floor item with the game's own check (0x4B74B0): none where a run
+    stood. Left for the headset or a mall save.
 
 46. [~] **Manual reload, on by default, as good as possible** (the owner, 2026-11-24, session 3: "we already had a
     similar thing done in our halo decomp work, just make it more accurate and efficient in this port"): every gun

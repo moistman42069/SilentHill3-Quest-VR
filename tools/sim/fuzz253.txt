@@ -1,0 +1,12 @@
+# SH3 Quest VR, the PC rig (session 18, build 207 = 0.1.2's code): owner 84's "weird fuzz over the screen" (vr253;
+# vr254 the same with the ini's drifting_fog 0; vr255 also film_grain 1). Standing
+# still at the start of play, pictures of consecutive frames (a noise that changes each frame is a grain; one that
+# stays is a texture), with the ini's smooth_edges 0 so the raw pixels show. About 2.5 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+7400 shot n07400
+7401 shot n07401
+7402 shot n07402
+7430 head_pitch 25
+7460 shot n07460
+7461 shot n07461
+7480 quit 0

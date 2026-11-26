@@ -40,6 +40,59 @@ final class Config extends Options {
         }
         gameLines.clear();
         gameLines.addAll(lines(new File(folder, GAME_INI)));
+        foldDynamic();
+        newDefaults();
+    }
+
+    /**
+     * 0.1.3 (owner 87): 0.1.2's own switch "Dynamic cutscenes" is the Cutscenes row's first choice now. Off with "In
+     * the scene at the camera" (0) keeps that look as "At the camera" (3); the key is not written again (sh3vr.cpp
+     * load_options does the same).
+     */
+    private void foldDynamic() {
+        String dynamic = vr.remove("dynamic_cutscenes");
+        if (dynamic == null) {
+            return;
+        }
+        boolean off = "0".equals(dynamic) || "false".equalsIgnoreCase(dynamic) || "off".equalsIgnoreCase(dynamic);
+        String scenes = vr.get("cutscenes");
+        if (off && (scenes == null || same(scenes, "0"))) {
+            vr.put("cutscenes", "3");
+        }
+        try {
+            writeVr();
+        } catch (IOException e) {
+            // the game carries it over itself when it starts
+        }
+    }
+
+    /** 0.1.3 (Options.DEFAULTS_0_1_3): a sh3vr.ini from before 0.1.3 gets 0.1.3's changed defaults once, then says so. */
+    private void newDefaults() {
+        if (vr.isEmpty()) {
+            return;  // no file yet: it is written with the defaults and the version
+        }
+        int version = 0;
+        try {
+            String seen = vr.get(DEFAULTS_KEY);
+            version = seen == null ? 0 : Integer.parseInt(seen.trim());
+        } catch (NumberFormatException e) {
+            version = 0;
+        }
+        if (version >= DEFAULTS_VERSION) {
+            return;
+        }
+        for (String key : DEFAULTS_0_1_3) {
+            for (Option option : ALL) {
+                if (option.key.equals(key)) {
+                    vr.put(key, option.fallback);
+                }
+            }
+        }
+        try {
+            writeVr();
+        } catch (IOException e) {
+            // the game puts them in itself when it starts (sh3vr.cpp load_options)
+        }
     }
 
     private static List<String> lines(File file) {
@@ -157,7 +210,9 @@ final class Config extends Options {
     private void writeVr() throws IOException {
         StringBuilder out = new StringBuilder("# SH3 Quest VR options (the launcher's Options and the in-game VR menu write this file)\n");
         out.append("vr = ").append(get(VR)).append('\n');
-        List<String> known = new ArrayList<>(Arrays.asList("vr"));
+        out.append(DEFAULTS_KEY).append(" = ").append(DEFAULTS_VERSION).append('\n');  // 0.1.3: the defaults' version
+        vr.put(DEFAULTS_KEY, Integer.toString(DEFAULTS_VERSION));
+        List<String> known = new ArrayList<>(Arrays.asList("vr", DEFAULTS_KEY));
         for (Option option : ALL) {
             out.append(option.key).append(" = ").append(get(option)).append('\n');
             known.add(option.key);

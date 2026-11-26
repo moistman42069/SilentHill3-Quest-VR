@@ -1,7 +1,7 @@
 Dynamic cutscenes (on)
 In a cutscene you see through Heather's eyes while the scene shows her, and from the game's camera when it shows
 something else or her face up close. For steady third-person cutscenes, always from the game's camera: Options, View,
-turn "Dynamic cutscenes" off. "Cutscenes" there also offers first person all the way, or a cinema screen.
+"Cutscenes", At the camera. The same row also offers first person all the way, or a cinema screen.
 
 Your hands are hers
 Her arms, hands and fingers follow yours. Her fingers stop on walls and objects; close your hand on an item, a handle
@@ -21,18 +21,20 @@ for the VR menu, anywhere (in play the game pauses under it). First or third per
 person". The Controls tab has the whole list.
 
 Comfort
-Snap or smooth turning, a vignette while turning, seated play and your height are on the Options tab, Comfort.
+Smooth turning (or snap), seated play and your height are on the Options tab, Comfort, with a vignette while
+turning if you want one.
 
 Picture and performance
-120 Hz with Smoother frames (AppSW), foveated rendering at Medium, and on a Quest 3 or 3S the top resolution, with
-Dynamic resolution drawing the 3D picture a little smaller for a moment if the headset starts falling behind. Both
-eyes are drawn together in one pass: each of the game's draws goes to both eyes at once, so the work of a frame is done
-once.
+120 Hz (the game makes up to 60 frames a second: each shows twice, evenly), foveated rendering at Medium, and on a
+Quest 3 or 3S the top resolution, with Dynamic resolution drawing the 3D picture a little smaller for a moment if the
+headset starts falling behind (and back again if that does not help). Both eyes are drawn together in one pass:
+each of the game's draws goes to both eyes at once, so the work of a frame is done once.
 
 The picture
-The game's drifting fog hangs far off in the world, not in front of your eyes ("Drifting fog", on), and a lamp's lens
-flare sits at the lamp. Brightness, Contrast, Color saturation and Darker edges set the picture the way the PC VR
-mod's settings do (at first the game's own look), and Smooth edges (on) takes the jaggies off. Options tab, View, or
-the VR menu in the game.
+No screen filters to start: no film grain (neither of the game's two), no drifting fog, no sharpening, no smoothing
+and no vignette; the picture as the game draws it, and a lamp's lens flare at the lamp. Film grain, Drifting fog (far
+off in the world, not in front of your eyes), Smooth edges, Brightness, Contrast, Color saturation and Darker edges
+are on the Options tab, View, or in the VR menu in the game.
 
-Every VR feature is on from the start; each one can be turned off on the Options tab or in the VR menu in the game.
+Every VR feature is on from the start, the screen filters off; each one can be changed on the Options tab or in
+the VR menu in the game (hold the left menu button for a second).

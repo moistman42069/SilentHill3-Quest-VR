@@ -1,6 +1,6 @@
 IN PLAY (first person; third person where it differs)
 Move: left stick (towards where the head looks, or the left hand: Options, Comfort, Walk towards). Walking in the room moves Heather too.
-Turn: right stick (snap 45 degrees, or smooth: Options, Comfort).
+Turn: right stick (smooth, or snap 45 degrees: Options, Comfort).
 Run: left stick click.
 Action, examine, talk: A. Or reach out and grip.
 Ready the weapon: main trigger held (third person: main grip or trigger).

@@ -685,6 +685,7 @@ struct Swing {
     bool seg_valid = false, fired = false, landed = false;
     double landed_at = -10;
     int sweeps = 0;             // the sweeps sent this swing (the log)
+    float fast_for = 0;         // 0.1.3: real seconds the hand has kept the swing's speed (a short hold before it counts)
 };
 Swing swings[2];
 
@@ -1367,12 +1368,20 @@ struct Thresholds {
     float speed, travel, net, cooldown;
 };
 Thresholds thresholds(int what) {
+    // 0.1.3 (owner 84: "physical melee seems to sensitive. im just simply moving the knife arm gently/arm in general,
+    // and melee animation/sound happens"): every swing asks more than 0.1.2's (knife 1.75 m/s, 0.14 m; stun gun 1.40,
+    // 0.10; heavy 2.80, 0.30; gun 2.60, 0.26; a punch 2.20, 0.18), on top of the speeds now taken over the real time
+    // between frames (motion_dt). A deliberate swing passes 3 m/s; a gentle move or a wave stays under 1.5.
+    // Owner 89 ("melee should be fixed for eveyrthing, not just knife ofc"), vr258: the heavy weapons' 0.32 m of fast
+    // travel let a 40 cm swing at 5.8 m/s (the pipe, katana, maul) miss by a hair, so a heavy weapon and a gun as a club
+    // ask a shorter fast path; the speed (twice 0.1.2's in real time, never reached by a gentle or moderate move) is
+    // what keeps an arm that only moves from swinging.
     switch (what) {
-    case kLight: return {1.75f, 0.14f, 0.09f, 0.22f};  // the knife (the PC mod's own, easier)
-    case kStun: return {1.40f, 0.10f, 0.07f, 0.30f};   // a jab with the stun gun's prongs
-    case kHeavy: return {2.80f, 0.30f, 0.22f, 0.38f};
-    case kGun: return {2.60f, 0.26f, 0.18f, 0.45f};    // a gun as a club
-    default: return {2.20f, 0.18f, 0.12f, 0.30f};      // a punch
+    case kLight: return {2.40f, 0.20f, 0.14f, 0.22f};  // the knife
+    case kStun: return {2.00f, 0.14f, 0.10f, 0.30f};   // a jab with the stun gun's prongs
+    case kHeavy: return {3.00f, 0.26f, 0.20f, 0.38f};  // the steel pipe, katana, maul, beam saber
+    case kGun: return {2.80f, 0.24f, 0.18f, 0.45f};    // a gun as a club
+    default: return {2.80f, 0.22f, 0.15f, 0.30f};      // a punch
     }
 }
 
@@ -1503,18 +1512,23 @@ void update_swings() {
         float radius;
         segment(h, slot, g_now, tip_now, radius);
         if (s.speed <= t.speed * 0.25f) sw.armed = true;
-        if (s.speed >= t.speed * 0.4f) {
+        // 0.1.3 (owner 84): a swing begins at half its speed (0.1.2: 0.4), only the fast part of the path counts as
+        // its travel (at 60% of the speed and over; 0.1.2 counted all of it from 40%, so a slow wave added up), over
+        // the real time (motion_dt), and the speed must hold 25 ms (three frames at 120 Hz) before the swing counts.
+        if (s.speed >= t.speed * 0.5f) {
             if (!sw.active) {
                 sw.active = true;
                 sw.start = s.grip.position;
                 sw.travel = 0;
+                sw.fast_for = 0;
                 sw.fired = sw.landed = false;
                 sw.sweeps = 0;
                 // the path from where the weapon was the frame before the hand sped up
                 sw.start_grip_w = sw.seg_valid ? sw.seg_grip : g_now;
                 sw.start_tip_w = sw.seg_valid ? sw.seg_tip : tip_now;
             }
-            sw.travel = std::min(0.75f, sw.travel + s.speed * frame_dt());
+            if (s.speed >= t.speed * 0.6f) sw.travel = std::min(0.75f, sw.travel + s.speed * motion_dt());
+            sw.fast_for = s.speed >= t.speed ? sw.fast_for + motion_dt() : 0.0f;
         } else {
             if (sw.active && sw.sweeps > 0 && !sw.landed) {
                 static int told = 0;  // the rig (no one to hit at the start): the sweeps a swing sent, met no one
@@ -1525,6 +1539,7 @@ void update_swings() {
             }
             sw.active = false;
             sw.travel = 0;
+            sw.fast_for = 0;
         }
         const float net = sw.active ? length(s.grip.position - sw.start) : 0.0f;
         const float cooldown = slot == 7 ? 0.56f : t.cooldown;
@@ -1533,10 +1548,19 @@ void update_swings() {
         // presses the game's own attack. A hit is not waited for: it comes at contact (below).
         const bool heavy_busy = what == kHeavy && (now < still_until || pending.armed);
         if (sw.armed && sw.active && !sw.fired && !heavy_busy && now - sw.last >= cooldown && s.speed >= t.speed &&
-            sw.travel >= t.travel && net >= t.net) {
+            sw.fast_for >= 0.025f && sw.travel >= t.travel && net >= t.net) {
             sw.armed = false;
             sw.fired = true;
             sw.last = now;
+            {
+                static int told = 0;  // 0.1.3: what a swing that counted was (the first 20), to set the thresholds by
+                if (told++ < 20)
+                    rt_log("VR: frame %d: the %s %s's swing counts: %.2f m/s (it asks %.2f), held %.0f ms, the fast "
+                           "travel %.2f m (asks %.2f), %.2f m from its start (asks %.2f)%s", rt_frame,
+                           h == kLeft ? "left" : "right", what == kUnknown ? "fist" : weapon_name(slot), s.speed,
+                           t.speed, sw.fast_for * 1000.0f, sw.travel, t.travel, net, t.net,
+                           game_attack ? ": the game's attack" : "");
+            }
             buzz(h, what == kHeavy ? 0.65f : 0.45f, 0.06f);
             if (game_attack) fire_game_attack(sw, slot, what, g_now, tip_now, radius);
             else if (what == kUnknown) punches_thrown++;
@@ -1555,16 +1579,18 @@ void update_swings() {
         // queue; a fist the knife's, a gun as a club the pipe's). The game's own test (0x4B3260) finds whom it meets
         // that frame and its damage, knock-back and sound follow at once; the way it gives the hit's reaction is the
         // tip's motion that frame (0x4B37AD: cur tip - prev tip), so the reaction goes the way the weapon went where it
-        // met. The first sweep that hits ends the swing's hits (combat_melee_landed). A slow touch sends nothing (60%
-        // of the swing's speed, a third of its travel). Kind 2 only (the way tells the sweep's hit); the stun gun's
+        // met. The first sweep that hits ends the swing's hits (combat_melee_landed). A slow touch sends nothing (80%
+        // of the swing's speed, half its fast travel: 0.1.3). Kind 2 only (the way tells the sweep's hit); the stun gun's
         // touch (kind 3) stays the game's attack.
         int ls = -1;
         if (what == kGun || what == kUnknown) ls = borrow(what == kGun);
         else if (what != kStun && slot >= 0 && slot < 20 && learned[slot].id >= 0) ls = slot;
         if (ls >= 0 && learned[ls].kind != 2) ls = -1;
         const bool heavy_recovering = what == kHeavy && now < still_until && !sw.fired;
-        if (ls >= 0 && sw.active && !sw.landed && sw.seg_valid && !heavy_recovering && s.speed >= t.speed * 0.6f &&
-            sw.travel >= t.travel * 0.35f && now - sw.landed_at >= cooldown &&
+        // 0.1.3 (owner 84): a sweep from 80% of the swing's speed and half its fast travel (0.1.2: 60% and a third, a
+        // gentle move's), so a hand that only moves meets no one and makes no hit's sound.
+        if (ls >= 0 && sw.active && !sw.landed && sw.seg_valid && !heavy_recovering && s.speed >= t.speed * 0.8f &&
+            sw.travel >= t.travel * 0.5f && now - sw.landed_at >= cooldown &&
             queue_extra(ls, sw.seg_grip, sw.seg_tip, g_now, tip_now, radius, h, slot, what, s.speed)) {
             sw.sweeps++;
             if (sh3_rig_attacker_at[3] > 0.0f) {

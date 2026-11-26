@@ -15,7 +15,7 @@ switch (owner 80, session 16: the left menu button held is the VR menu everywher
 | The game's action      | First person (default)                                  | Third person                          |
 |------------------------|---------------------------------------------------------|---------------------------------------|
 | Move                   | Left stick (towards where the head looks by default, or the left hand: Walk towards); walking in the room | Left stick (the game's own) |
-| Turn                   | Right stick: snap 45° (or smooth)                      | Right stick (the game's)              |
+| Turn                   | Right stick: smooth (or snap 45°)                      | Right stick (the game's)              |
 | Run (dash)             | Left stick click                                       | Left stick click                      |
 | Action / examine / talk | A; or reach out and grip (Grab with the hand)         | A                                     |
 | Ready weapon (aim)     | Main trigger (held)                                    | Main grip or main trigger (held)      |

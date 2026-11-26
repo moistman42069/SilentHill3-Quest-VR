@@ -136,6 +136,17 @@ _Noreturn void rt_fatal(const char *fmt, ...) {
     _exit(1);
 }
 
+/* The game quits (ExitProcess, TerminateProcess, the headset ending the session). exit() would run the exit-time
+ * teardown (C++ destructors, the OpenXR loader, the C library's locks) while the game's sound thread still runs: on
+ * the Quest that thread then locks a destroyed mutex and the quit ends in a crash ("FORTIFY: pthread_mutex_lock called
+ * on a destroyed mutex", owner 86's logs, every quit since 0.1.0). So every open file (the saves, the logs) is flushed
+ * and the process ends at once; the system closes the rest. */
+_Noreturn void rt_leave(int code) {
+    rt_log("leaving (code %d): open files flushed, the process ends without the exit-time teardown", code);
+    fflush(NULL);
+    _exit(code);
+}
+
 static void on_crash(uintptr_t a) {
     uintptr_t base = (uintptr_t)g_xbox_mem_offset;
     if (a >= base && a - base < 0x100000000ull) rt_fatal("crash at guest address %08X", (uint32_t)(a - base));

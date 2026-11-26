@@ -46,6 +46,7 @@ static inline double rt_fpop(void) { double v = g_fp_stack[g_fp_top]; g_fp_top =
 /* rt_core.c */
 void rt_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 _Noreturn void rt_fatal(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+_Noreturn void rt_leave(int code);  /* the game quits: saves and logs flushed, no exit-time teardown */
 void rt_dump_thread(void);
 extern int rt_frame;                 /* frames presented so far */
 extern int rt_trace;                 /* SH3_TRACE=1: log every bridged call */

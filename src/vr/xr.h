@@ -176,6 +176,10 @@ public:
     // count that only grows; 0 where it cannot say.
     virtual long displays_missed() const { return 0; }
 
+    // 0.1.3 (SH3 dynamic resolution): the last frame's work in seconds (from begin_frame's return to finish_frame,
+    // the game and its drawing); 0 where it cannot say.
+    virtual double last_work_seconds() const { return 0; }
+
     // In how many nanoseconds the next frame begin_frame begins is predicted to be shown; 0: it cannot say.
     virtual std::int64_t next_display_in() { return 0; }
 

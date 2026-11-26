@@ -99,6 +99,7 @@ void res_upload_dirty(Res *t);   /* pushes locked texture levels to GL before a 
 void res_bind_targets(void);     /* attaches dev->rt / dev->ds to the FBO */
 void note_scene_depth(void);     /* SH3 Quest VR: a draw of the frame camera into dev->ds */
 int res_layers(Res *t);          /* SH3 Quest VR: 2 for a per-eye texture */
+GLuint res_flat_texture(Res *t, uint8_t out_rgba[4]);  /* 0.1.3: a 1x1 texture of t's average (the second grain) */
 /* CopyRects: surface rectangles to another surface (guest copies, then GL). */
 uint32_t res_copy_rects(uint32_t src, uint32_t rects, uint32_t n, uint32_t dst, uint32_t points);
 void res_snapshot_front(void);  /* keeps the presented frame for GetFrontBuffer */

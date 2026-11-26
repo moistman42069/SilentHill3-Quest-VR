@@ -48,7 +48,9 @@ const char* const kOffLowHigh[] = {"Off", "Low", "Medium", "High", "Highest"};
 const char* const kSharpen[] = {"Off", "Normal", "Strong"};
 const char* const kRefresh[] = {"72 Hz", "80 Hz", "90 Hz", "120 Hz"};
 const float kRefreshValues[] = {72.0f, 80.0f, 90.0f, 120.0f};
-const char* const kCutscenes[] = {"In the scene at the camera", "First person", "Cinema screen"};
+// 0.1.3 (owner 87: "the vr menu doesnt seem to say \"dynamic cutscenes\" for the cutscene type"): the row says it;
+// the new "At the camera" (always the game's camera) is last so 0, 1 and 2 keep their meaning in sh3vr.ini.
+const char* const kCutscenes[] = {"Dynamic (her eyes or the camera)", "First person", "Cinema screen", "At the camera"};
 const char* const kBody[] = {"Shown (head hidden)", "Hidden (hands only)"};
 const char* const kTurn[] = {"Snap", "Smooth"};
 const char* const kMoveBy[] = {"Where the head looks", "Where the left hand points"};
@@ -72,12 +74,10 @@ const OptionRow kRows[] = {
     CH(foveation, "Foveated rendering", "Performance", kOffLowHigh, true),
     SW(boost, "CPU and GPU boost", "Performance", true),
     CH(sharpen, "Sharpening", "Performance", kSharpen, true),
-    SW(space_warp, "Smoother frames (AppSW)", "Performance", true),
     SW(show_performance, "Show performance", "Performance", false),
     // View
     SW(first_person, "First person", "View", false),
     CH(cutscenes, "Cutscenes", "View", kCutscenes, false),
-    SW(dynamic_cutscenes, "Dynamic cutscenes", "View", false),
     SW(auto_third_person, "Third person where the game needs it", "View", false),
     SW(height_auto, "Measure your height", "View", false),
     NU(player_height_cm, "Your height", "View", 120.0f, 220.0f, 1.0f, "cm", false),
@@ -157,7 +157,7 @@ void clamp_options() {
     opt.resolution = std::clamp(opt.resolution, 0.5f, 1.6f);
     opt.foveation = std::clamp(opt.foveation, 0, 4);
     opt.sharpen = std::clamp(opt.sharpen, 0, 2);
-    opt.cutscenes = std::clamp(opt.cutscenes, 0, 2);
+    opt.cutscenes = std::clamp(opt.cutscenes, 0, 3);
     opt.body = std::clamp(opt.body, 0, 1);
     opt.turn = std::clamp(opt.turn, 0, 1);
     opt.move_by = std::clamp(opt.move_by, 0, 1);
@@ -251,6 +251,9 @@ void device_defaults() {
 #endif
 }
 
+// 0.1.3: the defaults' version sh3vr.ini is written with ("defaults = 3"; the launcher's Options.DEFAULTS_VERSION)
+constexpr int kDefaultsVersion = 3;
+
 void load_options() {
     device_defaults();
     FILE* f = std::fopen("sh3vr.ini", "r");
@@ -261,11 +264,21 @@ void load_options() {
     char line[256];
     int n = 0;
     const OptionRow* rows = option_rows(n);
+    int defaults = 0;  // 0.1.3: the defaults' version the file says it has (none before 0.1.3)
+    int dynamic_switch = -1;  // 0.1.2's "Dynamic cutscenes" as the file has it (-1: not there)
     while (std::fgets(line, sizeof line, f)) {
         char key[64], val[128];
         if (std::sscanf(line, " %63[^= ] = %127s", key, val) != 2 || key[0] == '#' || key[0] == ';') continue;
         if (!std::strcmp(key, "vr")) {
             opt.vr = parse_bool(val);
+            continue;
+        }
+        if (!std::strcmp(key, "defaults")) {
+            defaults = std::atoi(val);
+            continue;
+        }
+        if (!std::strcmp(key, "dynamic_cutscenes")) {  // 0.1.2's own switch (now the Cutscenes row's "Dynamic")
+            dynamic_switch = parse_bool(val) ? 1 : 0;
             continue;
         }
         for (int i = 0; i < n; i++) {
@@ -277,6 +290,39 @@ void load_options() {
     }
     std::fclose(f);
     clamp_options();
+    // 0.1.3 (owner 87): "Dynamic cutscenes" is the Cutscenes row's first choice; a file with 0.1.2's switch off and
+    // "In the scene at the camera" keeps that look as "At the camera" (3). The key is not written again.
+    const bool fold = dynamic_switch >= 0;
+    if (dynamic_switch == 0 && opt.cutscenes == 0) opt.cutscenes = 3;
+    if (fold && defaults >= kDefaultsVersion) {
+        const bool saved = save_options();
+        rt_log("VR: sh3vr.ini's \"dynamic_cutscenes = %d\" is now the Cutscenes row (%s)%s", dynamic_switch,
+               kCutscenes[opt.cutscenes], saved ? "" : "; the file could not be saved");
+    }
+    if (defaults < kDefaultsVersion) {
+        // 0.1.3 (owner 84: "drifting fog should be off by default. smooth turn should be on by default ... no screen
+        // filters or ANYTHING like that shit on by default"): a file from before 0.1.3 kept 0.1.2's defaults (the VR
+        // menu and the launcher write every option), so the options 0.1.3 changed take its defaults once and the file
+        // says so (the launcher's Config.newDefaults does the same, with the same keys).
+        const Options d{};
+        opt.sharpen = d.sharpen;
+        opt.film_grain = d.film_grain;
+        opt.drifting_fog = d.drifting_fog;
+        opt.brightness = d.brightness;
+        opt.contrast = d.contrast;
+        opt.saturation = d.saturation;
+        opt.dark_edges = d.dark_edges;
+        opt.smooth_edges = d.smooth_edges;
+        opt.turn = d.turn;
+        opt.vignette = d.vignette;
+        const bool saved = save_options();
+        rt_log("VR: sh3vr.ini from before 0.1.3 (defaults %d): 0.1.3's defaults put in once (drifting fog off, smooth "
+               "turning, no sharpening, film grain, smooth edges or comfort vignette, the picture at 100%%)%s",
+               defaults, saved ? "" : "; the file could not be saved");
+        if (fold)
+            rt_log("VR: sh3vr.ini's \"dynamic_cutscenes = %d\" is now the Cutscenes row: %s", dynamic_switch,
+                   kCutscenes[opt.cutscenes]);
+    }
 }
 
 // sh3vr.ini rewritten whole (the VR menu's changes; the launcher reads it back on its Options screen).
@@ -288,6 +334,7 @@ bool save_options() {
     }
     std::fprintf(f, "# SH3 Quest VR options (the launcher's Options and the in-game VR menu write this file)\n");
     std::fprintf(f, "vr = %d\n", opt.vr ? 1 : 0);
+    std::fprintf(f, "defaults = %d\n", kDefaultsVersion);  // 0.1.3: the defaults' version (load_options)
     int n = 0;
     const OptionRow* rows = option_rows(n);
     for (int i = 0; i < n; i++) {
@@ -503,6 +550,14 @@ void log_cb(int level, const char* text) { rt_log("%s%s", level >= 2 ? "VR warni
 bool head_known() { return have_frame && fi.views_valid; }
 bool in_play() { return game.playable && !game.cutscene && !game.demo && !vr_menu_open; }
 float frame_dt() { return display_hz > 0 ? 1.0f / display_hz : 1.0f / 72.0f; }
+// 0.1.3 (owner 84: "im just simply moving the knife arm gently/arm in general, and melee animation/sound happens"): the
+// real seconds since the last frame, from the headset's display times (begin_next_frame). frame_dt() is the display's
+// period, the game's own tick; while the game falls behind (the owner's 0.1.2 run: 34-57 frames a second at 120 Hz in
+// the mall, every swing it logged among them) each frame spans two or three periods, and a hand's motion taken over
+// one period read two or three times too fast: a gentle move of 0.8 m/s came out a knife's swing. No display times
+// (the PC rig before 0.1.3): frame_dt().
+static float motion_seconds = 0;
+float motion_dt() { return motion_seconds > 0 ? motion_seconds : frame_dt(); }
 int main_hand() { return opt.left_handed ? kLeft : kRight; }
 int off_hand() { return opt.left_handed ? kRight : kLeft; }
 
@@ -787,7 +842,7 @@ ViewMode pick_view_mode() {
     if (game.cutscene || game.demo) {
         if (opt.cutscenes == 2) return ViewMode::kScreen;
         if (opt.cutscenes == 1 && game.player_valid) return ViewMode::kFirstPerson;
-        if (opt.cutscenes == 0 && opt.dynamic_cutscenes && scene_first_person()) {
+        if (opt.cutscenes == 0 && scene_first_person()) {  // Dynamic (3: always at the camera)
             scene_ended_in_eyes = true;
             return ViewMode::kFirstPerson;
         }
@@ -1816,7 +1871,7 @@ void comfort_turn() {
             turn_rig((x > 0 ? 1.0f : -1.0f) * opt.snap_degrees * kPi / 180.0f);
         }
     } else if (std::fabs(x) > 0.15f) {
-        turn_rig(x * opt.smooth_degrees * kPi / 180.0f * frame_dt());
+        turn_rig(x * opt.smooth_degrees * kPi / 180.0f * motion_dt());  // 0.1.3: degrees a real second
         turning_now = true;
     }
 }
@@ -1981,6 +2036,8 @@ void state_haptics() {
 // a tenth (to 60% at the least); 5 s with none late tries a tenth up; a step up that is late again within 10 s doubles
 // the wait before the next try (a minute at the most). sh3.c makes the pictures at the new size after the frame
 // (sh3_vr_after_present); the game's last pass stretches them over each eye, the 2D and VR's hands stay sharp.
+// 0.1.3: a step down that leaves the frames' work as it was (the game's own work the limit, not the drawing) is taken
+// back a second later, so the pictures never stay soft for nothing (owner 84's fuzz; their 0.1.2 run sat at 60%).
 namespace {
 constexpr float kScaleStep = 0.1f, kScaleLeast = 0.6f;
 constexpr double kScaleCalm = 5.0, kScaleCalmMost = 60.0, kScaleQuick = 0.25;
@@ -1989,6 +2046,12 @@ struct Scale {
     int frames = 0, late = 0, quick_frames = 0, quick_late = 0;
     double window_at = 0, quick_at = 0, calm_since = 0, calm_wait = kScaleCalm, stepped_up_at = -1;
     long missed_seen = -1;
+    // 0.1.3 (owner 84's "weird fuzz"; their 0.1.2 run: the 3D pictures at 60% for minutes while each frame's work
+    // stayed 14-17 ms, the game's own work the limit, not the pictures' size): each frame's work (last_work_seconds),
+    // the last second's mean, and a step down judged a second later: no quicker by 7% and the step is taken back,
+    // with no step down for 30 s.
+    double work_sum = 0, work_mean = 0, judge_at = -1, judge_sum = 0, judge_before = 0, hold_until = -1;
+    int work_n = 0, judge_n = 0, judge_skip = 0;
 };
 Scale scale;
 double clock_seconds() {
@@ -2020,17 +2083,51 @@ void dynamic_resolution_frame() {
     const bool second_up = now - s.window_at >= 1.0;
     const bool quarter_up = now - s.quick_at >= kScaleQuick;
     const bool heavy = quarter_up && s.quick_frames >= 4 && s.quick_late * 2 > s.quick_frames;
-    if ((heavy || (second_up && s.late * 5 > s.frames)) && s.now > kScaleLeast + 1e-3f) {
+    // 0.1.3: the frames' work (0 where the headset cannot say: the step is never judged)
+    const double work = hs->last_work_seconds();
+    if (work > 0) {
+        s.work_sum += work;
+        s.work_n++;
+        if (s.judge_at >= 0 && s.judge_skip-- <= 0) {
+            s.judge_sum += work;
+            s.judge_n++;
+        }
+    }
+    if (s.judge_at >= 0 && now >= s.judge_at) {
+        const double after = s.judge_n > 0 ? s.judge_sum / s.judge_n : 0;
+        if (after > 0 && s.judge_before > 0 && after > s.judge_before * 0.93 && s.now < 1.0f - 1e-3f) {
+            s.now = std::min(1.0f, s.now + kScaleStep);
+            s.hold_until = now + 30.0;
+            s.calm_since = now;
+            rt_log("VR: frame %d: dynamic resolution: the smaller pictures did not make the frames quicker (%.2f ms a frame "
+                   "before, %.2f after): the game's own work is the limit, back to %d%%, no step down for 30 s",
+                   rt_frame, s.judge_before * 1000.0, after * 1000.0, (int)(s.now * 100.0f + 0.5f));
+        } else if (after > 0 && s.judge_before > 0) {
+            static int told = 0;
+            if (told++ < 5)
+                rt_log("VR: frame %d: dynamic resolution: the smaller pictures help (%.2f ms a frame before, %.2f after)",
+                       rt_frame, s.judge_before * 1000.0, after * 1000.0);
+        }
+        s.judge_at = -1;
+    }
+    if ((heavy || (second_up && s.late * 5 > s.frames)) && s.now > kScaleLeast + 1e-3f && now >= s.hold_until &&
+        s.judge_at < 0) {
         if (s.stepped_up_at >= 0) s.calm_wait = std::min(s.calm_wait * 2.0, kScaleCalmMost);  // the step up was too much
         s.now = std::max(kScaleLeast, s.now - kScaleStep);
         s.stepped_up_at = -1;
         s.calm_since = now;
         s.frames = s.late = 0;
         s.window_at = now;
+        // judged a second on, past the frames that make the pictures at the new size
+        s.judge_before = s.work_mean > 0 ? s.work_mean : (s.work_n > 0 ? s.work_sum / s.work_n : 0);
+        s.judge_at = now + 1.0;
+        s.judge_sum = 0, s.judge_n = 0, s.judge_skip = 10;
     }
     if (second_up) {
         s.frames = s.late = 0;
         s.window_at = now;
+        if (s.work_n > 0) s.work_mean = s.work_sum / s.work_n;
+        s.work_sum = 0, s.work_n = 0;
     }
     if (quarter_up) {
         s.quick_frames = s.quick_late = 0;
@@ -2060,6 +2157,20 @@ void begin_next_frame() {
     }
     dynamic_resolution_frame();
     if (fi.frame_seconds > 0) display_hz = (float)(1.0 / fi.frame_seconds);
+    {
+        // motion_dt: the time from the last frame's display to this one's (a frame shown late spans more periods)
+        static std::int64_t last_display = 0;
+        motion_seconds = 0;
+        if (fi.display_time > 0 && last_display > 0 && fi.display_time > last_display)
+            motion_seconds = std::clamp((float)((fi.display_time - last_display) * 1e-9), 0.5f * frame_dt(), 0.1f);
+        last_display = fi.display_time;
+        static int told = 0;
+        if (motion_seconds > 1.6f * frame_dt() && told < 3 && in_play()) {
+            told++;
+            rt_log("VR: frame %d: this frame came %.1f ms after the last (the display's period %.1f ms): hand speeds and "
+                   "swings take the real time", rt_frame, motion_seconds * 1000.0f, frame_dt() * 1000.0f);
+        }
+    }
     if (fi.recentred) {
         rig.set = false;
         recentred_now = true;  // the eyes' height at the recentre is the player's standing height

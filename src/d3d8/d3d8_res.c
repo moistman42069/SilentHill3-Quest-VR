@@ -324,6 +324,82 @@ static GLuint surface_tex(Res *s) { if (s->parent) { gl_ensure(s->parent); retur
 static int surface_layers(Res *s) { return (s->parent ? s->parent : s)->layers == 2 ? 2 : 1; }
 int res_layers(Res *t) { return t && t->layers == 2 ? 2 : 1; }
 
+/* Owner 84 (session 18: "theres still this weird fuzz over the screen, which i want completely off by default"): a
+ * texture's level 0 averaged into a 1x1 texture, as the shader would sample it (the format's channels and swizzle
+ * applied), from the game's own copy of it. The game's second grain (d3d8.c bind_textures, 0x429E3E) subtracts a
+ * 128x128 noise tile from the picture; its average instead keeps the game's look without the grain. 0 when the texture
+ * has no guest copy (a render target). The texture is redone every call: one small texture once a frame. */
+GLuint res_flat_texture(Res *t, uint8_t out_rgba[4]) {
+    static GLuint flat;
+    Res *s = t && t->kind == RES_TEXTURE ? res_of(t->surf[0][0]) : NULL;
+    if (!s || !s->mem || !s->w || !s->h) return 0;
+    const Fmt *f = fmt_info(s->fmt);
+    const uint32_t w = s->w, h = s->h;
+    uint8_t *rgba = NULL;
+    if (f->block) {
+        uint32_t pw = (w + 3) & ~3u, ph = (h + 3) & ~3u;
+        uint8_t *full = malloc((size_t)pw * ph * 4);
+        dxt_decode(s->fmt, GPTR(s->mem), w, h, full);
+        rgba = malloc((size_t)w * h * 4);
+        for (uint32_t y = 0; y < h; y++) memcpy(rgba + (size_t)y * w * 4, full + (size_t)y * pw * 4, (size_t)w * 4);
+        free(full);
+    } else {
+        rgba = malloc((size_t)w * h * 4);
+        static const uint32_t none[256];
+        const uint32_t *pal = dev->palette[dev->cur_palette] ? dev->palette[dev->cur_palette] : none;
+        for (uint32_t y = 0; y < h; y++) {
+            const uint8_t *row = GPTR(s->mem + y * s->pitch);
+            for (uint32_t x = 0; x < w; x++) {
+                uint8_t *o = rgba + ((size_t)y * w + x) * 4;
+                uint32_t r = 0, g = 0, b = 0, a = 255, v;
+                switch (s->fmt) {
+                case FMT_A8R8G8B8: b = row[4 * x]; g = row[4 * x + 1]; r = row[4 * x + 2]; a = row[4 * x + 3]; break;
+                case FMT_X8R8G8B8: b = row[4 * x]; g = row[4 * x + 1]; r = row[4 * x + 2]; break;
+                case FMT_R5G6B5:
+                    v = ((const uint16_t *)row)[x];
+                    r = (v >> 11 & 31) * 255 / 31; g = (v >> 5 & 63) * 255 / 63; b = (v & 31) * 255 / 31;
+                    break;
+                case FMT_X1R5G5B5: case FMT_A1R5G5B5:
+                    v = ((const uint16_t *)row)[x];
+                    r = (v >> 10 & 31) * 255 / 31; g = (v >> 5 & 31) * 255 / 31; b = (v & 31) * 255 / 31;
+                    if (s->fmt == FMT_A1R5G5B5) a = v >> 15 ? 255 : 0;
+                    break;
+                case FMT_A4R4G4B4: case FMT_X4R4G4B4:
+                    v = ((const uint16_t *)row)[x];
+                    r = (v >> 8 & 15) * 17; g = (v >> 4 & 15) * 17; b = (v & 15) * 17;
+                    if (s->fmt == FMT_A4R4G4B4) a = (v >> 12 & 15) * 17;
+                    break;
+                case FMT_A8: a = row[x]; break;  /* as its swizzle: no colour */
+                case FMT_L8: r = g = b = row[x]; break;
+                case FMT_A8L8: r = g = b = row[2 * x]; a = row[2 * x + 1]; break;
+                case FMT_P8: {
+                    const uint32_t p = pal[row[x]];
+                    r = p & 255; g = p >> 8 & 255; b = p >> 16 & 255; a = p >> 24;
+                    break;
+                }
+                default: free(rgba); return 0;
+                }
+                o[0] = (uint8_t)r, o[1] = (uint8_t)g, o[2] = (uint8_t)b, o[3] = (uint8_t)a;
+            }
+        }
+    }
+    uint64_t sum[4] = {0, 0, 0, 0};
+    for (size_t i = 0; i < (size_t)w * h; i++)
+        for (int c = 0; c < 4; c++) sum[c] += rgba[i * 4 + c];
+    free(rgba);
+    for (int c = 0; c < 4; c++) out_rgba[c] = (uint8_t)((sum[c] + (uint64_t)w * h / 2) / ((uint64_t)w * h));
+    if (!flat) {
+        glGenTextures(1, &flat);
+        glBindTexture(GL_TEXTURE_2D, flat);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);  /* complete under any min filter */
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, out_rgba);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, flat);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, out_rgba);
+    }
+    return flat;
+}
+
 /* Attaches a surface (one layer of it when per eye) to the bound read or draw framebuffer. */
 static void attach_layer(GLenum fb, Res *s, int layer) {
     GLuint tex = surface_tex(s);

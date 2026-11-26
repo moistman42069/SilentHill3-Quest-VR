@@ -1580,7 +1580,7 @@ void body_frame() {
         const Vec3 last = s.grip.position;
         s.grip = fi.hand_grip[h];
         s.aim = fi.hand_aim[h];
-        const Vec3 raw = was ? (s.grip.position - last) * (1.0f / frame_dt()) : Vec3{};
+        const Vec3 raw = was ? (s.grip.position - last) * (1.0f / motion_dt()) : Vec3{};  // 0.1.3: the real time (owner 84)
         s.vel = was ? lerp(s.vel, raw, 0.5f) : Vec3{};
         s.speed = length(s.vel);
         wanted_curls(h, s.want);

@@ -1050,7 +1050,7 @@ WINAPI(GlobalMemoryStatus, "GlobalMemoryStatus", 1) {
 /* ---- process, modules, resources ---- */
 WINAPI(GetLastError, "GetLastError", 0) { return last_error; }
 WINAPI(SetLastError, "SetLastError", 1) { last_error = ARG(0); return 0; }
-WINAPI(TerminateProcess, "TerminateProcess", 2) { rt_log("TerminateProcess(%u)", ARG(1)); exit(ARG(1)); }
+WINAPI(TerminateProcess, "TerminateProcess", 2) { rt_log("TerminateProcess(%u)", ARG(1)); rt_leave((int)ARG(1)); }
 WINAPI(FatalAppExitA, "FatalAppExitA", 2) { rt_fatal("FatalAppExit: %s", GSTR(ARG(1))); }
 WINAPI(SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", 1) { return 0; }
 WINAPI(UnhandledExceptionFilter, "UnhandledExceptionFilter", 1) { return 1; }
@@ -1084,7 +1084,7 @@ WINAPI(GetCurrentDirectoryA, "GetCurrentDirectoryA", 2) {
     return 6;
 }
 WINAPI(SetCurrentDirectoryA, "SetCurrentDirectoryA", 1) { return 1; }
-WINAPI(ExitProcess, "ExitProcess", 1) { rt_log("ExitProcess(%u)", ARG(0)); exit(ARG(0)); }
+WINAPI(ExitProcess, "ExitProcess", 1) { rt_log("ExitProcess(%u)", ARG(0)); rt_leave((int)ARG(0)); }
 WINAPI(OutputDebugStringA, "OutputDebugStringA", 1) { rt_log("debug: %s", GSTR(ARG(0))); return 0; }
 WINAPI(IsProcessorFeaturePresent, "IsProcessorFeaturePresent", 1) { return 0; }
 WINAPI(GetStartupInfoA, "GetStartupInfoA", 1) {

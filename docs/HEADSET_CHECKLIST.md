@@ -6,7 +6,7 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
 ## Start
 - [ ] Install, open: the launcher on a panel, What's new once. Game files: choose the "SILENT HILL 3" folder copied to
       Download: the copy runs with the panel closed; the check says all files are there and names the sh3.exe release.
-- [ ] Right after the check: the Features popup, once (dynamic cutscenes first, how to turn them off); the Features
+- [ ] Right after the check: the Features popup, once (dynamic cutscenes first, the Cutscenes row's choices); the Features
       button beside What's new shows it again.
 - [ ] Play in VR: the game starts in the headset (no flat window), the title on the panel, the pointer works on it.
 - [ ] Play flat: the game on a big screen, the controllers as a pad.
@@ -21,15 +21,22 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       (each view holds at least 1.5 s); sh3.log "dynamic cutscenes: ...". A scene ending in her eyes goes on into play
       in first person with her body under you, facing where you face (sh3.log "first person from a scene into play").
       Never in her eyes with something right before them: the opening's bridge walk, where she stands at the ride's
-      fence, stays at the game's camera (sh3.log "the world N cm before her eyes"). Turned off: always the game's camera.
-- [ ] No film grain (the game's noise filter off by default); "Film grain" in the VR menu puts it back.
+      fence, stays at the game's camera (sh3.log "the world N cm before her eyes"). The VR menu's View page:
+      "Cutscenes" reads "Dynamic (her eyes or the camera)" (0.1.3, owner 87); "At the camera": always the game's camera.
+- [ ] 0.1.3 (owner 84: "this weird fuzz over the screen"): no grain at all by default, standing still in a lit place:
+      neither the Noise Effect's speckle nor the fine grey fuzz over everything lit (the game's second grain, sh3.log
+      "the game's second grain ... drawn as its average"); the picture as bright as 0.1.2's (the darkest parts a shade darker). "Film grain" in the VR
+      menu puts both back.
+- [ ] 0.1.3, the defaults (owner 84): a 0.1.2 install updated keeps its saves; its options take 0.1.3's new defaults once
+      (sh3.log "sh3vr.ini from before 0.1.3"): drifting fog off, smooth turning, no sharpening, film grain, smooth
+      edges or vignette, the picture at 100%; a change made afterwards stays.
 - [ ] 0.1.2, the fog (owner 79, a player's "weird overlay that looks like fog"): in the opening's alley and the
       circular hall the game's drifting fog hangs far off in the world (about 10 m), the same in both eyes, never as
-      patches in front of the face; turn the head: it stays where it is. "Drifting fog" off in the VR menu: none.
+      patches in front of the face; turn the head: it stays where it is (with "Drifting fog" on: off by default since 0.1.3).
 - [ ] 0.1.2, the lamps' lens flare (the opening's wall lamps): the starburst and its rings sit on the lamp, one image
       in both eyes, not a double image near the face (sh3.log "the game's lens flare ... at its lamp, N m ahead").
 - [ ] 0.1.2, the picture (View): Brightness, Contrast, Color saturation and Darker edges change the picture at once
-      (100 / 100 / 100 / 0 % the game's own look); Smooth edges (on) takes the jaggies off without blurring text.
+      (100 / 100 / 100 / 0 % the game's own look); Smooth edges (off by default since 0.1.3) takes the jaggies off.
 - [ ] Her shadow (LIST 56): with the flashlight on, raise a hand into its beam: the beam's spot on the floor or wall
       ahead darkens in the hand's shape and moves with it (fingers, a thumbs up, a fist); look down: her legs' shadows
       at her feet, rounded, following your steps; a gun, the pipe or the katana held out casts its own; her arms and
@@ -42,7 +49,8 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
 - [ ] First person in the mall: eyes at Heather's height, the world life size (doors, counters); no doubled or
       swimming picture when moving the head; nothing missing at the edges of the eyes.
 - [ ] Walk in the room: Heather follows; a wall stops her (the view never goes through a wall without darkening).
-- [ ] Left stick walks where the head looks (the default; the left hand when chosen); the right stick snap-turns 45°; the vignette while moving.
+- [ ] Left stick walks where the head looks (the default; the left hand when chosen); the right stick turns smoothly
+      (0.1.3's default, at its set speed however the frame rate goes; snap 45° when chosen); no vignette unless chosen.
 - [ ] Hold the left menu button 1 s, anywhere (play, a cutscene, a menu): the VR menu, with its sound; in play the
       game pauses under it. A short press closes it (the game's pause menu under it), another goes back to play. A
       short press in play pauses, as before. The menu's View page, "First person" off: third person (the game's

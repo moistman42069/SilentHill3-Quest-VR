@@ -43,6 +43,15 @@ class Options {
 
     static final String VR_INI = "sh3vr.ini", GAME_INI = "sh3.ini";
 
+    /** 0.1.3 (owner 84): the defaults' version sh3vr.ini says it has ("defaults = 3"; none before 0.1.3). A file from
+     *  an older version had 0.1.2's defaults saved in it, so 0.1.3's changed defaults are put in once (Config.reload;
+     *  the game does the same in sh3vr.cpp load_options): these keys, the drifting fog, smooth turning and no screen
+     *  filters (no sharpening, film grain, smooth edges or comfort vignette; the picture at the game's own). */
+    static final String DEFAULTS_KEY = "defaults";
+    static final int DEFAULTS_VERSION = 3;
+    static final String[] DEFAULTS_0_1_3 = {"sharpen", "film_grain", "drifting_fog", "brightness", "contrast",
+        "saturation", "dark_edges", "smooth_edges", "turn", "vignette"};
+
     /** A Quest 3 or 3S (Android's device names eureka and panther): it starts at the top Render resolution, with Dynamic
      *  resolution keeping the frame rate (LIST 51, as Jak's launcher; sh3vr.cpp device_defaults the same). */
     static final boolean STRONG_QUEST = "eureka".equals(Build.DEVICE) || "panther".equals(Build.DEVICE);
@@ -95,8 +104,8 @@ class Options {
         // Performance: the Quest 3's best by default
         new Option(VR_INI, "refresh_hz", "Refresh rate", PERFORMANCE, Kind.CHOICE,
             new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, 0, 0, 0, "", "120",
-            true, "120 Hz with Smoother frames (AppSW): the headset fills in frames when the game falls behind. 72 Hz "
-            + "if motion ever looks uneven."),
+            true, "120 Hz: the game makes up to 60 frames a second, so each one shows twice, evenly, and the headset "
+            + "keeps your head's turns smooth between them. 72 Hz if motion ever looks uneven."),
         number("resolution", "Render resolution", PERFORMANCE, 0.6f, 1.5f, 0.05f, "x", STRONG_QUEST ? 1.5f : 1.0f,
             "1.0 is the headset's own resolution. Lower is faster, higher is sharper. A Quest 3 or 3S starts at "
             + "the top, 1.5, with Dynamic resolution keeping the game smooth."),
@@ -106,19 +115,21 @@ class Options {
         choice("foveation", "Foveated rendering", PERFORMANCE, new String[] {"Off", "Low", "Medium", "High", "Highest"}, 2,
             "Draws the edges of the view with fewer pixels. Medium is hard to notice and saves GPU time."),
         sw("boost", "CPU and GPU boost", PERFORMANCE, true, "Runs the headset's processors faster while the game plays."),
-        choice("sharpen", "Sharpening", PERFORMANCE, new String[] {"Off", "Normal", "Strong"}, 1,
-            "The system's sharpening of the picture."),
-        sw("space_warp", "Smoother frames (AppSW)", PERFORMANCE, true,
-            "The headset makes every other frame when the game falls behind, so motion stays smooth."),
+        choice("sharpen", "Sharpening", PERFORMANCE, new String[] {"Off", "Normal", "Strong"}, 0,
+            "The headset's sharpening of the picture. Off: the picture as drawn, no shimmer on edges."),
+        // 0.1.3: "Smoother frames (AppSW)" left out: Silent Hill 3 never drew the motion the headset needs, so it did
+        // nothing (the owner's 0.1.2 log: "smoother frames on 0% of them"); back once it does (sh3vr_internal.h)
         sw("show_performance", "Show performance", PERFORMANCE, false, "Frame times in a corner of the screen."),
         // View
         sw("first_person", "First person", VIEW, true,
             "Off plays in third person with the game's own camera. Hold the left menu button in the game to switch."),
-        choice("cutscenes", "Cutscenes", VIEW, new String[] {"In the scene at the camera", "First person", "Cinema screen"},
-            0, "In the scene: you stand where the game's camera is, the scene around you."),
-        sw("dynamic_cutscenes", "Dynamic cutscenes", VIEW, true,
-            "In the scene: you see through Heather's eyes while the scene shows her, and from the game's camera when it "
-            + "shows something else or her face up close. Off: always from the game's camera."),
+        // 0.1.3 (owner 87): the row says "Dynamic" (0.1.2 had its own switch); "At the camera" is last so 0-2 keep
+        // their meaning in sh3vr.ini (Config.foldDynamic carries 0.1.2's switch over once)
+        choice("cutscenes", "Cutscenes", VIEW,
+            new String[] {"Dynamic (her eyes or the camera)", "First person", "Cinema screen", "At the camera"}, 0,
+            "Dynamic: you see through Heather's eyes while the scene shows her, and stand where the game's camera is "
+            + "when it shows something else or her face up close. First person: always her eyes. Cinema screen: the "
+            + "scene on a big screen before you. At the camera: always where the game's camera is, the scene around you."),
         sw("auto_third_person", "Third person where the game needs it", VIEW, true,
             "Places where the game's own camera shows what matters switch to third person and back."),
         sw("height_auto", "Measure your height", VIEW, true,
@@ -139,7 +150,7 @@ class Options {
             "Sounds come from where they are around your head: turn your head and they stay put; behind you they are softer."),
         sw("film_grain", "Film grain", VIEW, false,
             "The game's own grainy noise over the picture. Off: a clean picture."),
-        sw("drifting_fog", "Drifting fog", VIEW, true,
+        sw("drifting_fog", "Drifting fog", VIEW, false,
             "The game's drifting fog, in the world around you (it stays put when you turn your head). Off: no drifting fog."),
         number("brightness", "Brightness", VIEW, 50f, 300f, 10f, "%", 100f,
             "How bright the picture is. 100%: the game's own; higher shows more in the dark."),
@@ -148,7 +159,7 @@ class Options {
             "How strong the colors are. 100%: the game's own; 0%: black and white."),
         number("dark_edges", "Darker edges", VIEW, 0f, 100f, 10f, "%", 0f,
             "Darkens the picture toward the edges of your view. 0%: off."),
-        sw("smooth_edges", "Smooth edges", VIEW, true,
+        sw("smooth_edges", "Smooth edges", VIEW, false,
             "Smooths the jagged edges of the world (anti-aliasing)."),
         sw("her_shadow", "Heather's shadow", VIEW, true,
             "Her body, her hands and what she holds cast shadows in the flashlight's beam, in the game's own shadows."),
@@ -161,12 +172,12 @@ class Options {
         sw("messages_at_things", "Messages next to things", VIEW, true,
             "What Heather says about a thing shows right by it, not on a screen; subtitles stay low in your view."),
         // Comfort
-        choice("turn", "Turning", COMFORT, new String[] {"Snap", "Smooth"}, 0, "The right stick turns."),
+        choice("turn", "Turning", COMFORT, new String[] {"Snap", "Smooth"}, 1, "The right stick turns."),
         number("snap_degrees", "Snap turn angle", COMFORT, 15f, 90f, 15f, "deg", 45f, ""),
         number("smooth_degrees", "Smooth turn speed", COMFORT, 30f, 360f, 15f, "deg/s", 120f, ""),
         choice("move_by", "Walk towards", COMFORT, new String[] {"Where the head looks", "Where the left hand points"}, 0,
             "The left stick moves Heather this way."),
-        sw("vignette", "Comfort vignette", COMFORT, true, "The edges of the view darken while moving or turning."),
+        sw("vignette", "Comfort vignette", COMFORT, false, "The edges of the view darken while moving or turning."),
         number("vignette_strength", "Vignette strength", COMFORT, 10f, 100f, 10f, "%", 50f, ""),
         sw("head_fade", "Head in walls darkens the view", COMFORT, true, ""),
         // Pointer

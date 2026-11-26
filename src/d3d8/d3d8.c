@@ -430,7 +430,7 @@ METHOD(dev_Present, 5) {
         }
         sh3vr_present(bb->tex, depth && res_layers(depth) == 2 ? depth->tex : 0, (int)bb->w, (int)bb->h);
         panel_has_picture = 0;
-        if (sh3vr_wants_exit()) { rt_log("VR: the headset ended the session: leaving"); exit(0); }
+        if (sh3vr_wants_exit()) { rt_log("VR: the headset ended the session: leaving"); rt_leave(0); }
         sh3_vr_after_present();
     }
     glBindFramebuffer(GL_READ_FRAMEBUFFER, present_fbo);
@@ -654,6 +654,7 @@ METHOD(dev_SetClipPlane, 3) { return 0; }
 static float vol_view[16], vol_proj[16];
 static int vol_frame = -1;
 static void vr_her_shadow(void);
+static void her_shadow_ready(void);
 /* LIST 56 (session 12): her part draws under way (sh3.c's 0x45ED40 wrapper, first person): their pixels marked */
 static int her_mark;
 void d3d8_her_mark(int on) { her_mark = on; }
@@ -706,8 +707,10 @@ METHOD(dev_SetRenderState, 3) {
         }
     }
     /* LIST 56 (session 12): the game's shadow darkening turns the stencil test on here (0x48D469's call, after its
-     * volumes were counted this frame): Heather's own volumes go into the count first (vr_her_shadow). */
-    if (ARG(1) == 52 && v && !dev->rs[52] && MEM32(g_esp) == 0x0048D474u && vol_frame == rt_frame) vr_her_shadow();
+     * volumes were counted this frame). 0.1.3 (owner 84: "body ik shadows can be refined i feel, they seem a bit
+     * overbearing as is"): Heather's volumes are made ready here and counted after the game's mask draw (her_mask_due,
+     * the ROUTED draws), which then runs again at her own strength. */
+    if (ARG(1) == 52 && v && !dev->rs[52] && MEM32(g_esp) == 0x0048D474u && vol_frame == rt_frame) her_shadow_ready();
     if (ARG(1) < RS_COUNT) { dev->rs[ARG(1)] = v; MARK(rs[ARG(1)]); }
     return 0;
 }
@@ -1170,10 +1173,14 @@ static void panel_target(int on) {
         glBindFramebuffer(GL_FRAMEBUFFER, dev->fbo);
     }
 }
-/* A draw, routed: `setup` then `draw` once for each place it goes. */
+static int her_mask_due(void);
+static void her_mask_second(void);
+static void her_mask_blend(void);
+/* A draw, routed: `setup` then `draw` once for each place it goes. 0.1.3: after the game's shadow mask draw, Heather's
+ * own shadow (her_mask_due): her volumes counted, then the same draw again at her strength. */
 #define ROUTED(route, setup, draw) do { \
         int r_ = (route); /* 0 the eyes, 1 the panel, 2 both, 3 neither */ \
-        if (r_ == 0 || r_ == 2) { setup; draw; } \
+        if (r_ == 0 || r_ == 2) { setup; draw; if (her_mask_due()) { her_mask_second(); setup; her_mask_blend(); draw; } } \
         if (r_ == 1 || r_ == 2) { panel_target(1); setup; draw; panel_target(0); } \
     } while (0)
 
@@ -1305,11 +1312,35 @@ static int setup_attribs(const uintptr_t *base, const GLuint *bufs, uint32_t up_
     return 0;
 }
 
+/* The game's second grain (0.1.3, owner 84: "theres still this weird fuzz over the screen, which i want completely off
+ * by default. no screen filters or ANYTHING like that shit on by default"). Besides the Noise Effect's alpha test
+ * (dev_SetRenderState above), 0x429A60 (a screen effect's mode 2, every frame of play, vr256) draws two full-screen
+ * quads: the picture times (1 + L) (DESTCOLOR, ONE: a grey TFACTOR, 0x429C6F), then a 128x128 noise tile repeated
+ * four times across the screen, at a new offset each frame, times L taken off the picture (BLENDOP REVSUBTRACT,
+ * SRCALPHA, ONE: 0x429E38, return 0x429E3E). The result: a grey grain of the same strength over everything lit, none
+ * on black (vr253-vr255: 4-5 levels frame to frame, about 2 pixels across, the Film grain option no help). Unless
+ * "Film grain" is on, the tile is drawn as its own average (res_flat_texture): the same brightness and contrast as the
+ * game's (the grade's (1 + L) and the tile's mean taken off), no grain. */
+static int grain_tile_draw(int stage, Res *t) {
+    return stage == 0 && t && MEM32(g_esp) == 0x00429E3Eu && !sh3vr_film_grain();
+}
 static void bind_textures(void) {
     for (int s = 0; s < MAX_STAGES; s++) {
         glActiveTexture(GL_TEXTURE0 + s);
         Res *t = res_of(dev->tex[s]);
         if (t) res_upload_dirty(t);
+        if (grain_tile_draw(s, t)) {
+            uint8_t avg[4] = {0, 0, 0, 0};
+            const GLuint flat = res_flat_texture(t, avg);  /* binds it */
+            static int told;
+            if (!told) {
+                told = 1;
+                rt_log("VR: frame %d: the game's second grain (0x429A60's noise tile, %ux%u, format %u) drawn as its "
+                       "average %u %u %u %u: no grain (the VR option Film grain off)%s", rt_frame, t->w, t->h, t->fmt,
+                       avg[0], avg[1], avg[2], avg[3], flat ? "" : "; could not: the tile has no copy, the grain stays");
+            }
+            if (flat) continue;
+        }
         glBindTexture(t && t->kind == RES_CUBE ? GL_TEXTURE_CUBE_MAP : res_layers(t) == 2 ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D,
                       t ? t->tex : 0);
     }
@@ -1363,11 +1394,58 @@ static void draw_setup(const uintptr_t *base, const GLuint *bufs, uint32_t up_st
  * the depth test fails. That count is right with the eyes inside a volume (the z-pass count of session 12 turned over
  * there, so such casters were left out whole: her shadow came and went by pieces). The game's darkening reads the same
  * count (17 and over), the room's own volumes counted their way before. */
+/* 0.1.3 (owner 84: "body ik shadows can be refined i feel, they seem a bit overbearing as is"): her shadow at half the
+ * game's darkening. The darkening is one draw (0x48D474's stencil test, LESSEQUAL 17 on the count, into the mask target
+ * set from 0x48D3D2), which the game then blurs through two 256x256 targets and lays over the scene (vr185's log). So
+ * the room's volumes alone make the mask first; after that draw the count goes back to 16 (its bits only: her mark 0x20
+ * and the game's 0x40 stay), her volumes are counted, and the same draw runs again blended at her strength: where only
+ * she shades, the mask goes that far towards the game's shadow; where the room's shadow already is, it stays as it is
+ * (a shadow in a shadow is no darker). The game's blur still softens her edges as its own. A mask draw that blends
+ * itself (none seen) keeps the full strength. */
+#define HER_SHADOW_STRENGTH 0.5f
+enum { kHerMaxTris = 24576 };
+static float her_tri[kHerMaxTris * 9];
+static int her_tris_n, her_mask_frame = -1;
+static float her_mask_strength = 1.0f;
+static GLuint her_buf;  /* her volumes' own buffer: the mask draw's vertices (the stream buffer) stay for its second run */
+static void her_shadow_ready(void) {
+    if (her_mask_frame >= 0 && her_mask_frame != rt_frame) {
+        static int told = 0;
+        if (!told++)
+            rt_log("VR: frame %d: her shadow: the game's mask draw after its stencil test (frame %d) was not seen: her "
+                   "shadow left out that frame", rt_frame, her_mask_frame);
+    }
+    her_tris_n = sh3vr_her_shadow(vol_view, vol_proj, her_tri, kHerMaxTris);
+    if (her_tris_n > 0 && dev->ds) her_mask_frame = rt_frame;
+}
+static int her_mask_due(void) {
+    if (her_mask_frame != rt_frame || !dev->rs[52] || dev->rs[56] != 4 /* LESSEQUAL */ || dev->rs[57] != 17) return 0;
+    her_mask_frame = -1;
+    return 1;
+}
+static void her_mask_second(void) {
+    glStencilMask(0x1F);
+    glClearStencil(16);
+    glClear(GL_STENCIL_BUFFER_BIT);
+    vr_her_shadow();
+    her_mask_strength = dev->rs[27] ? 1.0f : HER_SHADOW_STRENGTH;
+    static int told = 0;
+    if (!told++)
+        rt_log("VR: frame %d: her shadow counted after the room's, its mask drawn again at %.0f%% of the game's darkening%s",
+               rt_frame, her_mask_strength * 100.0f, dev->rs[27] ? " (the mask draw blends itself: full)" : "");
+}
+static void her_mask_blend(void) {
+    if (her_mask_strength >= 0.999f) return;
+    glEnable(GL_BLEND);
+    glBlendColor(0.0f, 0.0f, 0.0f, her_mask_strength);
+    glBlendFuncSeparate(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA, GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+}
 static void vr_her_shadow(void) {
-    enum { kMaxTris = 24576 };
-    static float tri[kMaxTris * 9];
-    const int n = sh3vr_her_shadow(vol_view, vol_proj, tri, kMaxTris);
+    const int n = her_tris_n;
+    const float *tri = her_tri;
     if (n <= 0 || !dev->ds) return;
+    if (!her_buf) glGenBuffers(1, &her_buf);
     static uint32_t rs_keep[RS_COUNT];
     memcpy(rs_keep, dev->rs, sizeof rs_keep);
     float world_keep[16], view_keep[16], proj_keep[16];
@@ -1394,10 +1472,10 @@ static void vr_her_shadow(void) {
     rs[47] = 0;                                   /* no depth bias */
     rs[52] = 1; rs[53] = 1; rs[55] = 1;           /* stencil on, fail and pass KEEP */
     rs[56] = 3; rs[57] = 0; rs[58] = 0x20; rs[59] = 0x1F;  /* only where her own mark (0x20) is clear; the game's count */
-    glBindBuffer(GL_ARRAY_BUFFER, dev->stream_buf);
+    glBindBuffer(GL_ARRAY_BUFFER, her_buf);
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)n * 36, tri, GL_STREAM_DRAW);
     uintptr_t base[16] = {0};
-    GLuint bufs[16] = {dev->stream_buf};
+    GLuint bufs[16] = {her_buf};
     for (int pass = 0; pass < 2; pass++) {
         rs[22] = pass == 0 ? 2 : 3;   /* clockwise culled: the back faces; then the front */
         rs[54] = pass == 0 ? 7 : 8;   /* depth-fail INCR, then DECR (wrapping in the 1F bits, as the game's volumes) */

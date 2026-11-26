@@ -316,6 +316,7 @@ public:
 
     float display_refresh() const override { return m_refresh_rate; }
     long displays_missed() const override { return m_missed_total; }
+    double last_work_seconds() const override { return m_last_work; }
 
     unsigned acquire_chain(Swapchain& chain) {
         if (!m_frame_begun || chain.handle == XR_NULL_HANDLE) {
@@ -582,6 +583,7 @@ public:
             m_work_seconds += work;
             m_work_most = std::max(m_work_most, work);
             m_work_over += work > m_period_seconds * m_frame_periods ? 1 : 0;
+            m_last_work = work;  // 0.1.3: dynamic resolution's "did a smaller picture help"
             m_work_start = 0.0;
         }
 
@@ -2895,6 +2897,7 @@ private:
     // the frames longer than the display's period, and the displays the frames came too late for (display times
     // skipped between one frame and the next).
     double m_work_start = 0;
+    double m_last_work = 0;  // 0.1.3: the last frame's work (last_work_seconds)
     double m_period_seconds = 1.0 / 72.0;
     double m_work_seconds = 0;
     double m_work_most = 0;

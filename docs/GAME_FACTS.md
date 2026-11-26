@@ -408,6 +408,24 @@ Mark what we confirm ourselves with (checked: how).
   (play sets it, 0x004321A0; the title and menus clear it). It is an alpha test turned on by 0x00427ED0 (return address
   0x00427EF0). VR keeps it off unless "Film grain" is on (LIST 55); the soft mottle left in dark places is the fog's
   own texture.
+  - Its passes (session 18, disassembly): pass 0 (with 0x0072C8AA and 0x0072C839) clears the target's alpha and stencil
+    bit 0x20 (TFACTOR 0, alpha writes only); pass 1 draws the other ping-pong scene target (0x00402B40: [0x0072BFC0 +
+    4 * ([0x0072BFBC] ^ 1)]) with the alpha test, stencil REPLACE 0x20 where its alpha passes, no colour; pass 2 the
+    grade, that texture x TFACTOR x 2 (MODULATE2X) blended by TFACTOR's alpha (2 x [0x0072C835]), where stencil bit 0x20
+    is set; pass 3 writes alpha only (the texture's alpha x a TFACTOR alpha from 0x00426060 / 0x00426030, up to 0x7F).
+    The grain's randomness is the ping-pong target's own alpha channel.
+- The second grain (session 18, owner 84's "weird fuzz over the screen"; run vr256's draw list): 0x00429A60 (a screen
+  effect record in eax: +0x14 0x80 skips it; 0x00427D30 gives its mode) in mode 2, every frame of play, after the
+  lamps' halos and before the frame's copy to the back buffer: a grey full-screen quad multiplied in (SRCBLEND
+  DESTCOLOR, DESTBLEND ONE: the picture x (1 + L), L = [esp+8] / 255, TFACTOR grey; return 0x00429C75), then a 128x128
+  noise tile (texture [esi], WRAP, LINEAR, its texture coordinates 0..4 so it repeats four times across, at a new
+  offset each frame) taken off the picture x L (BLENDOP 3 REVSUBTRACT, SRCALPHA, ONE; TFACTOR alpha L; the
+  DrawPrimitiveUP at 0x00429E38, return 0x00429E3E; BLENDOP back to ADD after). The result is a grey grain of one
+  strength over everything lit and none on black (vr253-vr255: 4-5 levels frame to frame, about 2 pixels across at
+  1000x1000 an eye), and 0x0072C839 does not gate it (the Noise Effect switch, which the Film grain option worked
+  through, never touched it). VR draws the tile as its average unless "Film grain" is on (d3d8.c bind_textures,
+  d3d8_res.c res_flat_texture): the game's (1 + L) and the tile's mean stay, the grain goes. Modes 0 (0x0042A476) and
+  1 (0x00429E58, render target copies) are other screen effects.
 
 ## The flashlight and her lighting (sessions 5-9: disassembly, runs vr107-vr142)
 - State machine 0x00496BE0: 0x0712CABC bits 0-1 (off, on, turning on, turning off); its strength 0x0712CAC4; held dark
@@ -649,11 +667,18 @@ The action check's reach (LIST 45): 0x4B9940's polygon regions test the 1.02 m s
 facing; a region can lie past a hand's reach yet within the button's (event 8 at the opening, vr196-197).
 The room's floor items: 0xBA9610 lists indices into the room table's items ([[0x711FCA0] + 0xC] + 18 x index: +6 /
 +8 a place index (x 64), +0x10 the flag that it was taken).
+The list is the game's own (session 17): 0x5777F0 (reached from 0x577FB0 through a table of functions) clears it
+(0x4B6D60: 64 x -1), walks the items at [0x6F4D84] (18 bytes each, until +0x10 is 0) and adds each that 0x4B6DC0
+passes (0x4B6D80: the first free slot). The rig's table log reads the list once, at a table's load; the event scans
+call 0x4B74B0 all round her every 120 frames, and none found a floor item in any run (nightmare, mall restroom).
 
 ## Session 15, later (2026-11-25): the stage's event table, doors (runs vr220-vr225, sh3.c's table log)
 - The opening's table ([0x711FCA0], 79 events) covers the whole nightmare stage: the first area (x < 0, z > 0), the
   circular hall (x 15000-27000, z 14000-24000) and the next area (z < 0, events 58-78). The nightmare has NO floor
-  items (0xBA9610 empty in both areas, vr223-224); the first are in the mall (Happy Burger).
+  items (0xBA9610 empty in both areas, vr223-224); the first are in the mall (Happy Burger). Session 17: after the
+  nightmare's death (vr251) the game put her in the mall's women's restroom (-60600 0 -20625, yaw 0; the whole mall
+  stage's table, events from x -60850 to -827, loaded at the death); the restroom's window region is events 10-12's
+  (from -59850 -19225), the save point's mirror on the wall at x -60795.
 - An event's 5 dwords: the 2nd word's low byte is the kind seen so far: 0x0B and 0x06 a door to another area, 0x0A an
   examine text, 0x00 others; a door's two sides share the 3rd word (BE38: event 5 in the first area with 4 in the
   hall; BE40: 46 at 22443 23959 with 45 at -21000 -23750; BE48: 48 at 24809 17840 with 47 at 16563 -19640).

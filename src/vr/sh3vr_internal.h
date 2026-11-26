@@ -54,13 +54,17 @@ struct Options {
     bool dynamic_resolution = true;  // LIST 51: the game's 3D pictures drawn smaller while the headset falls behind
     int foveation = 2;
     bool boost = true;
-    int sharpen = 1;             // Normal (session 7, the owner: "all vr options should be on by default")
-    bool space_warp = true;      // Smoother frames (AppSW): on (session 7, the owner: "all vr options should be on by default")
+    int sharpen = 0;             // 0.1.3: Off (owner 84: "no screen filters or ANYTHING like that shit on by default"; the
+                                 // headset's sharpening was on, Normal, from session 7's "all vr options should be on by default")
+    bool space_warp = false;     // Smoother frames (AppSW): 0.1.3 off and out of the menus: SH3 never drew the motion
+                                 // the headset needs (the owner's 0.1.2 log: "smoother frames on 0% of them"), so the
+                                 // option did nothing; back once SH3 draws it (the handoff's follow-up)
     bool show_performance = false;
     // View
     bool first_person = true;
-    int cutscenes = 0;           // 0 in the scene at the camera (VR, the default), 1 first person, 2 cinema screen
-    bool dynamic_cutscenes = true;  // LIST 48: with cutscenes 0, first person while the scene shows her, at the camera when not
+    int cutscenes = 0;  // 0 dynamic (her eyes while the scene shows her, else the game's camera: LIST 48; the default), 1 first
+                        // person, 2 cinema screen, 3 at the camera (0.1.3, owner 87: the row says "Dynamic"; 0.1.2's
+                        // own switch "Dynamic cutscenes" off with "In the scene at the camera" is 3: load_options)
     bool auto_third_person = true;  // LIST 35: third person where the game's own camera is needed
     bool height_auto = true;     // LIST 42 (session 6): the player's height measured from the headset, standing
     float player_height_cm = 165.0f;  // "Your height" when it is not measured
@@ -73,15 +77,15 @@ struct Options {
     bool spatial_sound = true;   // LIST 34: 3D sounds placed from the head (sh3.c, the listener of 0x46CDF0 / 0x46CFE0)
     bool film_grain = false;     // the game's noise effect (session 7, the owner: "sh3's built in noise/film grain effect should
                                  // be disabled by default. can be re-enabled via in game settings"): sh3.c 0x41C090
-    bool drifting_fog = true;    // owner 79 (session 16): the game's drifting fog, on a far layer in the world (d3d8.c,
-                                 // sh3vr_far_layer_map)
+    bool drifting_fog = false;   // owner 79 (session 16): the game's drifting fog, on a far layer in the world (d3d8.c,
+                                 // sh3vr_far_layer_map); 0.1.3 off (owner 84: "drifting fog should be off by default")
     // owner 81 (session 16): the PC VR mod's picture settings ([Image] ExposureStops, Contrast, Saturation,
     // VignetteStrength; [OpenXR] EnableFXAA), sh3vr.cpp picture_pass; 100 % = the game's own look
     float brightness = 100.0f;   // %, the picture's light (a multiple of it)
     float contrast = 100.0f;     // %
     float saturation = 100.0f;   // %, "Color saturation"
     float dark_edges = 0.0f;     // %, "Darker edges" (the PC VR mod's vignette)
-    bool smooth_edges = true;    // FXAA (the PC VR mod's EnableFXAA, on there by default)
+    bool smooth_edges = false;   // FXAA (the PC VR mod's EnableFXAA); 0.1.3 off (owner 84: no screen filters by default)
     bool her_shadow = true;      // LIST 56 (session 12, owner messages 49-50): her IK body, her weapon and a part held cast
                                  // shadows from the flashlight in the game's own stencil shadows (her_shadow_tris, d3d8.c)
     float panel_distance = 1.4f;
@@ -90,11 +94,11 @@ struct Options {
     bool menus_in_view = true;   // session 11 (owner 44): a screen (menus, inventory, map) opens where you look, fades
     bool messages_at_things = true;  // session 11 (owners 42-43): the game's messages by the thing they are about
     // Comfort
-    int turn = 0;                // 0 snap, 1 smooth
+    int turn = 1;                // 0 snap, 1 smooth: 0.1.3 smooth (owner 84: "smooth turn should be on by default")
     float snap_degrees = 45.0f;
     float smooth_degrees = 120.0f;  // a second, the stick fully over
     int move_by = 0;             // 0 head (the default, the owner 2026-11-24), 1 the left hand
-    bool vignette = true;
+    bool vignette = false;       // the comfort vignette while turning or moving: 0.1.3 off (owner 84: no screen filters)
     float vignette_strength = 50.0f;  // %
     bool head_fade = true;       // the head in a wall darkens the view
     // Pointer
@@ -181,7 +185,8 @@ extern float blocked_seconds;  // ... and has not got closer: something holds he
 
 bool head_known();
 bool in_play();                // playable, no cutscene or demo, no VR menu
-float frame_dt();
+float frame_dt();              // the display's period: the game's own tick (one a frame)
+float motion_dt();             // 0.1.3: the real seconds since the last frame (hand speeds, swings, smooth turn)
 int main_hand();               // kRight, or kLeft when left-handed
 // LIST 45: the spot (world) a closing hand asks the game's action at this frame, and the event the game found there.
 bool hand_action_at(Vec3& world);

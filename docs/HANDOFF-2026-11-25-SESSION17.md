@@ -4,7 +4,7 @@ Picked up from docs/HANDOFF-2026-11-25-SESSION16.md "Part 2" (the owner: "was wo
 from where it left off. miss/forget nothing. proceed with list"). Owner messages up to 83 (this pickup) are in
 C:/SH3Quest/notes/owner-messages-sessions1-7.txt; no other this session.
 
-PC builds 206-207 (build_pc_206.log, build_pc_207.log, BUILD OK); runs vr246-vr251.
+PC builds 206-207 (build_pc_206.log, build_pc_207.log, BUILD OK); runs vr246-vr252.
 
 ## Done
 
@@ -57,7 +57,7 @@ PC builds 206-207 (build_pc_206.log, build_pc_207.log, BUILD OK); runs vr246-vr2
     let-go; vr250 every gun's reload by hand; vr251 the death skip with no crash.
 - GitHub: no issues; downloads (before 0.1.2) v0.1.1 4, v0.1.0 3.
 
-## The floor items by hand (LIST 45's last part), vr249 and vr251
+## The floor items by hand (LIST 45's last part), vr249, vr251 and vr252
 
 door228.txt (the death skip to the mall) on build 207: the walk got stuck at the hall's start (15849 19377), the line
 to point 4 into the railing, as vr236 (door228's header never had door231's point 0.9 m into the hall: added now,
@@ -75,13 +75,35 @@ pause menu's panel in the dark (the script presses the menu every 200 frames: Re
 as designed. No crash. So the death skip works with Block off; the mall's first floor items need a route out of the
 restroom, which door228 has not got.
 
+Why the scans never found a floor item (checked in the game's code after vr251): every run's tables read "floor items:
+0" (17 of them), but that is read once, when a table loads. The game fills 0xBA9610 itself (0x5777F0, reached from
+0x577FB0 by a table of functions: it clears the list with 0x4B6D60, then walks the items at [0x6F4D84], 18 bytes each,
+until +0x10 is 0, and adds those 0x4B6DC0 passes through 0x4B6D80). That fill can run later than the table log, but the
+event scans every 120 frames call the game's own floor-item check (0x4B74B0) all round her, and no run's scan ever found
+one ("event scan: floor item" appears in no log). So in every place a run has stood (the nightmare's areas and the
+mall's restroom) the game itself had no floor item to give: the session-15 finding stands, no code change.
+
+vr252 (tools/sim/door252.txt, new: door228's death, then the walk to the restroom's window, events 10-12's region from
+-59850 -19225, event 11 the live one, with the left hand ahead closing every 30 frames; Block off for that run only,
+the defaults put back after; about 4 min): the entrance door by the left hand again ("the left hand used event 5 at
+-13089 -616 23239", frame 8261), point 4 at 8486, and at 8783 "her health 0.0 after a hit: SH3_HP lets go". But this
+time the game never started her death: she walked on at 0 of 100 to the end (the wrist's log: "health 0 of 100, in
+play 1"), the dog beside her with no more hits, and no event scan ran after 8700. SH3_HP writes her health from
+outside the game's hit (it holds 1%, then lets go), so whether the game's own death check sees the 0 depends on the
+blow (vr251's did, vr252's did not). A player never has SH3_HP; the game's hit kills as it always did (vr251).
+The pictures whole: the hall, the "CAUTION KEEP OUT" gate, the knife in the right hand, the left arm reaching ahead in
+both eyes at 11000-12300 (the hand at the gate, the forearm foreshortened from the eyes as in vr242). No crash.
+
 ## Open, in order
 
 1. The players' and the owner's reports on 0.1.0-0.1.2 (GitHub issues: none on 2026-11-25; the launcher's report:
    sh3-crash.log, sh3.log), first whether the launcher's updater offered and installed 0.1.1 / 0.1.2.
 2. The headset-only items: docs/HEADSET_CHECKLIST.md (0.1.2's fog, lens flare, picture options and menu hold added).
-3. LIST 45's floor items by hand: vr251 reached the mall (its restroom, 0 floor items); a route from there to
-   the first floor items (door228.txt after the death), or the headset.
+3. LIST 45's floor items by hand: vr251 reached the mall (its restroom, no floor item there); vr252's death did not
+   go on (SH3_HP). On the PC rig the death skip is a coin toss and the restroom's window is the next step
+   (tools/sim/door252.txt, uncommitted, does both); a sure way is the headset ("Reach and grip at an item" in
+   HEADSET_CHECKLIST.md) or a save in the mall, if the owner has one. This session's runs used about 25 of the 30
+   minutes (vr246-vr252).
 
 ## Files changed in session 17 (with part 2's; all in the 0.1.2 commit 78780ee)
 
@@ -91,3 +113,48 @@ restroom, which door228 has not got.
 - tools/sim/letgo.txt (new).
 - docs: CONTROLS.md, GAME_FACTS.md, HEADSET_CHECKLIST.md, LIST-0.1.0.md, RELEASE-NOTES-0.1.2.md (new), this handoff;
   README.md, CREDITS.md; android: build.gradle, assets controls.txt, credits.txt, features.txt, whats_new.txt.
+
+## Part 2: the owner's report on 0.1.2 (message 84) — the 0.1.3 list, NOTHING coded yet
+
+The owner tried 0.1.2 on the headset (owner message 84, verbatim in C:/SH3Quest/notes/owner-messages-sessions1-7.txt),
+then said "your weekly usage is almost up here, so wrap up and do a handoff" (85). Do this list in order, all in a NEW
+release 0.1.3 (versionCode 4; the owner: "proceed with this in mind and do a new release"; publish it as 0.1.1 and
+0.1.2 were, asking nothing). The rules stand: code it all, ONE PC build, one short combined check (each feature on
+the exact build), then the release.
+
+1. **Physical melee too sensitive**: "im just simply moving the knife arm gently/arm in general, and melee
+   animation/sound happens". Raise what counts as a swing in sh3vr_combat.cpp (the swing detection: speed, the
+   speed's rise, the distance the tip travels in the swing, a short time held, for every melee weapon, bare hands and
+   a gun used as a club). A gentle move or a slow wave must never start the attack, its animation or its sound; a
+   real swing still hits at contact (owner 65). Look at the swing log of an earlier melee run (vr204/vr233/vr235) for
+   the speeds a real swing gives against the script's gentle moves, then set the thresholds with a margin.
+2. **"Drifting fog" OFF by default**: sh3vr_internal.h line 76 (`drifting_fog = true`) and the launcher's
+   Options.java line 142 (`sw("drifting_fog", ..., true, ...)`).
+3. **Smooth turn ON by default**: `opt.turn` (sh3vr_internal.h; sh3vr.cpp line 162 clamps 0..1, line 1812 is the
+   `turn == 0` branch: check which value is smooth) and its launcher entry in Options.java.
+4. **"No screen filters or ANYTHING like that on by default"**, and the "weird fuzz over the screen" still there,
+   wanted completely off by default:
+   - "Smooth edges" (FXAA) OFF by default: sh3vr_internal.h line 84 (`smooth_edges = true`) and Options.java.
+   - "Brightness", "Contrast", "Color saturation" stay 100% and "Darker edges" 0 (the picture pass off with those).
+   - "Film grain" is already off (sh3vr_internal.h line 74): find what the fuzz still is. Candidates to check in a
+     picture whole (look at dark walls, zoomed): the game's own noise drawn by another path than the one the switch
+     stops, the drifting fog's far layer (off by default anyway after item 2), the dithered body fade, the picture
+     pass or FXAA, dynamic resolution / AppSW on the Quest. Turn each off in a run and compare the same frame (lum.py
+     on a dark patch: the noise's spread); whatever it is goes off by default, with a switch only if it is useful.
+   - **0.1.2 players keep their saved options**: the VR menu writes sh3vr.ini on close and the launcher keeps its own
+     settings, so changing the defaults alone does not reach the owner. Add a defaults version (in sh3vr.ini and in
+     the launcher's preferences): when it is older than 0.1.3's, set these options (drifting fog, smooth turn, smooth
+     edges, film grain, the picture values) to the new defaults once, then save. Say so in the release notes.
+5. **Heather's body shadows "a bit overbearing", refine them**: LIST 56's shadow from her own mesh (sh3vr_ik.cpp
+   her_shadow_tris, d3d8.c vr_her_shadow, the z-fail volumes). Look at a shadow picture (vr199/vr187/vr189) first: how
+   dark and how large her shadow is against the game's own shadows. Likely: lighter (not the game's full darkening
+   for her part), softer at the edges, and no shadow from the parts near the lamp (the hand holding the flashlight,
+   the arm under the chest lamp) that throw huge shapes ahead. Keep the option "Heather's shadow" on.
+6. Docs: whats_new.txt (0.1.3), features.txt, CONTROLS.md if anything changes, HEADSET_CHECKLIST.md (the melee's
+   gentle moves, the defaults, the fuzz gone, the shadow), README v0.1.3, docs/RELEASE-NOTES-0.1.3.md (from 0.1.2's),
+   build.gradle versionCode 4 / "0.1.3", AUDIT rows for owner 84-85, LIST 56 / melee item notes.
+7. Release: re-check every change on the exact build, `tools/build_quest.py --release`, apkcheck.py against 0.1.2,
+   commit, push, tag v0.1.3, `gh release create`, check releases/latest and the digest. Never change v0.1.0-v0.1.2.
+
+Uncommitted now (left so, no commit asked): tools/sim/door252.txt; this handoff's vr252 and Part 2 sections; LIST 45's
+vr252 lines; GAME_FACTS (the floor list's fill, the restroom). They go into the 0.1.3 commit.

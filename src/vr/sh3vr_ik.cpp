@@ -1695,8 +1695,9 @@ int shadow_mesh(Vec3 lp, Vec3 ld, bool flip, float cone, float reach, float clea
 // shows in the pictures. So VR adds hers to that same count: her body as drawn this frame (the IK's bones: head, neck,
 // trunk, collars, arms, palms, every finger joint, legs, feet), the weapon in her hand (guns and melee: its measured
 // capsules, the muzzle flash's left out) and a magazine, shell or battery held for a reload, each a closed volume from
-// the flashlight drawn into the game's stencil just before its darkening step (d3d8.c), so her shadow is the game's own:
-// as soft, as dark, from the same lamp. A caster is a quad through its capsule's axis across the light's way (a palm
+// the flashlight drawn into the game's stencil at its darkening step (d3d8.c), so her shadow is the game's own: as
+// soft, from the same lamp, at half its darkness (0.1.3, owner 84: counted after the room's). A caster is a quad
+// through its capsule's axis across the light's way (a palm
 // flat in its own plane), its prism running 8 m on from the lamp; the triangles are wound outward and turned so the
 // game's camera takes their outsides as its front faces (D3D's clockwise), as the game's volumes are counted: front
 // faces add one, back faces take one away (the stencil starts at 16, shadow at 17 and over: a miscount only loses a
@@ -1770,11 +1771,13 @@ int her_shadow_tris(const float view[16], const float proj[16], float* out, int 
                    "volumes run %.1f m",
                    zfar, zfar / kU, proj[10], proj[11], proj[14], kFar / kU);
     }
-    const float kCone = 0.643f /* 50 degrees */, kReach = 3.0f * kU, kClear = 0.04f * kU;
+    const float kCone = 0.643f /* 50 degrees */, kReach = 3.0f * kU, kClear = 0.15f * kU;  // 0.1.3: 15 cm (0.1.2: 4)
     {
         // her own mesh: every face the beam lights within 30 degrees of its line (the game's beam is dark past about
-        // 28, vr117), to 3 m, not within 3 cm of the lamp
-        const int got = shadow_mesh(lp, ld, flip, 0.866f, kReach, 0.03f * kU, kFar, out, max_tris, counts);
+        // 28, vr117), to 3 m, not within 15 cm of the lamp (0.1.3, owner 84 "a bit overbearing": 0.1.2 left out only
+        // 3 cm, so the hand round a held lamp, the fingers at its lens and an arm right under the chest lamp threw the
+        // biggest shapes over the beam; those are left out now)
+        const int got = shadow_mesh(lp, ld, flip, 0.866f, kReach, 0.15f * kU, kFar, out, max_tris, counts);
         if (got >= 0) return got;
     }
     int n = 0;

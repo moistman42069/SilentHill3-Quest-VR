@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.2</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.3</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -21,11 +21,12 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > sh3.exe and data (about 5 GB). The launcher copies it onto the headset from a folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.2's release notes](docs/RELEASE-NOTES-0.1.2.md): the fog fixed, the
-VR menu on a held button, the PC VR mod's picture settings; [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first
-release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short: install SH3QuestVR-0.1.2.apk (developer mode, SideQuest
-or adb), copy your game folder or a .zip of it to the headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY
-IN VR. Already on 0.1.0 or 0.1.1? The launcher offers 0.1.2 itself (Updates). Reports from a headset are very welcome
+with everything you need to install it ([0.1.3's release notes](docs/RELEASE-NOTES-0.1.3.md): no screen filters
+or fuzz by default, smooth turning, gentler melee, a softer shadow, no crash on quitting; [0.1.2's](docs/RELEASE-NOTES-0.1.2.md);
+[0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short:
+install SH3QuestVR-0.1.3.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
+headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. Already on an earlier version? The launcher
+offers 0.1.3 itself (Updates). Reports from a headset are very welcome
 (the launcher's "Save a report to Download" holds the game's own logs).
 
 ## Features
@@ -33,8 +34,8 @@ IN VR. Already on 0.1.0 or 0.1.1? The launcher offers 0.1.2 itself (Updates). Re
 - **First person, 6DoF**: eyes at Heather's head, head and hands tracked; walking in the room moves her; your height
   matched to hers; the world life size. **Third person** with the game's own camera, in stereo: the VR menu's
   "First person" switch (View). Places that need the game's camera switch by themselves.
-- **Cutscenes in VR** by default, in the scene at the game's camera (or first person, or a cinema screen);
-  **dynamic cutscenes** go through Heather's eyes where that makes sense. The **movies** play on a big cinema screen
+- **Cutscenes in VR** by default, **dynamic**: through Heather's eyes where that makes sense, in the scene at the
+  game's camera otherwise (or always at the camera, first person, or a cinema screen: the VR menu's "Cutscenes"). The **movies** play on a big cinema screen
   with their sound.
 - **Heather's own body**, full-body IK: her head at the headset, her hands at the controllers, her arms, trunk and legs
   following you; look down and see her. **Her shadow**: her body as you move it, her fingers and what she holds cast
@@ -59,9 +60,10 @@ IN VR. Already on 0.1.0 or 0.1.1? The launcher offers 0.1.2 itself (Updates). Re
 - **A Silent Hill pointer** for every screen: menus, the inventory, the map, memos, puzzles, the VR menu; point and
   pull, the hand ticks on what a pull can choose.
 - **Dynamic resolution**: the world drawn a little smaller only while frames come late, text and hands always sharp.
-- **The picture**: the game's drifting fog on a far layer in the world (as the PC VR mod draws it), a lamp's lens
-  flare at the lamp; **Brightness, Contrast, Color saturation, Darker edges** (the PC VR mod's picture settings, the
-  game's own look by default) and **Smooth edges** (FXAA, on).
+- **The picture** as the game draws it: no screen filters to start (no film grain, drifting fog, sharpening,
+  smoothing or vignette), a lamp's lens flare at the lamp. **Film grain**, **Drifting fog** (on a far layer in the
+  world, as the PC VR mod draws it), **Brightness**, **Contrast**, **Color saturation**, **Darker edges** and
+  **Smooth edges** (FXAA) in the VR menu.
 - **Every input mapped**, none missing, no conflicts: [docs/CONTROLS.md](docs/CONTROLS.md).
 - **The VR menu** (hold the left menu button for a second, anywhere; in play the game pauses under it) in the game and
   **the launcher** (game files import and check, Options, PC saves import, logs and a
