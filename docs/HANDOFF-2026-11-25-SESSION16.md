@@ -104,7 +104,10 @@ minutes of runs: vr237-vr240 the reload check the owner asked for). Releases: 0.
 
 ## Open, in order
 
-1. The players' and the owner's reports on 0.1.0 (GitHub issues, the launcher's report: sh3-crash.log, sh3.log).
+1. The players' and the owner's reports on 0.1.0 and 0.1.1 (GitHub issues, the launcher's report: sh3-crash.log,
+   sh3.log), first of all whether the 0.1.0 launcher's updater offered and installed 0.1.1 (its first real test;
+   the path checked here: releases/latest v0.1.1, the asset's name and digest, github.com's redirect to
+   release-assets.githubusercontent.com, which UpdatePolicy allows, 200 with the right size).
 2. LIST 45: the far door by hand (door231 with a point at the hall's start, above).
 3. LIST 45: floor items by hand via the death skip (door228.txt, SH3_HP=1; the SH3_HP hold now lets go once a hit
    takes her to 0, so a death goes on).
