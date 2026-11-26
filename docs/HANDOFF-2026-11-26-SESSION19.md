@@ -146,9 +146,14 @@ The old check compared the exe's SHA-1 with two values. It refused every exe but
   - vr262: the unprotected exe with a 0.1.3 options file (folded once), the motion, the pictures, a clean quit;
   - vr263: the protected-like exe, the same;
   - ExeCheckTest on ExeCheck.java and GameFiles.java as committed.
-- **Published**: see the next handoff commit for the hashes. The plan: main (the 0.1.4 commit), annotated tag v0.1.4,
-  and the release "Silent Hill 3 Quest VR 0.1.4" with docs/RELEASE-NOTES-0.1.4.md and the APK. The v0.1.3 release
-  page's Files text is corrected (its APK and tag untouched).
+- **0.1.4 PUBLISHED** (2026-11-26; owner 92: "be sure to update the git entirely as you see fit after this release"):
+  - main 50047a1 (the 0.1.4 commit), annotated tag v0.1.4 (8f9e90c) on it, pushed;
+  - the release "Silent Hill 3 Quest VR 0.1.4", with docs/RELEASE-NOTES-0.1.4.md and the APK: not a draft, not a
+    prerelease;
+  - releases/latest = v0.1.4, and GitHub's digest sha256:9d0fee94... matches, 9,381,206 bytes;
+  - the updater asks for "SH3QuestVR-" + "0.1.4" + ".apk", which is the asset's name;
+  - v0.1.0 to v0.1.3 untouched, except the v0.1.3 page's Files text: it named 0.1.2's APK, and now names its own,
+    9,214,086 bytes, 87e8d315... Its APK and tag are unchanged.
 
 ## Open, in order
 
