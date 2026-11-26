@@ -56,6 +56,11 @@ elseif(ANDROID)
   target_link_libraries(sh3 PRIVATE SDL2::SDL2 openxr_loader EGL GLESv3 android log m dl)
   # Crash reports unwind the host stack (host.c): keep frame pointers and the unwind tables.
   target_compile_options(sh3 PRIVATE -fno-omit-frame-pointer -funwind-tables)
+  # 0.1.5 (owner: "COMPLETELY MAXIMIZE PERFORMANCE"): the game's calls between the lifted files (tens of thousands of
+  # functions, 250 a file) are bound inside the library, straight to their targets instead of through the PLT. The
+  # names stay exported, so a crash report's dladdr still names every frame (host.c). The registers' thread-locals
+  # are hidden for the same reason (recomp_types.h, RECOMP_TLS).
+  target_link_options(sh3 PRIVATE -Wl,-Bsymbolic-functions)
   # The bridges' table (rt.h BRIDGE_REG, section game_bridges) is found by __start_/__stop_game_bridges: lld's
   # --gc-sections with start-stop-gc (its default) dropped the section and left those undefined (session 15, the first
   # Android link), so the section is kept whole.

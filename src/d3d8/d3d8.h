@@ -78,6 +78,7 @@ typedef struct Dev {
     int to_panel;                /* SH3 Quest VR: this draw goes to the panel (HUD, menus: d3d8.c route_draw) */
     int rhw_world, rhw_mapped;   /* SH3 Quest VR: this screen-space draw is a world effect (vr_route), moved by rhw_map */
     float rhw_map[16];
+    float rhw_fade;              /* SH3 Quest VR (session 22): how much of a mapped world effect shows (sh3vr_effect_map) */
     int beam_mesh;               /* SH3 Quest VR (session 15): this draw is the beam saber's beam, moved by beam_map */
     float beam_map[16];          /* ... the game's clip -> its world -> moved with the saber to the hand -> its clip */
     int no_ztest;                /* SH3 Quest VR (session 17): the game's lens flare at its lamp's depth, drawn over all (vr_route_pick) */

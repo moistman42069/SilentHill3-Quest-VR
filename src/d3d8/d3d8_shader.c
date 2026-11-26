@@ -435,6 +435,8 @@ typedef struct Prog {
     GLint vp, halfpix, tfactor, fogcolor, fogparams, alpharef, viewproj, bumpenv;
     GLint eye;                /* uEye[2] (multiview) */
     GLint rhwmap;             /* uRhwMap: a world effect's move (screen-space draws) */
+    GLint rhwfade;            /* uRhwFade (session 22): how much of a mapped world effect shows (rgb, alpha factors) */
+    float rhwfade_last[2];
     GLint nearcull;           /* SH3 Quest VR: uNearCull, what of Heather is nearer the eyes is cut (sh3vr_body_cut) */
     GLint cutsphere, cutc2w;  /* ... uCutSphere / uCutClipToWorld: the sphere about her head (LIST 19) */
     GLint cutcapb;            /* ... uCutCapB: the capsule's other end (w 1), her neck (session 6) */
@@ -738,6 +740,7 @@ static Prog *build(const Key *k) {
            "out vec4 fragColor;\n");
     if (k->mv) sp(&f, "flat in int vView;\n");
     else sp(&f, "const int vView = 0;\n");  /* a single target: a per-eye texture gives its left eye */
+    if (k->rhw) sp(&f, "uniform vec2 uRhwFade;\n");  /* session 22: a mapped world effect's fade (sh3vr_effect_map) */
     for (int s = 0; s < 8; s++) {
         int cube = k->textype[s] == 2, proj = k->ttff[s] & 0x80, arr = !cube && (k->arr >> s & 1);
         sp(&f, "uniform sampler%s s%d;\n", cube ? "Cube" : arr ? "2DArray" : "2D", s);
@@ -796,6 +799,7 @@ static Prog *build(const Key *k) {
         else sp(&f, "  if (!(round(c.a * 255.0) %s uAlphaRef)) discard;\n", cmp[k->alphafunc]);
     }
     sp(&f, "  if (uCutFade.w > 0.0) { c.rgb = mix(c.rgb, vec3(0.75, 0.78, 0.82), 0.35); c.a = uCutFade.w; }\n");
+    if (k->rhw) sp(&f, "  c.rgb *= uRhwFade.x; c.a *= uRhwFade.y;\n");
     sp(&f, "  fragColor = c;\n}\n");
 
     GLuint vs = compile(GL_VERTEX_SHADER, v.s), fs = compile(GL_FRAGMENT_SHADER, f.s);
@@ -834,6 +838,9 @@ static Prog *build(const Key *k) {
     U(beampos, "uBeamPos"); U(beamdir, "uBeamDir"); U(beamcone, "uBeamCone"); U(beamc2w, "uBeamC2W");
     U(sega, "uSegA"); U(segb, "uSegB"); U(segn, "uSegN");
     U(power, "uPower"); U(ltspec, "uLtSpecular"); U(ltamb, "uLtAmbient");
+    U(rhwfade, "uRhwFade");
+    if (p->rhwfade >= 0) glUniform2f(p->rhwfade, 1.0f, 1.0f);
+    p->rhwfade_last[0] = p->rhwfade_last[1] = 1.0f;
 #undef U
     return p;
 }
@@ -1045,7 +1052,7 @@ void shader_bind_for_draw(int rhw, uint32_t vs, const int *present) {
     glUseProgram(p->id);
 
     /* testing (session 6): the fixed-function draws of the dump's frame, with their world place (the muzzle flash) */
-    if (k.ffp_vs && vsc_dump_now(getenv("SH3_VSC_DUMP") ? atoi(getenv("SH3_VSC_DUMP")) : -1))
+    if (k.ffp_vs && vsc_dump_now(RT_ENV("SH3_VSC_DUMP") ? atoi(RT_ENV("SH3_VSC_DUMP")) : -1))
         rt_log("ffp draw: nv %u np %u rhw %d world t %.1f %.1f %.1f, x %.2f %.2f %.2f", dev->draw_nv, dev->draw_np, rhw,
                dev->world[0][12], dev->world[0][13], dev->world[0][14], dev->world[0][0], dev->world[0][1],
                dev->world[0][2]);
@@ -1125,6 +1132,20 @@ void shader_bind_for_draw(int rhw, uint32_t vs, const int *present) {
         /* SH3 Quest VR: a world effect of the gun's own moved with the gun to the hand (vr_route), else as drawn */
         static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
         glUniformMatrix4fv(p->rhwmap, 1, GL_FALSE, rhw && dev->rhw_world && dev->rhw_mapped ? dev->rhw_map : ident);
+    }
+    if (p->rhwfade >= 0) {
+        /* session 22: a mapped world effect's fade toward the edge of the game's own picture (sh3vr_effect_map). Its
+         * alpha always; its colour too where the blend takes the colour as it is (source factor ONE: added or
+         * premultiplied), so it fades whatever the blend */
+        float fv[2] = {1.0f, 1.0f};
+        if (rhw && dev->rhw_world && dev->rhw_mapped && dev->rhw_fade < 1.0f) {
+            fv[1] = dev->rhw_fade;
+            if (dev->rs[19] == 2) fv[0] = dev->rhw_fade;  /* SRCBLEND ONE */
+        }
+        if (fv[0] != p->rhwfade_last[0] || fv[1] != p->rhwfade_last[1]) {
+            glUniform2f(p->rhwfade, fv[0], fv[1]);
+            p->rhwfade_last[0] = fv[0], p->rhwfade_last[1] = fv[1];
+        }
     }
     /* SH3 Quest VR (LIST 41-43): what of Heather this draw cuts or fades, and the ghost hands' pass (sh3vr_body_cut;
      * every draw asks, so the ghost pass can hide its shadow and the rest). The game's own constants: the weapon's

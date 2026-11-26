@@ -1,0 +1,40 @@
+# SH3 Quest VR, the PC rig (session 22, build 218): the game's effects (the lamps' glows, the muzzle flash) put at
+# their place in the world through the game's own camera, faded toward the edge of its picture (sh3vr_effect_map).
+# About 2.5 minutes. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_GIVE="10:10,15:20" SH3_EQUIP=1
+# SH3_FX_LOG=7250:7900 (log frames: the script's minus about 54).
+# Every picture checked whole: each glow on its lamp in both eyes, none floating where no lamp is, none popping; the
+# muzzle flash at the muzzle; her hands, the gun and its direction.
+5200 shot s05200-scene
+7318 shot c07318-start
+# Heather turned about 75 degrees left with the stick (smooth turn, 120 a second), toward the gate's lamp that vr269's
+# far-left look (head 80 left) showed, a step walked so she and the game's camera behind her face it too
+7330 right_x -1
+7368 right_x 0
+7380 left_y 1
+7400 left_y 0
+7520 shot c07520-lamp
+7530 head_yaw 20
+7540 shot c07540-lamp-head-left
+7550 head_yaw -20
+7560 shot c07560-lamp-head-right
+7570 head_yaw 50
+7580 shot c07580-lamp-head-far-left
+7590 head_yaw 0
+# the handgun fired at the same view: the flash at the muzzle in both eyes
+7620 right_trigger 1
+7650 shot c07650-fire-a
+7653 shot c07653-fire-b
+7656 shot c07656-fire-c
+7659 shot c07659-fire-d
+7662 shot c07662-fire-e
+7666 shot c07666-fire-f
+7670 shot c07670-fire-g
+7680 right_trigger 0
+7700 right_trigger 1
+7712 shot c07712-fire-h
+7715 shot c07715-fire-i
+7718 shot c07718-fire-j
+7721 shot c07721-fire-k
+7760 right_trigger 0
+7800 quit 0

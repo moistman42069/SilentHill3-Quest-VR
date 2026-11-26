@@ -1,0 +1,24 @@
+# SH3 Quest VR, the PC rig (session 21, build 214): pictures inside the opening's second scene seen from her eyes
+# (vr265: dynamic cutscenes in her eyes from frame 4180 to 6634): her head and hair not in the eyes; then perf.txt's
+# stretch of play for tools/prof_sample.c (no SH3_D3DX_CHECK, so the shares are the real ones).
+# Command line: QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"; build/prof_sample.exe <pid> 18 once "[sim] frame 7500".
+4300 shot s04300-scene
+4700 shot s04700-scene
+5200 shot s05200-scene
+5700 shot s05700-scene
+6200 shot s06200-scene
+7320 left_y 1
+7500 head_yaw_rate 40
+7600 head_yaw_rate -40
+7700 head_yaw_rate 0
+7700 right_x 1
+7760 right_x 0
+7900 left_y 0
+7900 left_x 1
+8000 left_x 0
+8000 left_y 1
+8300 right_x -1
+8360 right_x 0
+8700 left_y 0
+8800 quit 0

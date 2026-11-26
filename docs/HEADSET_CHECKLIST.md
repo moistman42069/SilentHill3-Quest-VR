@@ -16,6 +16,12 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       button beside What's new shows it again.
 - [ ] Play in VR: the game starts in the headset (no flat window), the title on the panel, the pointer works on it.
 - [ ] Play flat: the game on a big screen, the controllers as a pad.
+- [ ] 0.1.5 (a player's video: black after ~5 s of play): play 10 minutes, open and close the VR menu, the
+      inventory and the map, turn the left wrist to the watch and away again many times: never a black or frozen
+      picture, never a 2-second stop. sh3.log has no "a frame took" line in plain play (only at loads).
+- [ ] 0.1.5, an update from 0.1.4: sh3.log "defaults ... folded": Smoother frames, ghost hands and Heather's shadow
+      off, a Quest 3 or 3S at Render resolution 1.0x; 120 Hz. Show performance: steady at 60 game frames a second
+      in the park and the mall.
 
 ## View and comfort
 - [ ] New Game: the opening movie plays on the big cinema screen in front of you (sharp, 4:3, no stutter), with its
@@ -39,8 +45,19 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
 - [ ] 0.1.2, the fog (owner 79, a player's "weird overlay that looks like fog"): in the opening's alley and the
       circular hall the game's drifting fog hangs far off in the world (about 10 m), the same in both eyes, never as
       patches in front of the face; turn the head: it stays where it is (with "Drifting fog" on: off by default since 0.1.3).
-- [ ] 0.1.2, the lamps' lens flare (the opening's wall lamps): the starburst and its rings sit on the lamp, one image
-      in both eyes, not a double image near the face (sh3.log "the game's lens flare ... at its lamp, N m ahead").
+- [ ] 0.1.5, lens flares left out (as the PC VR mod): no starburst, rings or streaks anywhere in VR (the opening's
+      wall lamps, the park); the flat screen keeps them. No depth-of-field blur in cutscenes, no shaking double
+      picture. In the park in first person: no coloured orbs in the air, the lamps' bulbs lit; turn the head:
+      nothing stays fixed in the view. Third person (VR menu, View, "First person" off): the glows sit on their
+      lamps. Fire every gun: the flash at the muzzle in both eyes, the case thrown from the slide, no streak
+      beside the gun. The handgun's flash at the front of its slide, rising with the kick (owner 109).
+- [ ] 0.1.5, the stomp (owner 110): knock a monster down, stand by it with the trigger released and press A: she
+      stomps it (or kicks it, by the monster), in first and in third person. With the trigger held A does not stomp
+      and the trigger still fires.
+- [ ] 0.1.5, Dynamic cutscenes: when a scene goes to Heather's eyes you face where her face looks; in her eyes no
+      hair or inside of her head in view; at the scene's camera and in third person she is drawn whole.
+- [ ] 0.1.5, both sticks clicked together: the view recentred on Heather, a sound and a short buzz; one stick's
+      click alone still runs (left) or searches (right). Head in a wall for 2 s: the view back at Heather.
 - [ ] 0.1.2, the picture (View): Brightness, Contrast, Color saturation and Darker edges change the picture at once
       (100 / 100 / 100 / 0 % the game's own look); Smooth edges (off by default since 0.1.3) takes the jaggies off.
 - [ ] Her shadow (LIST 56): with the flashlight on, raise a hand into its beam: the beam's spot on the floor or wall
@@ -48,7 +65,7 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       at her feet, rounded, following your steps; a gun, the pipe or the katana held out casts its own; her arms and
       hands are never darkened by her own shadow (sh3.log "Heather's shadow in the game's shadow pass: N triangles
       (... of her body, ... of the weapon, ... of a part held)"). "Heather's shadow" (the VR menu's View page, and
-      the launcher's Options) off: none at once, the game's own shadows as before; on again: back at once.
+      the launcher's Options; off by default since 0.1.5: turn it on for this check) off: none at once, the game's own shadows as before; on again: back at once.
 - [ ] The game's own character shadows: in a room where sh3.log says "the game's own character shadows are on here",
       her shadow from the game's room light keeps her animation's pose (the game's shadow model), while the
       flashlight's shadow follows your body; look for doubled or wrong shadows there and say where (the room).
@@ -63,17 +80,17 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       camera, in stereo); on: first person. Every row changes, and the launcher shows the change afterwards.
 - [ ] A place where the game's camera matters (a fixed-camera room, a chase): third person comes and goes by itself.
 - [ ] Performance: steady at 120 Hz with Show performance on (Smoother frames, AppSW, on; boost, foveation Medium;
-      a Quest 3 or 3S at Render resolution 1.5x, others 1.0x); both eyes are drawn in one pass (multiview: VR does not
+      every headset at Render resolution 1.0x since 0.1.5); both eyes are drawn in one pass (multiview: VR does not
       start without it). Dynamic resolution (on): Show performance's "3D" share drops below 100% only while frames come
       late (a heavy room) and climbs back after 5 s of calm; the world a little softer meanwhile, text, menus and her
       hands as sharp as ever; no flicker or black frame at a change (sh3.log "dynamic resolution: the 3D pictures at").
-- [ ] 0.1.4, Smoother frames (AppSW, on by default; the task "make Smoother frames (AppSW) work"): sh3.log
+- [ ] 0.1.4, Smoother frames (AppSW; off by default since 0.1.5: turn it on for this check; the task "make Smoother frames (AppSW) work"): sh3.log
       "[openxr] smoother frames (Application SpaceWarp): on, motion W x H", then in play "smoother frames: motion
       given" and "[vr-perf] ... smoother frames on N% of them" with N well above 0 in play (0 on the title before
       the first play). Walk and turn smoothly in the alley and the mall: smooth, no wobble or smearing at the edges of walls,
       doors or Heather's hands and weapon (they get no motion within 1 m); a camera cut or a snap turn shows no
       smear. Show performance: steady. Turn it off (VR menu, Performance, next start): each frame shown twice
-      again, as 0.1.3. An options file from 0.1.3 gets it on once (sh3.log "sh3vr.ini from before 0.1.4").
+      again, as 0.1.3. An options file from 0.1.4 gets it off once (0.1.5).
 
 ## Hands and weapons
 - [ ] Hands at the controllers; fingers follow the triggers, grips and thumbs; they stop on a wall or a counter.
@@ -161,7 +178,7 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       stays put while you point, comes round after you turn over 35 degrees away for half a second, fades out on B.
 - [ ] Grip Robbie the Rabbit in the first alley: "A rabbit doll... No, it's a costume." stands by him, not on a
       screen; with the button it shows ahead of you. Opening scene subtitles low in the view, readable.
-- [ ] A controller held past her arm's reach: no ghost hand. A hand pushed into a wall: a faint ghost where it is.
+- [ ] Ghost hands (off by default since 0.1.5: turn them on for this check): a controller held past her arm's reach: no ghost hand. A hand pushed into a wall: a faint ghost where it is.
 - [ ] Inventory, map (zoom on the right grip), memos, the save screen, options, a puzzle screen: the beam's dot moves
       the game's cursor; the trigger chooses; B goes back. The inventory's tabs (Maps, Memos, Options): the first
       pull moves the selection to the tab, the second opens it (the PC game's own two clicks; vr187, vr189). On the

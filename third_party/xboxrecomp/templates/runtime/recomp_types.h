@@ -159,7 +159,13 @@ extern uint32_t g_xbox_code_hi;
 #if defined(_MSC_VER)
 #  define RECOMP_TLS __declspec(thread)
 #elif defined(__GNUC__) || defined(__clang__)
-#  define RECOMP_TLS __thread
+/* Hidden (SH3 Quest VR 0.1.5): in a shared library (the Quest's libmain.so) a
+ * default-visibility thread-local is reached the general-dynamic way, a TLS
+ * descriptor call for every variable a function touches -- eax, ecx, esp, the
+ * x87 stack, each one. Hidden ones are the library's own, so the compiler uses
+ * local-dynamic: one look-up of the library's TLS block a function, then
+ * fixed offsets. Executables (the PC, the Switch) are unchanged. */
+#  define RECOMP_TLS __thread __attribute__((visibility("hidden")))
 #else
 #  define RECOMP_TLS _Thread_local
 #endif

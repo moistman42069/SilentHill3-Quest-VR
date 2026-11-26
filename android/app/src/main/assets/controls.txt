@@ -5,6 +5,7 @@ Run: left stick click.
 Action, examine, talk: A. Or reach out and grip.
 Ready the weapon: main trigger held (third person: main grip or trigger).
 Attack, fire: main trigger. Melee weapons: swing them. Empty hands: punch.
+Stomp a monster that is down: stand by it with the trigger released and press A (the game's own stomp or kick).
 Flashlight: off-hand trigger, or grip at your chest pocket.
 Map: X.   Inventory: Y.   Supplies (health): B, or grip at the belt pouch.
 Search view: right stick click.
@@ -12,6 +13,7 @@ Strafe (third person): off grip held with the left stick left or right.
 Pause, skip a scene: left menu button, a short press.
 VR menu (every VR option): hold the left menu button for a second, anywhere; in play the game pauses under it.
 First / third person: VR menu, View, First person.
+Recentre the view: click both sticks together (a click of one stick alone does what it always did).
 
 WEAPONS (first person)
 Draw: main hand to the holster, grip. Your gun (handgun, shotgun, submachine gun, stun gun) over your right

@@ -177,11 +177,33 @@ static void signal_obj(Obj *o, int state) {
 
 void rt_signal_event(uint32_t h) { Obj *o = obj(h); if (o) signal_obj(o, 1); }
 
-WINAPI(WaitForSingleObject, "WaitForSingleObject", 2) { return wait_one(ARG(0), ARG(1)); }
+/* 0.1.5 (the owner's 0.1.4 logs: single frames of ~2 s, "freezing/cutting to black", cause unknown): a wait, a sleep
+ * or a file read on the game's drawing thread (the one that calls Present, d3d8.c) that takes over 100 ms is logged
+ * with the game's code that called it, at most 40 a run. xr_openxr.cpp's [vr-frame] line says which part of the
+ * frame the time went to; this says which call in the game's own time. */
+__thread int rt_render_thread;
+static uint64_t now_ns(void);
+static void slow_call(const char *what, uint32_t a, uint32_t b, uint64_t from) {
+    static int told;
+    if (!rt_render_thread || told >= 40) return;
+    const uint64_t took = now_ns() - from;
+    if (took < 100000000ull) return;
+    told++;
+    rt_log("[game-wait] frame %d: %s(%08X, %u) took %.0f ms, called from the game's %08X%s", rt_frame, what, a, b,
+           (double)took / 1e6, MEM32(g_esp), told == 40 ? " (the last such line)" : "");
+}
+
+WINAPI(WaitForSingleObject, "WaitForSingleObject", 2) {
+    const uint64_t from = now_ns();
+    const uint32_t r = wait_one(ARG(0), ARG(1));
+    slow_call("WaitForSingleObject", ARG(0), ARG(1), from);
+    return r;
+}
 
 /* ponytail: PulseEvent's pulse counting is wait_one's only; a pulse while a thread waits here is lost. */
 WINAPI(WaitForMultipleObjects, "WaitForMultipleObjects", 4) {
     uint32_t n = ARG(0), hs = ARG(1), all = ARG(2), ms = ARG(3);
+    const uint64_t from = now_ns();
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     ts.tv_sec += ms / 1000;
@@ -197,12 +219,14 @@ WINAPI(WaitForMultipleObjects, "WaitForMultipleObjects", 4) {
         if (all ? n_ready == n : hit != 0xFFFFFFFFu) {
             for (uint32_t i = all ? 0 : hit; i < (all ? n : hit + 1); i++) acquire(obj(MEM32(hs + 4 * i)));
             pthread_mutex_unlock(&obj_mx);
+            slow_call("WaitForMultipleObjects", n, ms, from);
             return all ? 0 : hit;
         }
         if (ms == 0 || (ms != 0xFFFFFFFFu && pthread_cond_timedwait(&obj_cv, &obj_mx, &ts) == ETIMEDOUT)) break;
         if (ms == 0xFFFFFFFFu) pthread_cond_wait(&obj_cv, &obj_mx);
     }
     pthread_mutex_unlock(&obj_mx);
+    slow_call("WaitForMultipleObjects (timed out)", n, ms, from);
     return WAIT_TIMEOUT;
 }
 
@@ -477,7 +501,9 @@ void rt_limiter_virtual_step(void) {
 static uint64_t clock_ns(void) { return rt_limiter_virtual ? virt_ns : now_ns(); }
 WINAPI(Sleep, "Sleep", 1) {
     if (rt_limiter_virtual) { virt_ns += ARG(0) ? ARG(0) * 1000000ull : 100000ull; return 0; }
+    const uint64_t from = now_ns();
     usleep(ARG(0) ? ARG(0) * 1000u : 100);
+    slow_call("Sleep", ARG(0), 0, from);
     return 0;
 }
 
@@ -689,9 +715,10 @@ static uint32_t file_io(int write) {
         /* Never ask fread for more than the file holds: at the end of the file the C library zeroed the front of
          * the destination buffer, and the game reads a save a second time at EOF (expecting 0 bytes and its
          * buffer untouched), which turned every save into "damaged folders". */
-        fseeko(o->f, 0, SEEK_END);
-        off_t end = ftello(o->f);
-        fseeko(o->f, at, SEEK_SET);
+        /* 0.1.5 (performance): the size from fstat, not a seek to the end and back (each seek threw away the C
+         * library's read buffer, so every small read went to the file system again) */
+        struct stat st;
+        const off_t end = fstat(fileno(o->f), &st) == 0 ? (off_t)st.st_size : at;
         size_t want = ARG(2);
         if (at >= end) want = 0;
         else if ((uint64_t)(end - at) < want) want = (size_t)(end - at);
@@ -706,7 +733,12 @@ static uint32_t file_io(int write) {
     }
     return 1;
 }
-WINAPI(ReadFile, "ReadFile", 5) { return file_io(0); }
+WINAPI(ReadFile, "ReadFile", 5) {
+    const uint64_t from = now_ns();
+    const uint32_t r = file_io(0);
+    slow_call("ReadFile", ARG(0), ARG(2), from);
+    return r;
+}
 WINAPI(WriteFile, "WriteFile", 5) { return file_io(1); }
 WINAPI(GetOverlappedResult, "GetOverlappedResult", 4) {
     MEM32(ARG(2)) = MEM32(ARG(1) + 4);

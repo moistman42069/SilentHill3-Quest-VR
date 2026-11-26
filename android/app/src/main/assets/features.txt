@@ -6,6 +6,8 @@ something else or her face up close. For steady third-person cutscenes, always f
 Your hands are hers
 Her arms, hands and fingers follow yours. Her fingers stop on walls and objects; close your hand on an item, a handle
 or a door to take or use it. Turn your left wrist toward you and look at her watch: her health and stamina show there.
+A ghost of her hand where yours goes into a wall, and her shadow in the flashlight's beam, are on the VR menu (off to
+start). Your head in a wall darkens the view; held there 2 seconds, the view goes back to Heather.
 
 Weapons
 Grip at your right shoulder for your gun, at your right hip for your melee weapon; let go there to put it back. Supplies
@@ -18,27 +20,31 @@ Controls
 Left stick walks (click it to run), right stick turns. The main trigger fires; melee weapons you swing. A is the action
 button, X the map, Y the inventory, B the supplies. A short press of the left menu button pauses; hold it for a second
 for the VR menu, anywhere (in play the game pauses under it). First or third person: the VR menu's View page, "First
-person". The Controls tab has the whole list.
+person". Both sticks clicked together recentre the view. The Controls tab has the whole list.
 
 Comfort
 Smooth turning (or snap), seated play and your height are on the Options tab, Comfort, with a vignette while
 turning if you want one.
 
 Picture and performance
-120 Hz with Smoother frames (AppSW): the game makes up to 60 frames a second and gives the headset how the world
-moved, and the headset makes the frame between each two itself, so walking and turning look smooth. Foveated
-rendering at Medium, and on a Quest 3 or 3S the top resolution, with Dynamic resolution drawing the 3D picture a
-little smaller for a moment if the headset starts falling behind (and back again if that does not help). Both
-eyes are drawn together in one pass: each of the game's draws goes to both eyes at once, so the work of a frame is
-done once.
+120 Hz: the game makes up to 60 frames a second and each shows twice, evenly, with the headset keeping your head's
+turns smooth between them. The game's own time step is taken from how long each frame really shows, so scenes stay
+in step with their voices at any refresh rate. Render resolution 1.0x (the headset's own; higher on the
+Options tab if your headset has room), foveated rendering at Medium, and Dynamic resolution drawing the 3D picture a
+little smaller for a moment if the headset starts falling behind (and back again if that does not help). Both eyes
+are drawn together in one pass: each of the game's draws goes to both eyes at once, so the work of a frame is done
+once. Smoother frames (AppSW) is there, off to start: it needs the game to keep up with half the refresh rate.
 
 The picture
 No screen filters to start: no film grain (neither of the game's two), no drifting fog, no sharpening, no smoothing
-and no vignette; the picture as the game draws it, and a lamp's lens flare at the lamp. Film grain, Drifting fog (far
-off in the world, not in front of your eyes), Smooth edges, Brightness, Contrast, Color saturation and Darker edges
+and no vignette; the picture as the game draws it. No lens flares, depth of field or shaking double picture (they are
+the camera's, not the world's). The game's effects sit at their place in the world, facing you, the muzzle flash at
+the muzzle; in first person the lamps' glows are left out, as the PC VR mod leaves them (their bulbs still glow).
+Film grain, Drifting fog (far off in the world, not in front of your eyes), Smooth edges, Brightness, Contrast, Color saturation and Darker edges
 are on the Options tab, View, or in the VR menu in the game.
 
-Every VR feature is on from the start, the screen filters off; each one can be changed on the Options tab or in
+Every VR feature is on from the start except Smoother frames, the ghost hands and Heather's shadow, the screen
+filters off; each one can be changed on the Options tab or in
 the VR menu in the game (hold the left menu button for a second).
 
 Your copy of the game

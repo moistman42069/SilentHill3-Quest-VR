@@ -54,7 +54,9 @@ def check_sources() -> None:
     if not gen.is_file():
         sys.exit("src/recomp/gen is empty: run tools/regen.sh first")
     for wrapped in ("sub_004ACE10_gen", "sub_004B33E0_gen", "sub_004162A0_gen", "sub_004D83B0_gen", "sub_00495360_gen",
-                    "sub_004D44E0_gen", "sub_005A5E40_gen"):
+                    "sub_004D44E0_gen", "sub_005A5E40_gen", "sub_0060DA50_gen",
+                    "sub_006483A7_gen", "sub_00648639_gen", "sub_00648432_gen", "sub_00648491_gen",
+                    "sub_0064856F_gen", "sub_0049FAC0_gen", "sub_0041E200_gen", "sub_0041FF80_gen"):
         if wrapped not in gen.read_text(encoding="utf8", errors="replace"):
             sys.exit(f"src/recomp/gen lacks {wrapped}: run tools/regen.sh --recomp-only after changing sh3.c")
     if not (ROOT / "src/recomp/gen/exe_code_data.c").is_file():  # 0.1.4: the code section's switch tables (rt_core.c)

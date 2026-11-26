@@ -1,0 +1,33 @@
+# SH3 Quest VR, the PC rig (session 21, build 216): the lamps' glows put at their lamps by the frame camera
+# (sh3vr_glow_map) and the lamps' test without reading the GPU back (sub_0049FAC0); her hair hidden from her eyes in
+# the opening's second scene (a draw all at her head). Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return".
+# Every picture checked whole: each glow on its lamp, none where no lamp is, none once its lamp is out of view;
+# nothing of her head or hair in the eyes.
+4300 shot s04300-scene
+4700 shot s04700-scene
+5200 shot s05200-scene
+5700 shot s05700-scene
+6200 shot s06200-scene
+7318 shot c07318-start
+7400 head_yaw 40
+7410 shot c07410-left
+7430 head_yaw -40
+7440 shot c07440-right
+7450 head_yaw 80
+7460 shot c07460-far-left
+7470 head_yaw -80
+7480 shot c07480-far-right
+7490 head_yaw 0
+7490 head_pitch 30
+7500 shot c07500-up
+7510 head_pitch -45
+7520 shot c07520-down
+7530 head_pitch 0
+7540 left_y 1
+7660 left_y 0
+7670 shot c07670-walked
+7680 head_yaw 40
+7690 shot c07690-walked-left
+7700 head_yaw 0
+7710 quit 0

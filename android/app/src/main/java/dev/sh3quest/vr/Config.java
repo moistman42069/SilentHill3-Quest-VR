@@ -67,7 +67,16 @@ final class Config extends Options {
     }
 
     /** 0.1.3 (Options.DEFAULTS_0_1_3): a sh3vr.ini from before 0.1.3 gets 0.1.3's changed defaults once, then says so.
-     *  0.1.4: one from before 0.1.4 gets Smoother frames on once (0.1.2 saved it when it did nothing; now it works). */
+     *  0.1.4: one from before 0.1.4 gets Smoother frames on once (0.1.2 saved it when it did nothing; now it works).
+     *  0.1.5: one from before 0.1.5 gets Smoother frames, the ghost hands and Heather's shadow off, and 1.0x for a Quest 3's 1.5x. */
+    private static float number(String text, float otherwise) {
+        try {
+            return text == null ? otherwise : Float.parseFloat(text.trim());
+        } catch (NumberFormatException e) {
+            return otherwise;
+        }
+    }
+
     private void newDefaults() {
         if (vr.isEmpty()) {
             return;  // no file yet: it is written with the defaults and the version
@@ -86,12 +95,23 @@ final class Config extends Options {
         if (version < 3) {
             keys.addAll(Arrays.asList(DEFAULTS_0_1_3));
         }
-        keys.add("space_warp");  // version 3 or older: 0.1.4's Smoother frames
+        keys.add("space_warp");  // older than 0.1.4's: 0.1.4's Smoother frames; older than 0.1.5's: 0.1.5's (off)
+        if (version < 5) {
+            keys.add("ghost_hands");  // owner 98: off once
+            keys.add("her_shadow");   // owner 100: Heather's shadow (her IK body's) off once
+        }
         for (String key : keys) {
             for (Option option : ALL) {
                 if (option.key.equals(key)) {
                     vr.put(key, option.fallback);
                 }
+            }
+        }
+        if (version < 5) {
+            // 0.1.5: a Quest 3's starting 1.5x to 1.0x (owner 97); a value the player chose otherwise stays (sh3vr.cpp
+            // load_options the same). The refresh rate stays (120 Hz, owner 98).
+            if (STRONG_QUEST && Math.abs(number(vr.get("resolution"), 0f) - 1.5f) < 0.001f) {
+                vr.put("resolution", "1");
             }
         }
         try {

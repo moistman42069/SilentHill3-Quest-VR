@@ -168,7 +168,9 @@ struct Hold {
 // By profile (kWeapons' order). Session 5's measurements (the meshes in tools/gun_view.py's pictures):
 // - Handgun, bone 0: barrel +x, top +y; the grip's back strap from (20.8, -24) to (32.4, 30), its front strap from
 //   (51.2, -23) to (57.2, 6): raked 12 degrees, 30 units (6 cm) deep, z -22.4 to -4.7; the fist's centre half way
-//   between the straps at the middle finger's height. The muzzle at x 101.4. The second hand wraps round the main hand's
+//   between the straps at the middle finger's height. The tip at x 101.4, bone 0's end; the muzzle (session 22, owner
+//   109) is the slide's front (bone 1, posed at 139.6 38.1 -13.1 in bone 0's frame: vr188), x 137.0 round y 38.1,
+//   z -13.1: muzzle_point. At the tip the flash sat 7 cm back inside the slide. The second hand wraps round the main hand's
 //   fingers from the left front, its palm against the grip's left side.
 // - Submachine gun, bone 0: barrel +x, top +y; the grip (the magazine up through it) x 26.4-56.7, y -21 to 29, raked 6
 //   degrees; the muzzle x 115.6, y 40-50. The second hand cups the receiver's front under the barrel, palm up, thumb
@@ -228,6 +230,14 @@ const Hold* hold_of(int w) {
     const int p = profile_of(w);
     return p >= 0 && kHolds[p].known ? &kHolds[p] : nullptr;
 }
+
+// Where the shot leaves the gun (the held bone's model units): the hold's tip, but the handgun's muzzle is the front
+// of its slide (bone 1, x 137.0 round y 38.1, z -13.1; see kHolds' measurements), 7 cm past its tip. Only the shot's
+// line takes it (gun_ray: the shot's origin, so the game's flash, and the guide dot). The tip stays where it was for
+// the weapon's reach (the wall probe, the club's capsule): build 223 put the tip itself on the slide's front face, and
+// the probe's last sample then met the gun's own surface, read as a wall: the gun was held back from nothing all
+// the time (vr278, vr281: drawn low and pulled back; vr277 with the old tip, whole in the hand).
+Vec3 muzzle_point(const Hold* h) { return h == &kHolds[0] ? Vec3{137.0f, 38.1f, -13.1f} : h->tip; }
 
 // Each weapon's shape as a few capsules (model units, the held bone's): her fingers close round them and stop on them
 // (LIST 20, Half-Life: Alyx's fingers, on weapons too: the hand holding it wraps its real grip, the other hand's
@@ -598,18 +608,17 @@ bool live_weapon_map(Aff& m) {
     }
     return false;
 }
-// The gun's own effects the game draws in screen space (the muzzle flash's 27 quads, its smoke): the game places them
-// at its own gun, in her animated hand (run vr71: the flash 11 cm from her hand bone, 40 cm before the game's camera).
-// For a while after a shot, those near the game's gun take the weapon's map to the gun in the hand (sh3vr.cpp
-// sh3vr_effect_map). `game_gun`: the drawn weapon's held bone as the game placed it, last draw.
+// The gun's own effects the game draws in screen space (the muzzle flash's quads, the ejected case, smoke): for a while
+// after a shot, those near the gun are told apart (sh3vr.cpp sh3vr_effect_map: drawn whole at their place in the world,
+// turned to face the head; combat_effect_rel). `game_gun`: the drawn weapon's held bone as the game placed it, last draw.
 float effects_until = 0;
 Vec3 game_gun{};
 int game_gun_frame = -100;
-// The flash's own place in the game (run vr75: on her animated grip, 19 units from its held bone, not at its muzzle;
-// mapped with the gun it landed at the grip in the hand): its first quad after each shot. Each quad keeps its offset
-// from it, turned as the gun is, and the anchor goes just past the muzzle in the hand.
-int shots_fired = 0, anchor_shot = -1;
-Vec3 effect_anchor{};
+int shots_fired = 0;
+// The last shot's line in the game's world (the muzzle and the barrel's way, the recoil's kick not in it: gun_ray), as
+// the game laid the flash's quads along it (vr276: from the shot's origin forward, within 2 units of the line).
+Vec3 shot_from_w{}, shot_dir_w{};
+bool shot_line_known = false;
 
 // The bone palette: c48 on, three registers (rows of a 3x4) a bone, 16 bones.
 constexpr int kPaletteStart = 48, kBones = 16;
@@ -1935,7 +1944,7 @@ bool gun_ray(Vec3& from, Vec3& dir) {
     if (wf.placed) {
         WeaponFrame a = wf;
         a.turn = wf.aim_turn;
-        from = frame_point(a, wf.hold->tip);
+        from = frame_point(a, muzzle_point(wf.hold));
     } else from = hands[mh].aim.position + dir * w->muzzle;
     return true;
 }
@@ -2762,6 +2771,9 @@ void combat_shot() {
     const int mh = main_hand(), oh = off_hand();
     buzz(mh, w->kind == kStun ? 0.5f : 0.8f, w->kind == kStun ? 0.15f : 0.07f, w->kind == kStun ? 90.0f : 160.0f);
     if (hands[oh].on_foregrip) buzz(oh, 0.5f, 0.06f);
+    Vec3 f, d;  // the shot's line (the kick not yet in the gun's turn either way: gun_ray takes aim_turn)
+    shot_line_known = map_ready() && gun_ray(f, d);
+    if (shot_line_known) shot_from_w = world_point(f), shot_dir_w = normalized(world_dir(d));
     kick = w->kick * (hands[oh].on_foregrip ? 0.5f : 1.0f);
     flash_until = now + 0.2f;
     effects_until = now + 0.8f;
@@ -2780,20 +2792,47 @@ bool combat_effect_rel(const float point[3], int tex_w, float r[3][3], float t[3
     // the game's gun at the update these effects are of (its held bone in that update's matrix)
     const Vec3 g = held_in_weapon_known && rt_frame - w_game_frame <= 1 ? mul(w_game, held_in_weapon).t : game_gun;
     const Vec3 p{point[0], point[1], point[2]};
-    const float d = length(p - g);
-    if (!(d < 0.5f * kUnitsPerMetre)) return false;  // not the gun's own: within half a metre of the game's gun
-    if (anchor_shot != shots_fired) {
-        anchor_shot = shots_fired;
-        effect_anchor = p;
+    const Vec3 muzzle = world_point(from);
+    const float d = std::min(length(p - g), length(p - muzzle));
+    if (!(d < 0.5f * kUnitsPerMetre)) return false;  // not the gun's own: within half a metre of the gun, either one
+    // Session 22 (vr275): read back through the game's own camera (sh3vr_effect_map), the gun's effects are already at
+    // the gun in the hand: the game places them from the weapon's place (0x4954E0), which VR moves there (sh3.c), and
+    // its shot from the muzzle (0x4B3D50). The flash's quads lay along the hand's barrel from its muzzle (-15650 -615
+    // 19889, the shot's origin to the unit), the ejected case from the slide. Moved again with the gun's map (build
+    // 221) they landed 33 cm off, beside the slide; vr75's "on her grip" was the head's camera read for the game's.
+    // So they stay at their place in the world, only turned to face the head, and are drawn whole wherever the game's
+    // camera has them (no fade at its picture's edge, no lamp rule).
+    // Owner 109 ("double check pistol ... be sure muzzle flash is actually at where it should be"): the flash's quads
+    // stay where the shot left them, on the shot's line from the muzzle without the recoil's kick (gun_ray), while the
+    // gun is drawn turned up by the kick about the fist (wf.turn = kick * aim_turn: 7 degrees on the handgun, its muzzle
+    // 2.6 cm higher). So the quads on that line are turned with the gun, the kick's turn about the fist carried into the
+    // game's world, and sit at the drawn muzzle. The effects the game places from the drawn gun afterwards (0x4954E0,
+    // the kick already in it: vr276 frame 7373) are off that line and kept as they are.
+    R3 k;
+    k.m[0][0] = k.m[1][1] = k.m[2][2] = 1.0f;
+    Vec3 kt{0, 0, 0};
+    if (kick > 0.05f && wf.placed && shot_line_known) {
+        const Vec3 rel = p - shot_from_w;
+        const float along = dot(rel, shot_dir_w);
+        const float off = length(rel - shot_dir_w * along);
+        if (off < 0.012f * kUnitsPerMetre && along > -0.1f * kUnitsPerMetre && along < 0.5f * kUnitsPerMetre) {
+            const Quat kq = wf.turn * conjugate(wf.aim_turn);
+            const Vec3 e[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+            for (int j = 0; j < 3; j++) {
+                const Vec3 c = world_dir(rotate(kq, tracking_dir(e[j])));
+                k.m[0][j] = c.x, k.m[1][j] = c.y, k.m[2][j] = c.z;
+            }
+            const Vec3 b = world_point(wf.base);
+            kt = b - mul(k, b);
+        }
     }
-    const Vec3 at = world_point(from + dir * 0.05f);  // the flash's middle: 5 cm past the muzzle, clear of the barrel
     for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 3; j++) r[i][j] = map.r.m[i][j];
-    const Vec3 tt = at - mul(map.r, effect_anchor);  // p -> at + R (p - anchor)
-    t[0] = tt.x, t[1] = tt.y, t[2] = tt.z;
+        for (int j = 0; j < 3; j++) r[i][j] = k.m[i][j];
+    t[0] = kt.x, t[1] = kt.y, t[2] = kt.z;
+    const Vec3 q = mul(k, p) + kt;
     info[0] = d;
     info[1] = g.x, info[2] = g.y, info[3] = g.z;
-    info[4] = at.x, info[5] = at.y, info[6] = at.z;
+    info[4] = q.x, info[5] = q.y, info[6] = q.z;
     return true;
 }
 

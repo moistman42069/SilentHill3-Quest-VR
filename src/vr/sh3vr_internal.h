@@ -49,14 +49,14 @@ constexpr float kEyeRatio = 0.936f;       // eye height / body height
 struct Options {
     bool vr = true;
     // Performance (the launcher's "Recommended performance options" are these defaults: LIST 7)
-    float refresh_hz = 120.0f;  // LIST 51 (the owner: 120 Hz with AppSW, the best picture with the frame rate)
-    float resolution = 1.0f;  // 1.5 to start on a Quest 3 or 3S (device_defaults; as Jak's, the owner: "highest resolution")
+    float refresh_hz = 120.0f;  // owner 98: 120 (the game's 16-17 ms frames = two refreshes, an even ~60 a second)
+    float resolution = 1.0f;  // every headset from 0.1.5 (owner 97; 0.1.0-0.1.4 started a Quest 3 or 3S at 1.5)
     bool dynamic_resolution = true;  // LIST 51: the game's 3D pictures drawn smaller while the headset falls behind
     int foveation = 2;
     bool boost = true;
     int sharpen = 0;             // 0.1.3: Off (owner 84: "no screen filters or ANYTHING like that shit on by default"; the
                                  // headset's sharpening was on, Normal, from session 7's "all vr options should be on by default")
-    bool space_warp = true;      // Smoother frames (AppSW): 0.1.3 off and out of the menus (SH3 drew no motion: the
+    bool space_warp = false;     // 0.1.5 off (owner: "keep appsw off by default going forward"). Smoother frames (AppSW): 0.1.3 off and out of the menus (SH3 drew no motion: the
                                  // owner's 0.1.2 log, "smoother frames on 0% of them"); 0.1.4 back in both menus, the
                                  // motion drawn (sh3vr.cpp motion_frame) and on to start (vr261: motion on every frame of
                                  // play, right for standing, walking, turning and the head alone). The launcher's
@@ -88,8 +88,9 @@ struct Options {
     float saturation = 100.0f;   // %, "Color saturation"
     float dark_edges = 0.0f;     // %, "Darker edges" (the PC VR mod's vignette)
     bool smooth_edges = false;   // FXAA (the PC VR mod's EnableFXAA); 0.1.3 off (owner 84: no screen filters by default)
-    bool her_shadow = true;      // LIST 56 (session 12, owner messages 49-50): her IK body, her weapon and a part held cast
-                                 // shadows from the flashlight in the game's own stencil shadows (her_shadow_tris, d3d8.c)
+    bool her_shadow = false;     // LIST 56 (session 12, owner messages 49-50): her IK body, her weapon and a part held cast
+                                 // shadows from the flashlight in the game's own stencil shadows (her_shadow_tris, d3d8.c);
+                                 // 0.1.5 off by default (owner 100: "turn the ik body shadow off by default too")
     float panel_distance = 1.4f;
     float panel_width = 1.2f;
     bool panel_follow = true;    // the screen comes round when the head turns far from it
@@ -122,7 +123,7 @@ struct Options {
     int flashlight = 0;          // the chest flashlight aims: 0 where the eyes look, 1 where she faces (the game's)
     bool chest_light_touch = true;
     bool finger_bending = true;
-    bool ghost_hands = true;
+    bool ghost_hands = false;    // owner 98: off by default ("annoying seeing it every time i feel a wall")
     bool grabbing = true;
     bool take_by_hand = true;    // LIST 45: items taken by closing the hand on them (the game's own pick-up runs)
     bool manual_reload = true;   // LIST 46: guns reloaded with the hands (sh3vr_reload.cpp)
@@ -312,6 +313,8 @@ bool ik_arm_reach(int h, Vec3& shoulder, float& reach);
 extern int arms_ik_frame;      // the frame her arms were last put at the controllers
 extern Vec3 game_head;         // LIST 48: the middle of her head as the game's animation posed it (before VR), world ...
 extern int game_head_frame;    // ... in this frame
+extern Vec3 game_head_fwd;     // 0.1.5: where her face points as the game posed her head (world, unit) ...
+extern int game_head_fwd_frame;// ... in this frame (Dynamic cutscenes face it on the switch to her eyes)
 extern Vec3 heather_head;      // world: the middle of her head (her head bone, as posed) ...
 extern int heather_head_frame; // ... in this frame (the first-person cut's sphere; -1 never)
 bool own_hands_now();          // her own finger hands are posed this frame (sh3vr_own_hands)

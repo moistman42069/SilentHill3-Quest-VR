@@ -10,6 +10,12 @@ one with another in the same state, and every VR-only action (holsters, the pouc
 VR menu) is a place on the body or a hold, not a button the game also uses. First / third person is the VR menu's
 switch (owner 80, session 16: the left menu button held is the VR menu everywhere).
 
+The stomp (owner 110, 2026-11-26, read in the game's code) is the game's own move, not a pad action of its own: the
+Action button (A) pressed with the weapon not readied, by a monster that is down (0x4B43D0: the action press
+0x89E8AB, the ready button 0x89E8AF released, a downed target [0x712C5B4]; the attack 0x4B4340 needs ready held).
+The game picks a stomp or a kick by the monster (0x4ECCD0). In VR the main trigger is ready (and fire), so with it
+released A stomps; both views; docs/GAME_FACTS.md.
+
 ## In play
 
 | The game's action      | First person (default)                                  | Third person                          |
@@ -20,6 +26,7 @@ switch (owner 80, session 16: the left menu button held is the VR menu everywher
 | Action / examine / talk | A; or reach out and grip (Grab with the hand)         | A                                     |
 | Ready weapon (aim)     | Main trigger (held)                                    | Main grip or main trigger (held)      |
 | Attack / fire          | Main trigger; melee: swing the weapon; empty hands: punch | Main trigger (with the weapon ready) |
+| Stomp a downed monster | A by it, the main trigger released (the game's own stomp, or a kick for some monsters) | A by it, the weapon not readied |
 | Flashlight             | Off-hand trigger; or grip at the chest pocket          | Off-hand trigger                      |
 | Map                    | X                                                      | X                                     |
 | Inventory              | Y                                                      | Y                                     |
@@ -29,6 +36,7 @@ switch (owner 80, session 16: the left menu button held is the VR menu everywher
 | Pause (and skip a scene) | Left menu button, a short press                      | Left menu button, a short press       |
 | VR menu                | Left menu button held 1 second (the game pauses under it) | Left menu button held 1 second (the game pauses under it) |
 | First / third person   | VR menu, View, "First person"                          | VR menu, View, "First person"         |
+| Recentre the view      | Both sticks clicked together                           | Both sticks clicked together          |
 
 ## Hands and weapons (first person)
 

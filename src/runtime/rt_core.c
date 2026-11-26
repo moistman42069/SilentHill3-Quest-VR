@@ -668,8 +668,11 @@ static void game_thread(void *unused) {
     rt_thread_init_main(1u << 20);
     launcher_run();
     xbe_entry_point();
+    /* 0.1.5: the game's own loop ended (its window closed: the headset's app closed, SDL's quit as WM_QUIT): left as
+     * ExitProcess is (rt_leave), never through exit(), whose teardown the sound thread outlives (the FORTIFY "mutex
+     * locked after it was destroyed" crash in the 0.1.3 logs). */
     rt_log("entry point returned");
-    exit(0);
+    rt_leave(0);
 }
 
 int main(int argc, char **argv) {

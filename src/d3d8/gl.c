@@ -28,10 +28,13 @@ void gl_load(void) {
     gl_caps.anisotropic = has_ext("GL_EXT_texture_filter_anisotropic");
     gl_caps.multiview = has_ext("GL_OVR_multiview2") && p_glFramebufferTextureMultiviewOVR;
     if (gl_caps.multiview) p_glGetIntegerv(GL_MAX_VIEWS_OVR, &gl_caps.max_views);
+    gl_caps.timer = has_ext("GL_EXT_disjoint_timer_query") && p_glGenQueriesEXT && p_glBeginQueryEXT &&
+                    p_glEndQueryEXT && p_glGetQueryObjectuivEXT && p_glGetQueryObjectui64vEXT;
     if (getenv("SH3_NO_S3TC")) gl_caps.s3tc = 0;  /* testing: the Quest's path (DXT decoded) on the PC */
     rt_log("GL: %s / %s / %s", p_glGetString(GL_RENDERER), p_glGetString(GL_VERSION),
            p_glGetString(GL_SHADING_LANGUAGE_VERSION));
-    rt_log("GL extensions: S3TC %s, mirror clamp %s, anisotropic %s, multiview %s (%d views)",
+    rt_log("GL extensions: S3TC %s, mirror clamp %s, anisotropic %s, multiview %s (%d views), GPU timer %s",
            gl_caps.s3tc ? "yes" : "no (DXT decoded)", gl_caps.mirror_clamp ? "yes" : "no",
-           gl_caps.anisotropic ? "yes" : "no", gl_caps.multiview ? "yes" : "no", gl_caps.max_views);
+           gl_caps.anisotropic ? "yes" : "no", gl_caps.multiview ? "yes" : "no", gl_caps.max_views,
+           gl_caps.timer ? "yes" : "no");
 }

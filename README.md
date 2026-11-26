@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.4</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.5</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -23,14 +23,15 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.4's release notes](docs/RELEASE-NOTES-0.1.4.md): Smoother frames (AppSW)
-working and on, and every PC copy of the game accepted, the disc's protected exe, no-CD exes and the European release
+with everything you need to install it ([0.1.5's release notes](docs/RELEASE-NOTES-0.1.5.md): no black screen or
+freezes, cutscenes in step with their voices, smoother performance defaults, the game's effects at their place in
+the world, both sticks to recentre; [0.1.4's](docs/RELEASE-NOTES-0.1.4.md): every PC copy of the game accepted, the disc's protected exe, no-CD exes and the European release
 among them; [0.1.3's](docs/RELEASE-NOTES-0.1.3.md): no screen filters
 or fuzz by default, smooth turning, gentler melee, a softer shadow, no crash on quitting; [0.1.2's](docs/RELEASE-NOTES-0.1.2.md);
 [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short:
-install SH3QuestVR-0.1.4.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
+install SH3QuestVR-0.1.5.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
 headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. Already on an earlier version? The launcher
-offers 0.1.4 itself (Updates). Reports from a headset are very welcome
+offers 0.1.5 itself (Updates). Reports from a headset are very welcome
 (the launcher's "Save a report to Download" holds the game's own logs).
 
 ## Which copies of Silent Hill 3 work
@@ -48,8 +49,9 @@ The launcher checks the exe's data (163 pieces against the build's; up to 16 cha
 the data files are there. Files of another size, such as another edition's languages or a mod, are only noted. If
 the check is not sure, **Play in VR anyway** still tries it, and `sh3.log` says what the game found. Up to 0.1.3 the
 launcher took only the unprotected exe; that is where "wrong version" came from. Not these: the PlayStation 2 game,
-and the PS3 or Xbox 360 HD Collection. No European or Asian exe has been tried on the port yet: reports are welcome.
-More in [0.1.4's release notes](docs/RELEASE-NOTES-0.1.4.md#which-copies-of-silent-hill-3-work).
+and the PS3 or Xbox 360 HD Collection. A player's European disc has played it; no Asian exe has been tried yet:
+reports are welcome.
+More in [0.1.5's release notes](docs/RELEASE-NOTES-0.1.5.md#which-copies-of-silent-hill-3-work).
 
 ## Features
 
@@ -60,8 +62,9 @@ More in [0.1.4's release notes](docs/RELEASE-NOTES-0.1.4.md#which-copies-of-sile
   game's camera otherwise (or always at the camera, first person, or a cinema screen: the VR menu's "Cutscenes"). The **movies** play on a big cinema screen
   with their sound.
 - **Heather's own body**, full-body IK: her head at the headset, her hands at the controllers, her arms, trunk and legs
-  following you; look down and see her. **Her shadow**: her body as you move it, her fingers and what she holds cast
-  shadows in the flashlight's beam, in the game's own stencil shadows ("Heather's shadow", on/off in the VR menu).
+  following you; look down and see her. **Her shadow** if you want it: her body as you move it, her fingers and what
+  she holds cast shadows in the flashlight's beam, in the game's own stencil shadows ("Heather's shadow" in the VR
+  menu, off to start).
 - **The flashlight on her chest** goes where you look and lights your hands where they are in its beam.
 - **Her watch**: turn your left wrist to you for her health and stamina bars (first person); third person shows the
   game's own HUD.
@@ -78,21 +81,26 @@ More in [0.1.4's release notes](docs/RELEASE-NOTES-0.1.4.md#which-copies-of-sile
   load the shotgun a shell at a time, rack the slide, the cocking knob or the pump (you see them move); the game's own
   ammo counts and reload sounds, nothing free.
 - **Hands** with fingers from the controllers that **stop on surfaces** (Half-Life: Alyx style), **ghost hands** in
-  walls, the head in a wall darkening the view, **grabbing** with the hand.
+  walls if you want them (off to start), the head in a wall darkening the view (2 seconds there and the view
+  goes back to Heather), **grabbing** with the hand. **Both sticks clicked together** recentre the view.
 - **A Silent Hill pointer** for every screen: menus, the inventory, the map, memos, puzzles, the VR menu; point and
   pull, the hand ticks on what a pull can choose.
-- **Smoother frames (AppSW)**, on by default: each frame the game gives the headset how the world moved and how far
+- **120 Hz**, the game's 60 frames a second shown evenly, its time step the real time each frame stands for.
+- **Smoother frames (AppSW)** if you want it (off to start): each frame the game gives the headset how the world moved and how far
   away it is (both eyes' motion and depth), and at 120 Hz the headset makes every other frame itself; your hands and
   what they hold are left still, and cuts are not smeared.
 - **Dynamic resolution**: the world drawn a little smaller only while frames come late, text and hands always sharp.
 - **The picture** as the game draws it: no screen filters to start (no film grain, drifting fog, sharpening,
-  smoothing or vignette), a lamp's lens flare at the lamp. **Film grain**, **Drifting fog** (on a far layer in the
+  smoothing or vignette); no lens flares, depth of field or shaking double picture (the camera's, not the world's);
+  the game's effects at their place in the world, facing you, the muzzle flash at the muzzle, the lamps' glows left
+  out in first person as the PC VR mod leaves them. **Film grain**, **Drifting fog** (on a far layer in the
   world, as the PC VR mod draws it), **Brightness**, **Contrast**, **Color saturation**, **Darker edges** and
   **Smooth edges** (FXAA) in the VR menu.
 - **Every input mapped**, none missing, no conflicts: [docs/CONTROLS.md](docs/CONTROLS.md).
 - **The VR menu** (hold the left menu button for a second, anywhere; in play the game pauses under it) in the game and
   **the launcher** (game files import and check, Options, PC saves import, logs and a
-  report, What's new, updates from GitHub releases); every VR feature on and the best performance options by default.
+  report, What's new, updates from GitHub releases); every VR feature on (except Smoother frames, the ghost hands and Heather's shadow) and the best performance options
+  by default.
 - **Crash records that explain themselves**: sh3-crash.log with the guest and host stacks, the game's state and VR's.
 
 ## For developers

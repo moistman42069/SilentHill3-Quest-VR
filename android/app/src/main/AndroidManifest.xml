@@ -31,7 +31,7 @@
 
     <application
         android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_launcher_sh3"
         android:allowBackup="false"
         android:hasFragileUserData="true"
         android:extractNativeLibs="true"
@@ -43,6 +43,20 @@
         <meta-data
             android:name="com.oculus.supportedDevices"
             android:value="quest2|questpro|quest3|quest3s" />
+        <!-- 0.1.5 (owner: "COMPLETELY MAXIMIZE PERFORMANCE"): Quest 3 only (others ignore it). Meta's "Boost CPU and GPU
+             levels": -1 = +1 CPU level / -1 GPU level. The game is held back by the CPU (the owner's logs: smaller
+             pictures did not make the frames quicker), and Dynamic resolution looks after the GPU. -->
+        <meta-data
+            android:name="com.oculus.trade_cpu_for_gpu_amount"
+            android:value="-1" />
+        <!-- 0.1.5 (owner: performance "as good as it can be on quest"): Quest 2 and Quest Pro only (Quest 3 and 3S ignore
+             it). Meta's dual-core mode: one of the app's three cores off, the other two at CPU level 6 (2.15 GHz in
+             place of 1.48 at level 4, Meta's table). The game's work is one thread (the PC rig's profile: the game's
+             thread at all of it, the sound thread a few percent), which three slower cores do not help; Meta: an app
+             using all three cores does better without it, this one does not. Logcat shows "isCPUSingleThreadedBoost". -->
+        <meta-data
+            android:name="com.oculus.dualcorecpuset"
+            android:value="true" />
 
         <activity
             android:name=".LauncherActivity"

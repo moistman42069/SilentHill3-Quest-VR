@@ -1,3 +1,26 @@
+0.1.5:
+
+- No more black screen a few seconds into play, and no more 2-second freezes: the game waited for the headset to give
+  back the picture it was showing whenever the watch or the pointer changed. It no longer waits.
+- Cutscenes stay in step with their voices: the game now moves its world by the real time each frame stands for.
+- Smoother frames (AppSW) is off to start (stutters and black cuts with it on for some players); turn it on in
+  Options, Performance, or the VR menu. Updating turns it off once.
+- Performance: Render resolution starts at 1.0x on every headset, 120 Hz stays (an even 60 frames a second), the
+  game's maths runs as native code, less work per frame, and the headset's fastest CPU setting the game can use.
+- Lens flares are left out (they are the camera's, and hung in the air in VR). The game's effects sit at their place
+  in the world, facing you; in first person the lamps' glows are left out, as the PC VR mod does (their bulbs still
+  glow), and the muzzle flash is at the muzzle of every gun (the handgun's at its slide's front, rising with the
+  kick). Depth of field and the shaking double picture are left
+  out in VR. The thin red line at the pointer's circle is gone.
+- Dynamic cutscenes: in Heather's eyes you face where her face looks, and in first person her head and hair are
+  hidden from your eyes.
+- Both sticks clicked together recentre the view (with a sound and a buzz).
+- The controls now list the stomp: A by a monster that is down, the trigger released (the game's own move).
+- A head held in a wall for 2 seconds brings the view back to Heather.
+- Ghost hands in walls and Heather's shadow are off to start (VR menu to turn them on); updating turns them off once.
+- Quitting no longer crashes.
+- A new app icon.
+
 0.1.4:
 
 - Every PC copy of Silent Hill 3 (2003) should now work: North American, European or Asian, CD or DVD. As far as we

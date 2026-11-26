@@ -48,14 +48,23 @@ class Options {
      *  the game does the same in sh3vr.cpp load_options): these keys, the drifting fog, smooth turning and no screen
      *  filters (no sharpening, film grain, smooth edges or comfort vignette; the picture at the game's own). */
     static final String DEFAULTS_KEY = "defaults";
-    static final int DEFAULTS_VERSION = 4;  // 0.1.4: Smoother frames on (Config.newDefaults puts it in once)
-    /** 0.1.4: Smoother frames (AppSW) on to start, now that the motion is drawn (sh3vr_internal.h space_warp the same). */
-    static final boolean SPACE_WARP_ON = true;
+    /** 4 from 0.1.4 (Smoother frames on); 5 from 0.1.5 (Smoother frames off, Render resolution 1.0x, ghost hands and
+     *  Heather's shadow off):
+     *  Config.newDefaults puts each version's changes in once, as sh3vr.cpp load_options does. */
+    static final int DEFAULTS_VERSION = 5;
+    /** 0.1.5 (the owner's 0.1.4 report: "keep appsw off by default going forward"): Smoother frames (AppSW) off to start
+     *  (sh3vr_internal.h space_warp the same); 0.1.4 had it on at 120 Hz, which the game could not feed. */
+    static final boolean SPACE_WARP_ON = false;
+    /** The refresh rate to start (sh3vr_internal.h refresh_hz the same). Owner 98 ("set performance to a default you
+     *  would see works best"): 120 Hz, as the game takes 16-17 ms a frame on a Quest 3 (the owner's 0.1.3 and 0.1.4
+     *  logs), two 120 Hz refreshes, an even ~60 a second; at 72 Hz each would take two refreshes (36), at 90 two (45). */
+    static final String REFRESH_DEFAULT = "120";
     static final String[] DEFAULTS_0_1_3 = {"sharpen", "film_grain", "drifting_fog", "brightness", "contrast",
         "saturation", "dark_edges", "smooth_edges", "turn", "vignette"};
 
-    /** A Quest 3 or 3S (Android's device names eureka and panther): it starts at the top Render resolution, with Dynamic
-     *  resolution keeping the frame rate (LIST 51, as Jak's launcher; sh3vr.cpp device_defaults the same). */
+    /** A Quest 3 or 3S (Android's device names eureka and panther). 0.1.0-0.1.4 started it at the top Render resolution,
+     *  1.5x; 0.1.5 (owner 97: "set default resolution back to 100% for this release") starts every headset at 1.0x, and
+     *  Config.newDefaults moves a Quest 3's saved 1.5x (the old default) to 1.0x once (sh3vr.cpp the same). */
     static final boolean STRONG_QUEST = "eureka".equals(Build.DEVICE) || "panther".equals(Build.DEVICE);
 
     private static Option sw(String key, String label, String page, boolean on, String help) {
@@ -105,12 +114,13 @@ class Options {
     static final Option[] ALL = {
         // Performance: the Quest 3's best by default
         new Option(VR_INI, "refresh_hz", "Refresh rate", PERFORMANCE, Kind.CHOICE,
-            new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, 0, 0, 0, "", "120",
-            true, "120 Hz: the game makes up to 60 frames a second, so each one shows twice, evenly, and the headset "
-            + "keeps your head's turns smooth between them. 72 Hz if motion ever looks uneven."),
-        number("resolution", "Render resolution", PERFORMANCE, 0.6f, 1.5f, 0.05f, "x", STRONG_QUEST ? 1.5f : 1.0f,
-            "1.0 is the headset's own resolution. Lower is faster, higher is sharper. A Quest 3 or 3S starts at "
-            + "the top, 1.5, with Dynamic resolution keeping the game smooth."),
+            new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, 0, 0, 0, "",
+            REFRESH_DEFAULT, true, "120 Hz: the game makes up to 60 frames a second, so each one shows twice, evenly, "
+            + "and the headset keeps your head's turns smooth between them. At 72 or 90 Hz a frame that takes a little "
+            + "too long waits a whole refresh more."),
+        number("resolution", "Render resolution", PERFORMANCE, 0.6f, 1.5f, 0.05f, "x", 1.0f,
+            "1.0 is the headset's own resolution. Lower is faster, higher is sharper (a Quest 3 or 3S has room for "
+            + "more). Dynamic resolution keeps the game smooth either way."),
         sw("dynamic_resolution", "Dynamic resolution", PERFORMANCE, true,
             "When the headset starts falling behind, the game's 3D picture is drawn a little smaller until it keeps up "
             + "again, so frames are not dropped. Menus and text stay sharp."),
@@ -120,11 +130,11 @@ class Options {
         choice("sharpen", "Sharpening", PERFORMANCE, new String[] {"Off", "Normal", "Strong"}, 0,
             "The headset's sharpening of the picture. Off: the picture as drawn, no shimmer on edges."),
         // 0.1.4: back, the motion drawn (sh3vr.cpp motion_frame; 0.1.3 left it out: the owner's 0.1.2 log said "smoother
-        // frames on 0% of them")
+        // frames on 0% of them"); 0.1.5: off to start (the owner's 0.1.4 report)
         sw("space_warp", "Smoother frames (AppSW)", PERFORMANCE, SPACE_WARP_ON,
             "The headset makes every other frame itself from the game's last picture and how the world moved, so the "
-            + "game draws half of them: smooth at 120 Hz with room for a sharper picture. Takes effect the next time "
-            + "the game starts."),
+            + "game draws half of them. It needs the game to keep up with half the refresh rate (45 frames a second at "
+            + "90 Hz), or the picture stutters. Off by default. Takes effect the next time the game starts."),
         sw("show_performance", "Show performance", PERFORMANCE, false, "Frame times in a corner of the screen."),
         // View
         sw("first_person", "First person", VIEW, true,
@@ -167,8 +177,9 @@ class Options {
             "Darkens the picture toward the edges of your view. 0%: off."),
         sw("smooth_edges", "Smooth edges", VIEW, false,
             "Smooths the jagged edges of the world (anti-aliasing)."),
-        sw("her_shadow", "Heather's shadow", VIEW, true,
-            "Her body, her hands and what she holds cast shadows in the flashlight's beam, in the game's own shadows."),
+        sw("her_shadow", "Heather's shadow", VIEW, false,
+            "Her body, her hands and what she holds cast shadows in the flashlight's beam, in the game's own shadows. "
+            + "Off by default."),
         number("panel_distance", "Screen distance", VIEW, 0.8f, 3.0f, 0.1f, "m", 1.4f,
             "How far the menus, map and memos are."),
         number("panel_width", "Screen size", VIEW, 0.6f, 2.5f, 0.1f, "m", 1.2f, "How wide that screen is."),
@@ -210,8 +221,8 @@ class Options {
         choice("flashlight", "Chest flashlight aims", HANDS, new String[] {"Where you look", "Where Heather faces (the game's)"}, 0, "On her chest the beam goes where you look; take it in a hand to point it yourself."),
         sw("chest_light_touch", "Take the flashlight from your chest", HANDS, true, "Grip at the chest pocket to hold the flashlight; let go and it goes back on your chest. The trigger of the hand holding it switches it."),
         sw("finger_bending", "Fingers stop on surfaces", HANDS, true, "Fingers bend against walls and objects."),
-        sw("ghost_hands", "Ghost hands in walls", HANDS, true,
-            "A hand pushed into a wall stays at the wall; a faint one shows where yours is."),
+        sw("ghost_hands", "Ghost hands in walls", HANDS, false,
+            "A hand pushed into a wall always stays at the wall; on, a faint one also shows where yours is."),
         sw("grabbing", "Grab with the hand", HANDS, true, "Reach and grip to pick things up and open doors."),
         sw("take_by_hand", "Take items with your hand", HANDS, true,
             "Close your hand on an item or a door to take or use it; the action button still works."),

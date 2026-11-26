@@ -285,8 +285,11 @@ void make_clip(int what, int variant, Maker& m) {
         m.thump(0.03f, 150, 100, 0.03f, 0.35f);
         break;
     case kSoundMenu:  // the VR menu (owner 80): a soft two-note tick, rising as it opens (variant 0), falling as it
-                      // closes (1)
-        if (variant == 1) {
+                      // closes (1); 0.1.5: the view recentred (both sticks clicked together), two even notes (2)
+        if (variant == 2) {
+            m.modes(0.0f, {2000, 3000}, {0.012f, 0.008f}, 0.6f);
+            m.modes(0.070f, {2000, 3000}, {0.012f, 0.008f}, 0.6f);
+        } else if (variant == 1) {
             m.modes(0.0f, {2400, 3600}, {0.012f, 0.008f}, 0.7f);
             m.modes(0.055f, {1700, 2550}, {0.016f, 0.010f}, 0.6f);
         } else {
@@ -490,8 +493,8 @@ const Clip* clip_for(const Ask& a, int& variant) {
         variant = a.detail == kPartShell ? 1 : a.detail == kPartBattery ? 2 : 0;
         return &made[a.what][variant];
     }
-    if (a.what == kSoundMenu) {  // opened (detail 1): rising; closed: falling
-        variant = a.detail == 1 ? 0 : 1;
+    if (a.what == kSoundMenu) {  // opened (detail 1): rising; closed: falling; 2: the view recentred
+        variant = a.detail == 1 ? 0 : a.detail == 2 ? 2 : 1;
         return &made[a.what][variant];
     }
     static int last[kSoundCount];

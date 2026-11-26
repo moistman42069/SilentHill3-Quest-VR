@@ -268,7 +268,7 @@ static int poll_input(void) {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         switch (e.type) {
-        case SDL_QUIT: exit(0);
+        case SDL_QUIT: rt_log("launcher: window closed"); rt_leave(0);  /* 0.1.5: no exit-time teardown (rt_leave) */
         case SDL_CONTROLLERDEVICEADDED: SDL_GameControllerOpen(e.cdevice.which); break;
         case SDL_KEYDOWN:
             switch (e.key.keysym.sym) {

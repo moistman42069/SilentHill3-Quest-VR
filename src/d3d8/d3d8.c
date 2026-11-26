@@ -391,6 +391,8 @@ static void movie_draw(Res *bb) {
 }
 
 METHOD(dev_Present, 5) {
+    extern __thread int rt_render_thread;  /* kernel32.c: the slow-call log watches this thread (0.1.5) */
+    rt_render_thread = 1;
     int ww, wh;
     SDL_GL_GetDrawableSize(rt_window, &ww, &wh);
     Res *bb = res_of(dev->backbuffer);
@@ -448,7 +450,7 @@ METHOD(dev_Present, 5) {
     static int frame;
     rt_frame++;
     /* debugging: SH3_SHOT=dir writes frames 0-9, then every SH3_SHOT_EVERY-th (30), as PPM */
-    const char *shot = getenv("SH3_SHOT"), *every = getenv("SH3_SHOT_EVERY");
+    const char *shot = RT_ENV("SH3_SHOT"), *every = RT_ENV("SH3_SHOT_EVERY");
     if (shot && (frame++ < 10 || frame % (every ? atoi(every) : 30) == 1)) {
         char path[512];
         snprintf(path, sizeof path, "%s/frame%05d.ppm", shot, frame - 1);
@@ -463,21 +465,21 @@ METHOD(dev_Present, 5) {
     SDL_GL_SwapWindow(rt_window);
     static Uint64 stat_t0;
     static int stat_frames;
-    if (getenv("SH3_STATS") && ++stat_frames == 120) {  /* debugging: FPS and guest heap */
+    if (RT_ENV("SH3_STATS") && ++stat_frames == 120) {  /* debugging: FPS and guest heap */
         Uint64 now = SDL_GetTicks64();
         if (stat_t0) rt_log("stats: %.1f fps, guest heap %u MB", 120000.0 / (now - stat_t0), rt_heap_used() >> 20);
         stat_t0 = now;
         stat_frames = 0;
     }
     /* debugging: SH3_POKE=frame:va=value writes a guest dword at that frame */
-    const char *poke = getenv("SH3_POKE");
+    const char *poke = RT_ENV("SH3_POKE");
     unsigned pf, pva, pval;
     if (poke && sscanf(poke, "%u:%x=%x", &pf, &pva, &pval) == 3 && rt_frame >= (int)pf && rt_frame < (int)pf + 30) {
         MEM32(pva) = pval;
         if (rt_frame == (int)pf) rt_log("poke %08X = %08X", pva, pval);
     }
     /* debugging: SH3_PEEK=va,va,... logs those guest dwords every 60 frames */
-    const char *peek = getenv("SH3_PEEK");
+    const char *peek = RT_ENV("SH3_PEEK");
     if (peek && rt_frame % 60 == 0) {
         char line[512];
         int n = snprintf(line, sizeof line, "peek frame %d:", rt_frame);
@@ -961,6 +963,7 @@ static int vr_route(uint32_t va, uint32_t stride, uint32_t count) {
 }
 static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
     dev->rhw_world = dev->rhw_mapped = dev->beam_mesh = dev->no_ztest = 0;
+    dev->rhw_fade = 1.0f;
     dev->saber_out = MEM8(0x712C656u) == 9;  /* the beam saber out (its light: d3d8_shader.c; 0x712C66B drops while the blade stays out, vr218) */
     {
         /* testing (session 6, the muzzle flash): SH3_VSC_DUMP_SHOT=N logs each draw of N frames after Heather's first
@@ -1120,14 +1123,24 @@ static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
      * record (0x898420 + 0x18, filled with its screen place through 0x678450; vr246: the record's view point projects
      * to the streaks' middle exactly), so the flare goes at that depth (sh3vr_depth_layer_map), each eye's own view,
      * and over everything (no z test), as on the flat screen, where 0.40 m was in front of it all. */
-    if (!full && nv && (MEM32(g_esp) == 0x468CDAu || MEM32(g_esp) == 0x468F6Eu) && z0 > 0.4999f && z1 < 0.5002f &&
-        dev->vp_w > 0 && dev->vp_h > 0 && sh3vr_world_effects()) {
-        const float fx = (float)((sx / nv - dev->vp_x) / dev->vp_w * 2.0 - 1.0),
-                    fy = (float)(1.0 - (sy / nv - dev->vp_y) / dev->vp_h * 2.0);
-        if (sh3vr_depth_layer_map(MEMF(0x898438u), fx, fy, MEM32(g_esp), dev->rhw_map)) {
-            dev->rhw_world = dev->rhw_mapped = dev->no_ztest = 1;
-            return 0;
-        }
+    /* 0.1.5 (the owner, message 101: "lens flares ... seem placed on the screen, not actually following the world. i dont
+     * want ANY issues like that"; a player's 0.1.4 report: "strange light reflections, both with and without the
+     * flashlight", their video: soft white rings hanging in the air round the park's lamps): a lens flare is the
+     * camera's own, its streaks and rings laid along the line from the lamp through the middle of the game's picture, so
+     * at the lamp's depth they still slid about the room as the head turned. In VR they are left out, as the PC VR mod
+     * leaves them (it puts only the world's draws in the eyes).
+     * The flare's own glow too (its sprite at the lamp's depth; 0x4690A0 draws the flare of one lamp at a time, from its
+     * record at 0x898420): the owner, on the rig's pictures, "should follow whatever theyre coming from in view" and
+     * "check pcvr build for visual fixes that have already been done". The PC VR mod puts none of these screen-space
+     * sprites in the eyes; the lamps' own glowing bulbs (3D) and their halos from the game's effects (below, put at
+     * their place in the world) stay. */
+    if (!full && nv && (MEM32(g_esp) == 0x468CDAu || MEM32(g_esp) == 0x468F6Eu) && sh3vr_world_effects()) {
+        static int told;
+        if (!told++)
+            rt_log("VR: frame %d: the game's lens flare left out (its %s from %06X: the camera's, not the world's), as "
+                   "the PC VR mod leaves it", rt_frame, MEM32(g_esp) == 0x468CDAu ? "streaks" : "rings and glow",
+                   MEM32(g_esp));
+        return 3;
     }
     /* The game's effects it projected itself (session 6: the muzzle flash, its smoke, dust, sparks): their depth is
      * real, strictly between 0 and 1 (its 2D sits at exactly 0 or 1). In the eyes, put right per eye as the frame
@@ -1148,8 +1161,16 @@ static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
                               (float)(1.0 - (sy / nv - dev->vp_y) / dev->vp_h * 2.0), (float)(sz / nv)};
         dev->rhw_world = 1;
         {
+            /* 0.1.5: through the game's own camera, which it projected the effect with, to its place in the world
+             * (0x43AD30 keeps that view at 0x743C34, which the game's effects read through 0x43AD50), faded out toward
+             * the edge of the game's own picture (session 22: it draws only what its camera sees) */
             Res *t0 = res_of(dev->tex[0]);
-            dev->rhw_mapped = sh3vr_effect_map(ndc, t0 ? (int)t0->w : 0, dev->rhw_map);
+            float game_view[16];
+            const int have_view = sh3_game_view(game_view);
+            const float half[2] = {(x1 - x0) / dev->vp_w, (y1 - y0) / dev->vp_h};  /* the draw's half size, clip units */
+            dev->rhw_mapped = sh3vr_effect_map(ndc, half, t0 ? (int)t0->w : 0, have_view ? game_view : NULL,
+                                               dev->rhw_map, &dev->rhw_fade);
+            if (dev->rhw_mapped && dev->rhw_fade < 0.004f) return 3;  /* nothing of it shows */
         }
         return 0;
     }

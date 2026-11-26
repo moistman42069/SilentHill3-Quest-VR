@@ -90,6 +90,13 @@ void sub_004162A0(void) {
     }
     sub_004162A0_gen();
 }
+/* 0.1.5: the game's own view of this frame for its effects (sh3vr_effect_map: it projects them with its camera, not the
+ * head's), kept apart from game_cam_valid, which the frame's end clears. */
+int sh3_game_view(float out[16]) {
+    if (vr_view_at < 0 || rt_frame - vr_view_at > 1) return 0;
+    memcpy(out, game_cam_view, sizeof game_cam_view);
+    return 1;
+}
 /* 0x67B9B0 rebuilds the camera block (view, projection, their products) when it is dirty: the projection the frame
  * camera's view is drawn with is taken here, for the eyes' corrections. */
 extern void sub_0067B9B0_gen(void);
@@ -396,6 +403,74 @@ void sub_0041C090(void) {
         if (force) MEM8(0x821DDFu) = 1;
     }
     sub_0041C090_gen();
+}
+
+/* Depth of field (0.1.5; the owner's 0.1.4 report: "theres also a depth of field effect that seems to still be on during
+ * cutscenes. see if possible to disable."). 0x420370, the game's screen-effect pass (its mode at 0x72C828, set by the
+ * scenes), copies the frame into a 256x256 target (0x41CBA0, made at 0x427C70: index 2) and in modes 3 to 7 lays it back
+ * over the scene blurred through 0x41E200, whose depth tests (ZFUNC, ZWRITEENABLE set round its quads) keep the sharp
+ * part at the focus' depth: the depth of field. Its only callers are that pass (0x4206BE, 0x420743). In VR it is a flat
+ * screen's blur laid over the eyes (the owner, message 101: no effect placed on the screen), so it is left out: a cdecl
+ * call (its level in eax, five arguments its caller pops) whose result is not read. Flat, it is the game's. */
+extern void sub_0041E200_gen(void);
+void sub_0041E200(void) {
+    const int out = sh3vr_active();
+    static int told = -1;
+    if (out != told) {
+        told = out;
+        rt_log("depth of field: frame %d: %s (the game's screen-effect mode %u, its blur %u)", rt_frame,
+               out ? "left out in VR" : "the game's", MEM32(0x72C828u), MEM8(0x72C866u));
+    }
+    if (out) {
+        g_esp += 4;  /* ret */
+        return;
+    }
+    sub_0041E200_gen();
+}
+
+/* The same pass's mode 2 (0x420492) lays its 512x512 copy of the frame (0x41CBA0) back over it three times, each shifted
+ * (0x41FF80: the shifts from 0x72C860 / 0x72C862 and the game's random 0x428800), a shaking double picture. In VR those
+ * copies are fixed to the view, not the world (message 101), so they are left out as the depth of field is: a cdecl
+ * call (four arguments its caller pops) whose result is not read. */
+extern void sub_0041FF80_gen(void);
+void sub_0041FF80(void) {
+    const int out = sh3vr_active();
+    static int told = -1;
+    if (out != told) {
+        told = out;
+        rt_log("the game's shaking double picture: frame %d: %s (the screen-effect mode %u)", rt_frame,
+               out ? "left out in VR" : "the game's", MEM32(0x72C828u));
+    }
+    if (out) {
+        g_esp += 4;  /* ret */
+        return;
+    }
+    sub_0041FF80_gen();
+}
+
+/* The lamps' test (0.1.5; the owner, on the rig's pictures: glows "on spots i dont assume they should be ... not be
+ * there when out of view"). 0x49FAC0(screen place x16, view point), called only from 0x468193 (0x468180, a lamp's
+ * glow and flare, shown after six frames of 1), tests a lamp: it draws the lamp's point into a 1x1 render target
+ * against the scene's depth, at the place the game's own 2D projection gives (0x72C460, not the frame camera's in VR),
+ * and locks that target to read the answer: a read of the GPU's work each lamp each frame, which on the Quest waits for
+ * the GPU to finish everything before it. In VR: whether the lamp's point is in front of the frame camera and inside
+ * its picture (sh3vr_point_in_view, through the projection the frame is drawn with); a wall before a lamp hides its
+ * glow by the glow's own depth test in each eye (it is drawn at the lamp's depth with the z test on). No read back. */
+extern void sub_0049FAC0_gen(void);
+void sub_0049FAC0(void) {
+    if (sh3vr_active() && sh3vr_world_effects()) {
+        const uint32_t p = ARG(1);
+        const float pt[4] = {MEMF(p), MEMF(p + 4u), MEMF(p + 8u), 1.0f};
+        const int vis = sh3vr_point_in_view(pt);
+        static int told;
+        if (told < 2 && ++told)
+            rt_log("the lamps' test: frame %d: a lamp %.2f m ahead %s (the frame camera's view, no read back of the "
+                   "GPU's work)", rt_frame, pt[2] / 490.0f, vis ? "in view" : "out of view");
+        g_eax = vis ? 1u : 0u;
+        g_esp += 4;  /* ret (cdecl: the caller pops its two arguments) */
+        return;
+    }
+    sub_0049FAC0_gen();
 }
 
 /* The flashlight (session 7; docs/GAME_FACTS.md, The flashlight). Heather's light record at 0x712C1D0 (made each frame
@@ -1076,6 +1151,49 @@ void sub_0041B2C0(void) {
         sub_0041B2C0_gen();
         rt_limiter_virtual = 0;
     } else sub_0041B2C0_gen();
+}
+
+/* 0.1.5 (the owner's 0.1.4 report: cutscenes out of step with their voices, "delayed"): the game's step (0x60DA50, from
+ * the main loop at 0x5F1A74 each frame, with the step 0x5F15E0 picked from the limiter's ticks: 1, 2 or 3 sixtieths)
+ * sets the frame-time tuple the whole update reads (0x070E67A8 the step in sixtieths, 0x070E67AC its seconds,
+ * 0x070E67C4 the frames a second, through 0x60D8D0 / 0x60D8E0 / 0x60D8F0; 0x60D8E0 alone has 1692 callers). While the
+ * headset paces the game the limiter counts one tick a frame, so the step was always 1/60 s: the game ran at the display's
+ * rate over 60 (twice its speed at 120 frames a second, half at 30, slow scenes with their voices ahead). Now the step is
+ * the real time from the last picture's display to this one's (sh3vr_frame_seconds, up to 3/60 s): the game's own
+ * code first (its 0x5FE970 checks and the whole-step counts at 0x070E67C0 / 0x070E67A4, kept at 1), then the tuple. */
+extern void sub_0060DA50_gen(void);
+static void vr_time_step(void) {
+    const float s = sh3vr_frame_seconds();
+    if (!(s > 0)) return;
+    const float base = MEMF(0x070E67AC), fps = MEMF(0x070E67C4);  /* the game's for one step: 1/60 s, 60 */
+    if (!(base > 0) || !(fps > 0)) return;
+    const float scale = s / base;
+    MEMF(0x070E67A8) = scale;
+    MEMF(0x070E67B4) = scale;
+    MEMF(0x070E67AC) = s;
+    MEMF(0x070E67C4) = fps / scale;
+    static int told;
+    static float most;
+    static double sum;
+    static int n;
+    sum += scale;
+    n++;
+    if (scale > most) most = scale;
+    if (n >= 600 || !told) {
+        rt_log("VR: frame %d: the game's step is the real time a frame is shown: %.2f sixtieths on average over the last "
+               "%d frames (the most %.2f), %.1f game frames a second", rt_frame, sum / n, n, most, 60.0 * n / (sum > 0 ? sum : 1));
+        told = 1;
+        sum = 0;
+        n = 0;
+        most = 0;
+    }
+}
+void sub_0060DA50(void) {
+    if (sh3vr_frame_seconds() > 0) {
+        ARG(0) = 1;  /* the step in whole sixtieths: 1 (cdecl: the argument slot is the callee's) */
+        sub_0060DA50_gen();
+        vr_time_step();
+    } else sub_0060DA50_gen();
 }
 
 /* ---- SH3 Quest VR: weapons (docs/GAME_FACTS.md, Weapons; checked in the exe 2026-11-24) ----
@@ -1897,7 +2015,7 @@ void sh3_vr_frame(void) {
      * rounds, its ammo item's the reserve: handgun 10 + bullets 15, shotgun 11 + shells 16, submachine gun 12 +
      * rounds 17, stun gun 9 + batteries 14), then SH3_EQUIP=weapon number. */
     static int gave;
-    if (!gave && heather_placed(p) && g.playable && getenv("SH3_GIVE")) {
+    if (!gave && RT_ENV("SH3_GIVE") && heather_placed(p) && g.playable) {
         gave = 1;
         rt_log("testing: the items she has before the give: %08X %08X %08X %08X", MEM32(0x712CA80u), MEM32(0x712CA84u),
                MEM32(0x712CA88u), MEM32(0x712CA8Cu));
@@ -2083,12 +2201,14 @@ void sh3_vr_frame(void) {
         if (quick != was_quick) rt_log("VR: frame %d: quick gun raise %s", rt_frame, quick ? "from the pull" : "ended");
         was_quick = quick;
     }
-    float hz = sh3vr_display_hz();
-    if (hz > 0) {
-        MEMF(0x070E67A8) = 60.0f / hz;
-        MEMF(0x070E67AC) = 1.0f / hz;
+    /* 0.1.5: the real time this frame is shown, as sub_0060DA50 gives the update (60 / hz before, which the game's own
+     * step setter overwrote with 1/60 s each frame in play) */
+    const float secs = sh3vr_frame_seconds();
+    if (secs > 0) {
+        MEMF(0x070E67A8) = 60.0f * secs;
+        MEMF(0x070E67AC) = secs;
         MEM32(0x070E67C0) = 1;
-        MEMF(0x070E67C4) = hz;
+        MEMF(0x070E67C4) = 1.0f / secs;
     }
 }
 
@@ -2197,6 +2317,189 @@ void sub_00403DC0(void) {
     g_esp += 4;
 }
 
+/* ---- D3DX 8's x87 math, done natively (0.1.5, owner: "COMPLETELY MAXIMIZE PERFORMANCE") ----
+ * The hottest code on the game's thread (vr264's profile: 15% of it) is five of D3DX's x87 routines, which D3DX reaches
+ * through the function pointers it fills at start-up (so by address: recomp_lookup_manual below): the 4x4 matrix
+ * product (0x648639), a point by a matrix to x, y, z, w (0x6483A7), a 4-vector by a matrix (0x648491), normalize
+ * (0x64856F, 1/sqrt from its table at 0x726820) and a direction by a matrix (0x648432). The lifted bodies walk the
+ * emulated x87 stack an instruction at a time; these do the same multiplies and adds in the same order, each rounded
+ * as the lifted code rounds it (RECOMP_FP_PC: to 24 bits while the game's precision setting asks), with every input
+ * read before the first store as the originals do (so an output that is also an input comes out the same), and leave
+ * the registers as the originals do: eax the output, the arguments popped (stdcall), the framed two's ebp published.
+ * Each result is bit for bit the lifted code's: SH3_D3DX_CHECK=1 runs both on every call and logs any difference. */
+#pragma STDC FP_CONTRACT OFF
+#define DX_MEM(va) ((void *)XBOX_PTR(va))
+#define DX_PC24 const int pc24 = !(g_fp_control_word & 0x300u)
+#define DXP(x) dx_round(pc24, (x))
+static inline double dx_round(int pc24, double x) { return pc24 ? recomp_fp_round24(x) : x; }
+
+/* D3DXVec3Transform (out: x y z w, v: x y z, m): out = v * m with v's w = 1. */
+static void dx_vec3_transform(void) {
+    DX_PC24;
+    const uint32_t out = ARG(0);
+    float v[3], m[16], r[4];
+    memcpy(v, DX_MEM(ARG(1)), sizeof v);
+    memcpy(m, DX_MEM(ARG(2)), sizeof m);
+    for (int i = 0; i < 4; i++) {
+        double s = DXP(DXP((double)v[0] * m[i]) + DXP((double)v[1] * m[4 + i]));
+        s = DXP(s + DXP((double)v[2] * m[8 + i]));
+        r[i] = (float)DXP(s + m[12 + i]);
+    }
+    memcpy(DX_MEM(out), r, sizeof r);
+    g_eax = out;
+    g_esp += 16;  /* ret 12 */
+}
+
+/* D3DXVec3TransformNormal (out: x y z, v: x y z, m): out = v * m's 3x3. */
+static void dx_vec3_transform_normal(void) {
+    DX_PC24;
+    const uint32_t out = ARG(0);
+    float v[3], m[12], r[3];
+    memcpy(v, DX_MEM(ARG(1)), sizeof v);
+    memcpy(m, DX_MEM(ARG(2)), sizeof m);
+    for (int i = 0; i < 3; i++) {
+        const double s = DXP(DXP((double)v[0] * m[i]) + DXP((double)v[1] * m[4 + i]));
+        r[i] = (float)DXP(s + DXP((double)v[2] * m[8 + i]));
+    }
+    memcpy(DX_MEM(out), r, sizeof r);
+    g_eax = out;
+    g_esp += 16;  /* ret 12 */
+}
+
+/* D3DXVec4Transform (out: x y z w, v: x y z w, m): out = v * m. */
+static void dx_vec4_transform(void) {
+    DX_PC24;
+    const uint32_t out = ARG(0);
+    float v[4], m[16], r[4];
+    memcpy(v, DX_MEM(ARG(1)), sizeof v);
+    memcpy(m, DX_MEM(ARG(2)), sizeof m);
+    for (int i = 0; i < 4; i++) {
+        double s = DXP(DXP((double)v[0] * m[i]) + DXP((double)v[1] * m[4 + i]));
+        s = DXP(s + DXP((double)v[2] * m[8 + i]));
+        r[i] = (float)DXP(s + DXP((double)v[3] * m[12 + i]));
+    }
+    memcpy(DX_MEM(out), r, sizeof r);
+    g_eax = out;
+    g_esp += 16;  /* ret 12 */
+}
+
+/* D3DXMatrixMultiply (out, a, b): out = a * b; out may be a or b (the original copies b aside when it is both, and
+ * goes column by column when it is b: the same products and sums either way). */
+static void dx_matrix_multiply(void) {
+    DX_PC24;
+    const uint32_t out = ARG(0);
+    float a[16], b[16], r[16];
+    memcpy(a, DX_MEM(ARG(1)), sizeof a);
+    memcpy(b, DX_MEM(ARG(2)), sizeof b);
+    for (int i = 0; i < 4; i++) {
+        const float *row = a + 4 * i;
+        for (int j = 0; j < 4; j++) {
+            const double p0 = DXP((double)row[0] * b[j]), p1 = DXP((double)row[1] * b[4 + j]),
+                         p2 = DXP((double)row[2] * b[8 + j]), p3 = DXP((double)row[3] * b[12 + j]);
+            r[4 * i + j] = (float)DXP(DXP(p0 + p2) + DXP(p1 + p3));
+        }
+    }
+    memcpy(DX_MEM(out), r, sizeof r);
+    g_ebp = g_seh_ebp = g_esp - 4;  /* the frame the original publishes and leaves */
+    g_eax = out;
+    g_esp += 16;  /* ret 12 */
+}
+
+/* D3DXVec3Normalize (out, v): a zero vector gives zeros, one within 1e-5 of unit length is copied, any other is scaled
+ * by 1/sqrt(length squared) from the table (a line through the mantissa) and the exponent's bits. */
+static void dx_vec3_normalize(void) {
+    DX_PC24;
+    const uint32_t out = ARG(0), in = ARG(1);
+    float v[3];
+    memcpy(v, DX_MEM(in), sizeof v);
+    const double len = DXP(DXP(DXP((double)v[0] * v[0]) + DXP((double)v[1] * v[1])) + DXP((double)v[2] * v[2]));
+    const float lf = (float)len;
+    uint32_t lb;
+    memcpy(&lb, &lf, 4);
+    if (!lb) {
+        static const uint32_t zero[3];
+        memcpy(DX_MEM(out), zero, sizeof zero);
+        g_fp_top = (g_fp_top + 7) & 7;  /* the original's ffree st(0) leaves the length on the x87 stack */
+        g_fp_stack[g_fp_top] = len;
+    } else {
+        const float d = (float)DXP(len - 1.0);
+        uint32_t db;
+        memcpy(&db, &d, 4);
+        if ((int32_t)(db & 0x7FFFFFFFu) > 0x3727C5AC) {
+            const uint32_t fb = (lb & 0xFFFFFFu) | 0x3F000000u, eb = ((0xBEFFFFFFu - lb) >> 1) & 0xFF800000u;
+            const uint32_t at = 0x726820u + ((lb >> 12) & 0xFF8u);
+            float f, e;
+            memcpy(&f, &fb, 4);
+            memcpy(&e, &eb, 4);
+            double s = DXP((double)f * MEMF(at));
+            s = DXP(s + MEMF(at + 4));
+            s = DXP(s * e);
+            const float r[3] = {(float)DXP(v[0] * s), (float)DXP(v[1] * s), (float)DXP(v[2] * s)};
+            memcpy(DX_MEM(out), r, sizeof r);
+        } else if (out != in)
+            memcpy(DX_MEM(out), v, sizeof v);
+    }
+    g_ebp = g_seh_ebp = g_esp - 4;  /* the frame the original publishes and leaves */
+    g_eax = out;
+    g_esp += 12;  /* ret 8 */
+}
+
+/* SH3_D3DX_CHECK=1 (the PC rig): the lifted body runs first on the same inputs, then the native one on the restored
+ * output (which restores an input that is the output too); any difference is logged and the lifted result kept. */
+static void dx_checked(const char *what, void (*native)(void), void (*lifted)(void), int bytes) {
+    static int calls, differ;
+    const uint32_t out = ARG(0), esp0 = g_esp;
+    const int top0 = g_fp_top;
+    uint8_t before[64], want[64];
+    memcpy(before, DX_MEM(out), bytes);
+    lifted();
+    const uint32_t eax = g_eax, esp = g_esp, ebp = g_ebp;
+    const int top = g_fp_top;
+    const double pushed = g_fp_stack[top];
+    memcpy(want, DX_MEM(out), bytes);
+    memcpy(DX_MEM(out), before, bytes);
+    g_esp = esp0;
+    g_fp_top = top0;
+    native();
+    calls++;
+    const uint8_t *got = DX_MEM(out);
+    if (memcmp(want, got, bytes) || eax != g_eax || esp != g_esp || ebp != g_ebp || top != g_fp_top ||
+        (top != top0 && memcmp(&pushed, &g_fp_stack[top], sizeof pushed))) {
+        int word = 0;
+        while (word < bytes / 4 && !memcmp(want + 4 * word, got + 4 * word, 4)) word++;
+        uint32_t w = 0, g = 0;
+        if (word < bytes / 4) {
+            memcpy(&w, want + 4 * word, 4);
+            memcpy(&g, got + 4 * word, 4);
+        }
+        if (++differ <= 20)
+            rt_log("D3DX check: %s differs from the lifted code at call %d: word %d lifted %08X native %08X, eax %08X/%08X,"
+                   " esp %08X/%08X, ebp %08X/%08X, x87 top %d/%d", what, calls, word, w, g, eax, g_eax, esp, g_esp, ebp,
+                   g_ebp, top, g_fp_top);
+        memcpy(DX_MEM(out), want, bytes);
+        g_eax = eax;
+        g_esp = esp;
+        g_ebp = g_seh_ebp = ebp;
+        g_fp_top = top;
+        g_fp_stack[top] = pushed;
+    }
+    if (calls == 1000 || calls % 200000 == 0)
+        rt_log("D3DX check: %d calls checked, %d differ from the lifted code", calls, differ);
+}
+#define DX_CALL(what, native, lifted, bytes) \
+    do { if (RT_ENV("SH3_D3DX_CHECK")) dx_checked(what, native, lifted, bytes); else native(); } while (0)
+extern void sub_006483A7_gen(void);
+void sub_006483A7(void) { DX_CALL("Vec3Transform (0x6483A7)", dx_vec3_transform, sub_006483A7_gen, 16); }
+extern void sub_00648432_gen(void);
+void sub_00648432(void) { DX_CALL("Vec3TransformNormal (0x648432)", dx_vec3_transform_normal, sub_00648432_gen, 12); }
+extern void sub_00648491_gen(void);
+void sub_00648491(void) { DX_CALL("Vec4Transform (0x648491)", dx_vec4_transform, sub_00648491_gen, 16); }
+extern void sub_0064856F_gen(void);
+void sub_0064856F(void) { DX_CALL("Vec3Normalize (0x64856F)", dx_vec3_normalize, sub_0064856F_gen, 12); }
+extern void sub_00648639_gen(void);
+void sub_00648639(void) { DX_CALL("MatrixMultiply (0x648639)", dx_matrix_multiply, sub_00648639_gen, 64); }
+#pragma STDC FP_CONTRACT DEFAULT
+
 /* Called once after sh3.exe is loaded: the variables tools/patch_exe.py points code at. */
 void game_init(void) {
     host_arena_commit(0x0EC00000u, 0x1000);
@@ -2255,6 +2558,15 @@ recomp_func_t recomp_lookup_manual(uint32_t va) {
     case 0x00404440u: return sub_00404440;
     case 0x00403DC0u: return sub_00403DC0;
     case 0x00601A40u: return sub_00601A40;  /* LIST 12 (session 13): the click zones at the game's own question */
+    case 0x0060DA50u: return sub_0060DA50;  /* 0.1.5: the game's step from the real frame time */
+    case 0x0041E200u: return sub_0041E200;  /* 0.1.5: the depth of field left out in VR */
+    case 0x0041FF80u: return sub_0041FF80;  /* 0.1.5: the shaking double picture left out in VR */
+    case 0x0049FAC0u: return sub_0049FAC0;  /* 0.1.5: the lamps' test from the frame camera in VR, no read back */
+    case 0x006483A7u: return sub_006483A7;  /* 0.1.5: D3DX's math, natively */
+    case 0x00648432u: return sub_00648432;
+    case 0x00648491u: return sub_00648491;
+    case 0x0064856Fu: return sub_0064856F;
+    case 0x00648639u: return sub_00648639;
     }
     return NULL;
 }

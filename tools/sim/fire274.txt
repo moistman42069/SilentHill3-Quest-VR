@@ -1,0 +1,25 @@
+# SH3 Quest VR, the PC rig (session 22, build 220): the handgun's muzzle flash and smoke, pictures over the frames from 18 to 27 after
+# the trigger pull (vr272: each shot fired 20 frames after the pull). Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_GIVE="10:10,15:20" SH3_EQUIP=1
+# SH3_FX_LOG=7250:7700. Every picture whole: the flash at the muzzle in both eyes, the gun's direction, her hands.
+7318 shot g07318-start
+7400 right_trigger 1
+7418 shot g07418-fire
+7420 shot g07420-fire
+7421 shot g07421-fire
+7422 shot g07422-fire
+7423 shot g07423-fire
+7424 shot g07424-fire
+7426 shot g07426-fire
+7440 right_trigger 0
+7480 right_trigger 1
+7498 shot g07498-fire2
+7500 shot g07500-fire2
+7501 shot g07501-fire2
+7502 shot g07502-fire2
+7503 shot g07503-fire2
+7504 shot g07504-fire2
+7506 shot g07506-fire2
+7508 shot g07508-fire2
+7520 right_trigger 0
+7560 quit 0

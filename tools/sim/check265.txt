@@ -1,0 +1,40 @@
+# SH3 Quest VR, the PC rig (session 21, 0.1.5's combined check on build 214). Run with QUEST_SIM_HEADSET=1
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_D3DX_CHECK=1 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return".
+# Lines before 7312 count raw frames (the opening's scene: dynamic cutscenes go to her eyes about frame 2343 in vr264);
+# from 7312 on they count from the first frame of play in first person.
+# 1. The scene's switch to her eyes: the log's "recentred (first person): Heather's facing X (from her face as the scene
+#    poses her head ...)", "a scene draws her away from her place ... her head and hair cut"; pictures at the switch
+#    (her head not in the eyes, the view along her face).
+# 2. The D3DX natives checked against the game's own code on every call (SH3_D3DX_CHECK=1): no "D3DX check:" lines.
+# 3. Both sticks clicked together (the same frame): "both sticks clicked together: the view recentred", its sound; then a
+#    left stick tap alone (two frames) and a right one: no recentre, both reach the game.
+# 4. Pictures whole in play (looking about), the lens flare left out, the depth of field and the shaking double picture
+#    told in the log.
+2336 shot s02336-scene
+2340 shot s02340-scene
+2344 shot s02344-scene
+2346 shot s02346-scene
+2348 shot s02348-scene
+2352 shot s02352-scene
+7318 shot c07318-start
+7330 left_click 1
+7330 right_click 1
+7340 left_click 0
+7340 right_click 0
+7346 shot c07346-after-recentre
+7360 left_click 1
+7362 left_click 0
+7380 right_click 1
+7382 right_click 0
+7400 head_yaw 40
+7410 shot c07410-left
+7430 head_yaw -40
+7440 shot c07440-right
+7460 head_yaw 0
+7460 head_pitch -45
+7470 shot c07470-down
+7490 head_pitch 0
+7500 left_y 1
+7620 left_y 0
+7630 shot c07630-walked
+7700 quit 0

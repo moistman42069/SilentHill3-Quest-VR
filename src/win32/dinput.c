@@ -400,22 +400,32 @@ static void pad_state(uint32_t dev, uint32_t out, uint32_t size) {
 }
 
 /* Testing: SH3_KEYS="12:Return,14.5:Down,20:Up+8" holds each key for 150 ms (or +seconds) at that many
- * seconds after start. */
+ * seconds after start. 0.1.5: parsed once into a table (the PC profile vr264: the string was parsed again, with SDL's
+ * name lookup, for every scancode of every poll: 4% of the main thread on the rig). */
 static int scripted_key(int scancode) {
     static Uint64 t0;
-    if (!t0) t0 = SDL_GetTicks64();
-    const char *k = getenv("SH3_KEYS");
-    double now = (SDL_GetTicks64() - t0) / 1000.0;
-    while (k && *k) {
-        char name[32] = "";
-        double at = 0, hold = 0.15;
-        int n = 0;
-        if (sscanf(k, "%lf:%31[^,+]%n", &at, name, &n) < 2) break;
-        k += n;
-        if (*k == '+' && sscanf(k, "+%lf%n", &hold, &n) == 1) k += n;
-        if (SDL_GetScancodeFromName(name) == scancode && now >= at && now < at + hold) return 1;
-        if (*k == ',') k++;
+    static int n = -1;
+    static struct { int code; double at, hold; } keys[64];
+    if (n < 0) {
+        n = 0;
+        for (const char *k = RT_ENV("SH3_KEYS"); k && *k && n < 64;) {
+            char name[32] = "";
+            double at = 0, hold = 0.15;
+            int used = 0;
+            if (sscanf(k, "%lf:%31[^,+]%n", &at, name, &used) < 2) break;
+            k += used;
+            if (*k == '+' && sscanf(k, "+%lf%n", &hold, &used) == 1) k += used;
+            keys[n].code = (int)SDL_GetScancodeFromName(name);
+            keys[n].at = at;
+            keys[n].hold = hold;
+            n++;
+            if (*k == ',') k++;
+        }
     }
+    if (!t0) t0 = SDL_GetTicks64();
+    const double now = (SDL_GetTicks64() - t0) / 1000.0;
+    for (int i = 0; i < n; i++)
+        if (keys[i].code == scancode && now >= keys[i].at && now < keys[i].at + keys[i].hold) return 1;
     return 0;
 }
 
@@ -426,7 +436,7 @@ METHOD(dev_GetDeviceState, 3) {
         int n;
         const uint8_t *k = SDL_GetKeyboardState(&n);
         memset(GPTR(out), 0, size);
-        int scripted = getenv("SH3_KEYS") != NULL;  /* a scripted run ignores the real keyboard */
+        const int scripted = RT_ENV("SH3_KEYS") != NULL;  /* a scripted run ignores the real keyboard */
         for (int i = 0; i < n; i++)
             if ((scripted ? scripted_key(i) : k[i]) && dik[i] && dik[i] < size) *(uint8_t *)GPTR(out + dik[i]) = 0x80;
     } else if (kind == DEV_PAD) pad_state(THIS, out, size);

@@ -735,3 +735,55 @@ call 0x4B74B0 all round her every 120 frames, and none found a floor item in any
 - No other PC build is known: the North American, European and Asian releases (2003) carry the same exe build; the
   editions differ in their data files (languages). sh3-nx and SH3AndroidEvolved load any sh3.exe unchecked, from its
   own import table.
+
+## Sessions 20-22 (2026-11-26): 0.1.5, the time step, the screen effects, the lamps' test, the effects' camera
+- **The time step**: 0x5F1940 (the main loop) at 0x5F1A74 calls 0x60DA50(step) each frame in play, step = [0xBCC630]
+  picked by 0x5F15E0 from the limiter's tick counts (1-3 sixtieths). 0x60DA50 writes 0x070E67A8 and 0x070E67B4 (the
+  step in sixtieths), 0x070E67AC (its seconds), 0x070E67C4 (frames a second) and the whole-step ints 0x070E67C0 /
+  0x070E67A4; 0x60D8E0, the seconds' getter, has 1692 callers. Paced by the headset the limiter counted one tick a
+  frame, so the game ran 1/60 s a frame at any rate (scenes behind their voices). VR now gives it the real time each
+  frame stands for, up to 3/60 s (sh3.c sub_0060DA50, sh3vr_frame_seconds).
+- **The screen-effect pass**: 0x420370, its mode at 0x72C828, a switch table at 0x420778: modes 0 and 1 go to
+  0x41C090 (the grain and colour grade), mode 2 to 0x41FF80 (the shaking double picture), modes 3-7 to 0x41E200
+  (depth of field, a blurred copy round the middle). VR leaves 0x41FF80 and 0x41E200 out in the eyes.
+- **The lens flare's chain**: 0x469E70 → 0x468840 → 0x4687C0 fill the record at 0x898420 (+0x40 the lamp's view
+  point, records 0x50 apart); 0x4690A0 draws it through 0x468DF0 (0x468F6E: the rings and the glow) and 0x468B40
+  (0x468CDA: the streaks). VR leaves all of it out, as the PC VR mod does.
+- **The lamps' visibility test** 0x49FAC0(point, view point): draws a point into a 1x1 target and reads it back with
+  LockRect, a wait for the graphics chip per lamp per frame. VR answers it from the depth it already has
+  (sh3.c sub_0049FAC0, sh3vr_point_in_view).
+- **The sprite helper**: 0x5F69F8 (128x128 halos), 0x5F6937 (128x128, the blue light's) and 0x5F68CC (512x512: tiny
+  sparkles; the PC VR mod calls 0x5F6937 and 0x5F68CC "the transient blood and muzzle-flash effect buffer") draw
+  screen-space quads (FVF 0x144, z 0.95-0.998, blended). The park's lamps' glows sit on a grid at x -21400 / -18600 /
+  -15800, z 18600 / 22200, y -1617 (3.3 m up).
+- **The camera the effects are projected with**: 0x43AD30 hands 0x4162A0 (SetViewMatrix) the view, then
+  0x678070(0x743C34, m) keeps the game's own view at 0x743C34, read by the effects through 0x43AD50. In VR the eyes
+  get the head's view but the effects keep the game camera's (which in first person does not turn with the head), so
+  sh3vr_effect_map takes each one back through the game's view (sh3_game_view) to the world. The game draws an
+  effect only while its own camera sees it.
+- **The gun's effects are already at the gun in the hand** (vr275-vr276): the flash's quads lie along the hand's
+  barrel from its muzzle (the shot's origin, 0x4B3D50, to the unit), the ejected case from the slide, because the
+  game takes their place from 0x4954E0, which VR moves to the gun in the hand. They need no second move; vr75's "on
+  her grip" was the head's camera read for the game's. The PC VR mod puts its own flash at the same point (the
+  muzzle the damage ray starts from, 1.2 cm on).
+- **The flash's quads stay where the shot left them** (vr276): on the shot's line from its origin forward (all
+  within 2 units of it, 15 cm long), while the effects placed afterwards from 0x4954E0 (the flash's light
+  0x5A47D0, frame 7373) come from the drawn gun. VR's shown recoil turns the drawn gun about the fist after the
+  shot's line was taken (gun_ray has no kick), so combat_effect_rel turns the quads on that line with the kick.
+- **The handgun's muzzle is bone 1's**: bone 0 (frame, grip) ends at x 101.4; the slide (bone 1, posed at 139.6
+  38.1 -13.1 in bone 0's frame, vr188's weapon bones) reaches x 137.0 round y 38.1, z -13.1 (mesh_368.txt). The
+  shot leaves from that point (muzzle_point, session 22, owner 109): from bone 0's end the flash sat 7 cm back inside
+  the slide. The hold's tip stays at bone 0's end for the weapon's reach: the wall probe samples the line palm to
+  tip against the depth, and a tip on the slide's front face met the gun's own surface, held back from nothing
+  (build 223, vr278 and vr281).
+- **The stomp** (owner 110, read in the code): Heather's action 45 (0x2D), the state 0x4D71F0 started at 0x4D82C0
+  (her action dispatcher 0x4D3E30, tables 0x6D08C8 / 0x6D0980). Its test 0x4B43D0: the command block
+  [0x712C10C] (0x89E880) +0x2F == 0 (the ready button, logical mask 0x80, released: the attack's test 0x4B4340
+  goes on only with it held, or 0x4DAFC0), +0x2B != 0 (the action button, mask 0x200: set by 0x472250 on a
+  press, or held long enough, 0x89EB0C against 0x68EC00) and a downed target [0x712C5B4] != 0; the transition
+  allowed by the mask 0x2000 (0x4C8EA0(0, 0x2000) / 0x4C9220; the masks 0x712C1A0/A4 from 0x692000 + action
+  x 16). 0x4ECCD0 picks the stomp or a kick (types 7 / 8) by the monster's kind and sets the motion 0x712C646.
+  So on a pad: Action with the weapon not readied, by a monster that is down. VR: A, the main trigger released.
+- **The unlimited submachine gun** is item 0x0D (weapon 17): 0x497800 never takes a round from it, so its loaded
+  count never changes. SH3_GIVE=13:0 gives it 0 loaded: the attack decision is then the dry click (vr277's
+  "no shot"); 13:50 fires (vr278).

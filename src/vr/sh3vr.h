@@ -116,6 +116,9 @@ void sh3vr_shadow_part(const uint8_t *verts48, int nverts, const uint16_t *tris,
 void sh3vr_game_reload(int weapon, int event_index);
 /* The display's rate the game is paced at (Hz): the frame-time tuple at 0x70E67A8 is written for it. 0: not paced. */
 float sh3vr_display_hz(void);
+/* 0.1.5: the real time this frame stands for, from the display times (0 when the headset does not pace the game): the
+ * game's own step (sh3.c sub_0060DA50), so it runs at its true speed whatever the frame rate. */
+float sh3vr_frame_seconds(void);
 /* Heather fired a gun (0x4B3D50 for her): haptics, recoil for two hands. */
 void sh3vr_notify_shot(void);
 /* Quick gun raise (session 6): 1 from a gun's trigger pull in first person until its shot (1 s at most): sh3.c runs
@@ -302,9 +305,21 @@ float sh3vr_picture_scale(void);
  * many buttons the game itself counted in that step. */
 int sh3vr_struggle_presses(float left);
 void sh3vr_struggle_done(int freed, int buttons);
-/* One such draw (its middle in the game's clip space: ndc x, y and D3D z) that is the gun's own, just after a shot near
- * the game's gun: 1 and the map (GL column-major, the game's clip to its clip) that moves it with the gun to the hand. */
-int sh3vr_effect_map(const float ndc[3], int tex_w, float out_gl[16]);
+/* One of the game's effects drawn in screen space at its real depth (its middle in the game's clip space: ndc x, y and
+ * D3D z; d3d8.c vr_route_pick): 1 and the map (GL column-major, the game's clip to the frame camera's) that takes it
+ * back through the camera the game projected it with (`game_view`: the game's own view, sh3_game_view; NULL: the frame
+ * camera's) to its place in the world, and moves the gun's own, just after a shot near the game's gun, with the gun to
+ * the hand. 0: as the game's clip says. `fade` (0.1.5, session 22): how much of it to show, 1 in the middle of the game
+ * camera's picture down to 0 at its edge (the game draws its effects only inside its own camera's view, which in first
+ * person is not the head's: a lamp's glow fades out as its lamp leaves the game's view instead of popping); 1 for the
+ * weapon's own. */
+/* `half`: the draw's half size in the game's clip (x, y), from its points' extent: a small one (under 0.75 m across) is turned
+ * to face the head at its place (session 22). */
+int sh3vr_effect_map(const float ndc[3], const float half[2], int tex_w, const float game_view[16], float out_gl[16],
+                     float* fade);
+/* sh3.c: the game's own view this frame (what it gave 0x4162A0 for the frame camera, before the head's took its place);
+ * 0 when there is none. */
+int sh3_game_view(float out[16]);
 /* Owner 79 (session 16): the game's drifting fog (d3d8.c vr_route_pick: 0x5F572E's fans at z just past 1) on a far layer
  * fixed in the world: 1 and the map (GL column-major, the game's clip to its clip) that moves each point halfway to the
  * game's camera along its own ray (the same place in the game's picture, inside every eye's far plane), so each eye's
@@ -315,6 +330,9 @@ int sh3vr_drifting_fog(void);
  * lamp's view depth (its flare record's, 0x898438): 1 and the map (GL column-major, the game's clip to its clip) that
  * sets each point's depth to the lamp's at (ndc_x, ndc_y), the draw's middle; 0 when the depth is no lamp's. */
 int sh3vr_depth_layer_map(float view_depth, float ndc_x, float ndc_y, unsigned from, float out_gl[16]);
+/* 0.1.5: the flare's lamp test (sh3.c, 0x49FAC0) without the GPU's read back: whether a point in the view space is in front of
+ * the camera and inside its picture (which covers both eyes). The flare itself is left out in VR (d3d8.c). */
+int sh3vr_point_in_view(const float view_pt[4]);
 /* Owner 61 (session 15): the beam saber's beam is a 3D mesh of the game's at the saber in her animated hand. One small
  * blended draw of the frame camera's while the saber is lit (`count` its vertices, for the log): 1 and the map (GL
  * column-major, the game's clip to its clip) that moves it with the saber to the VR hand; 0: no saber in the VR hand. */

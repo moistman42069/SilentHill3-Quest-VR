@@ -238,23 +238,26 @@ void option_step(const OptionRow& r, int dir) {
     clamp_options();
 }
 
-// The defaults that depend on the headset (as Jak's vr_options.cpp strong_quest): a Quest 3 or 3S (Android's device
-// names eureka and panther, the XR2 Gen 2) starts at the top of Render resolution, 1.5x, with Dynamic resolution
-// keeping the frame rate (LIST 51, the owner: "be sure highest resolution is set with dynamic resolution"); the
-// Quest 2 and any other headset keep 1.0x. sh3vr.ini's own value, when there is one, stands.
+// The headset's device (as Jak's vr_options.cpp strong_quest): a Quest 3 or 3S (Android's device names eureka and
+// panther, the XR2 Gen 2). 0.1.0-0.1.4 started those at the top of Render resolution, 1.5x (LIST 51); 0.1.5 (owner 97:
+// "set default resolution back to 100% for this release") starts every headset at 1.0x, the headset's own, with
+// Dynamic resolution still on. strong_quest tells load_options' 0.1.5 fold whose saved 1.5x was the old default.
+// sh3vr.ini's own value, when there is one, stands.
+static bool strong_quest = false;
 void device_defaults() {
 #if defined(__ANDROID__)
     char device[PROP_VALUE_MAX] = {};
     __system_property_get("ro.product.device", device);
-    if (!std::strcmp(device, "eureka") || !std::strcmp(device, "panther")) opt.resolution = 1.5f;
-    rt_log("VR: the headset's device %s: Render resolution %.2fx to start", device[0] ? device : "(unknown)",
-           opt.resolution);
+    strong_quest = !std::strcmp(device, "eureka") || !std::strcmp(device, "panther");
+    rt_log("VR: the headset's device %s%s: Render resolution %.2fx to start", device[0] ? device : "(unknown)",
+           strong_quest ? " (a Quest 3 or 3S)" : "", opt.resolution);
 #endif
 }
 
 // The defaults' version sh3vr.ini is written with (the launcher's Options.DEFAULTS_VERSION): 3 from 0.1.3, 4 from
-// 0.1.4 (Smoother frames on to start, now that the motion is drawn).
-constexpr int kDefaultsVersion = 4;
+// 0.1.4 (Smoother frames on to start, now that the motion is drawn), 5 from 0.1.5 (Smoother frames off, Render
+// resolution 1.0x on every headset, the ghost hands and Heather's shadow off).
+constexpr int kDefaultsVersion = 5;
 
 void load_options() {
     device_defaults();
@@ -332,6 +335,27 @@ void load_options() {
         const bool saved = save_options();
         rt_log("VR: sh3vr.ini from before 0.1.4 (defaults %d): Smoother frames (AppSW) %s once, as 0.1.4 starts%s",
                defaults, opt.space_warp ? "on" : "off", saved ? "" : "; the file could not be saved");
+    }
+    if (defaults < 5) {
+        // 0.1.5 (the owner's 0.1.4 report: "keep appsw off by default going forward", the game "stuttering/freezing/
+        // cutting to black" with it on at 120 Hz): Smoother frames off once. The refresh rate stays 120 Hz (owner 98:
+        // the game's 16-17 ms frames take two refreshes, an even ~60 a second; 72 Hz would make them 36).
+        // Owner 97 ("set default resolution back to 100% for this release"): a Quest 3 or 3S still at 0.1.4's starting
+        // 1.5x goes to 1.0x once; another value the player chose stays. Owner 98: the ghost hands off once ("a bit
+        // annoying seeing it every time i feel a wall"). Owner 100: Heather's shadow (her IK body's) off once ("turn the
+        // ik body shadow off by default too ... can be re-enabled in the settings").
+        const bool had_warp = opt.space_warp, had_ghost = opt.ghost_hands, had_shadow = opt.her_shadow;
+        const float had_res = opt.resolution;
+        opt.space_warp = Options{}.space_warp;
+        opt.ghost_hands = Options{}.ghost_hands;
+        opt.her_shadow = Options{}.her_shadow;
+        if (strong_quest && std::fabs(opt.resolution - 1.5f) < 0.001f) opt.resolution = Options{}.resolution;
+        const bool saved = save_options();
+        rt_log("VR: sh3vr.ini from before 0.1.5 (defaults %d): Smoother frames (AppSW) %s (was %s), Render resolution "
+               "%.2fx (was %.2fx), Ghost hands in walls %s (was %s), Heather's shadow %s (was %s), once, as 0.1.5 "
+               "starts%s", defaults, opt.space_warp ? "on" : "off", had_warp ? "on" : "off", opt.resolution, had_res,
+               opt.ghost_hands ? "on" : "off", had_ghost ? "on" : "off", opt.her_shadow ? "on" : "off",
+               had_shadow ? "on" : "off", saved ? "" : "; the file could not be saved");
     }
 }
 
@@ -567,6 +591,7 @@ float frame_dt() { return display_hz > 0 ? 1.0f / display_hz : 1.0f / 72.0f; }
 // one period read two or three times too fast: a gentle move of 0.8 m/s came out a knife's swing. No display times
 // (the PC rig before 0.1.3): frame_dt().
 static float motion_seconds = 0;
+static float game_seconds = 0;  // 0.1.5: the game's own step this frame (begin_next_frame, sh3vr_frame_seconds)
 float motion_dt() { return motion_seconds > 0 ? motion_seconds : frame_dt(); }
 int main_hand() { return opt.left_handed ? kLeft : kRight; }
 int off_hand() { return opt.left_handed ? kRight : kLeft; }
@@ -621,12 +646,30 @@ namespace {
 
 // ---------------------------------------------------------------- the head in the game
 
+// 0.1.5 (the owner's 0.1.4 report: Dynamic cutscenes' switch to her eyes did not face "the exact look direction of
+// heather"; the player's log: "Heather's facing 0.00" in a scene): in a scene her place's facing is not where she
+// looks; the way her face points as the scene poses her head is (sh3vr_ik.cpp, note_game_head), level (the head's
+// pitch stays the player's own: a forced pitch would tilt the world).
+float scene_facing(const char** source) {
+    if ((game.cutscene || game.demo) && game_head_fwd_frame >= rt_frame - 3) {
+        const float l = std::sqrt(game_head_fwd.x * game_head_fwd.x + game_head_fwd.z * game_head_fwd.z);
+        if (l > 0.3f) {
+            if (source) *source = "her face as the scene poses her head";
+            return std::atan2(game_head_fwd.x, game_head_fwd.z);
+        }
+    }
+    if (source) *source = "her facing";
+    return game.yaw;
+}
+
 // The head's pose in tracking space, relative to the recentre, as game-space offset and rotation (first person).
 void place_rig_first_person(bool force) {
     if (!head_known() || !game.player_valid) return;
     if (!rig.set || force) {
-        // The head as it is now looks along Heather's facing and stands at her.
-        rig.yaw = wrap(game.yaw + tracking_yaw(fi.head.orientation));
+        // The head as it is now looks along Heather's facing (in a scene: where her face points) and stands at her.
+        const char* source = "";
+        const float facing = scene_facing(&source);
+        rig.yaw = wrap(facing + tracking_yaw(fi.head.orientation));
         rig.origin = fi.head.position;
         rig.neck0 = neck_of(fi.head);
         rig.set = true;
@@ -634,7 +677,8 @@ void place_rig_first_person(bool force) {
         const float lv = fi.head_above_floor + (level_eyes(fi.head).y - fi.head.position.y);
         if ((force || recentred_now) && !opt.seated && fi.head_above_floor > 0.3f && lv > 1.0f) standing_eyes = std::min(lv, 2.1f);
         recentred_now = false;
-        rt_log("VR: recentred (first person): Heather's facing %.2f, rig yaw %.2f", game.yaw, rig.yaw);
+        rt_log("VR: recentred (first person): Heather's facing %.2f (from %s; her place's %.2f), rig yaw %.2f", facing,
+               source, game.yaw, rig.yaw);
     }
 }
 
@@ -739,7 +783,8 @@ bool compute_map(ViewMode mode, const float* cam, Vec3& head_pos, Quat& head_q) 
             // LIST 48: in a scene the eyes ride her head as the game's animation poses it (seated, kneeling, lying; not
             // as VR's IK leaves it, which hangs her from the eyes: that would chase itself), 8 cm ahead of
             // its middle and 2 cm over it, not at her standing height over her feet.
-            const Vec3 fwd{std::sin(game.yaw), 0.0f, std::cos(game.yaw)};
+            const float facing = scene_facing(nullptr);  // 0.1.5: ahead of her face, not of her place's facing
+            const Vec3 fwd{std::sin(facing), 0.0f, std::cos(facing)};
             head_pos = game_head + fwd * (0.08f * kUnitsPerMetre) + Vec3{0.0f, -0.02f * kUnitsPerMetre, 0.0f};
         }
         map.pre = Quat{};
@@ -2204,6 +2249,27 @@ void plan_move() {
     if (catching_up && was_catching_up && dist >= prev_dist - 0.002f * kUnitsPerMetre) blocked_seconds += frame_dt();
     else if (!catching_up) blocked_seconds = 0;
     prev_dist = dist;
+    // 0.1.5 (the player's "black screen" report; the owner: no issues like that): the head held in a wall fades the view
+    // to black (head_in_wall); fully dark for 2 s, the head is brought back to her (the room's offset taken up where
+    // the player stands), so the view never stays black. The turn is left as it is.
+    {
+        static float dark_for = 0.0f;
+        if (opt.head_fade && catching_up && blocked_seconds >= 0.25f && dist >= 0.6f * kUnitsPerMetre) dark_for += frame_dt();
+        else dark_for = 0.0f;
+        if (dark_for >= 2.0f) {
+            const Vec3 n = neck_of(fi.head);
+            const Vec3 d{n.x - rig.neck0.x, 0.0f, n.z - rig.neck0.z};
+            rig.neck0 = rig.neck0 + d;
+            rig.origin = rig.origin + d;
+            dark_for = 0.0f;
+            blocked_seconds = 0.0f;
+            catching_up = false;
+            move = Sh3VrMove{};
+            rt_log("VR: frame %d: the head held %.2f m into a wall for 2 s (the view dark): brought back to her", rt_frame,
+                   dist / kUnitsPerMetre);
+            return;
+        }
+    }
     // Her body faces the movement, or the head when she stands and the head has turned far from her: turned smoothly
     // (LIST 42), never snapped. Walking, her facing follows the stick at up to 10 rad/s (the walk itself goes where the
     // stick says at once, sh3.c). Standing, she starts turning when the head is 50 degrees off and stops within 10, at up
@@ -2324,6 +2390,8 @@ double clock_seconds() {
     return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 }  // namespace
+double gpu_recent_ms();  // 0.1.5, below (the GPU's time)
+bool gpu_has_room();
 
 void dynamic_resolution_frame() {
     Scale& s = scale;
@@ -2376,8 +2444,18 @@ void dynamic_resolution_frame() {
         }
         s.judge_at = -1;
     }
-    if ((heavy || (second_up && s.late * 5 > s.frames)) && s.now > kScaleLeast + 1e-3f && now >= s.hold_until &&
-        s.judge_at < 0) {
+    // 0.1.5: where the GPU's time is known (gpu_timer_*) and well under a refresh, late frames are the game's own work:
+    // a smaller picture would only blur it, so no step down (the 0.1.3 judge above still catches it where unknown)
+    const bool want_down = (heavy || (second_up && s.late * 5 > s.frames)) && s.now > kScaleLeast + 1e-3f &&
+                           now >= s.hold_until && s.judge_at < 0;
+    if (want_down && gpu_has_room()) {
+        static int told = 0;
+        if (told++ < 5)
+            rt_log("VR: frame %d: dynamic resolution: frames shown late, but the GPU has room (%.2f ms of a %.2f ms "
+                   "refresh): the game's own work, the 3D pictures stay at %d%%", rt_frame, gpu_recent_ms(),
+                   display_hz > 1.0f ? 1000.0 / display_hz : 0.0, (int)(s.now * 100.0f + 0.5f));
+        s.frames = s.late = 0, s.quick_frames = s.quick_late = 0;
+    } else if (want_down) {
         if (s.stepped_up_at >= 0) s.calm_wait = std::min(s.calm_wait * 2.0, kScaleCalmMost);  // the step up was too much
         s.now = std::max(kScaleLeast, s.now - kScaleStep);
         s.stepped_up_at = -1;
@@ -2413,6 +2491,125 @@ void dynamic_resolution_frame() {
                (int)(s.now * 100.0f + 0.5f), s.now < before ? "frames were shown late" : "the headset keeps up", missed);
 }
 
+// ---------------------------------------------------------------- the GPU's time (0.1.5)
+// The owner: "COMPLETELY MAXIMIZE PERFORMANCE". The log said the frames' CPU work ("worked", xr_openxr.cpp) but not the
+// GPU's, so whether a headset is held back by the game's work or by drawing was a guess (dynamic resolution's "the
+// smaller pictures did not make the frames quicker"). GL_EXT_disjoint_timer_query (the Quest's driver has it) times
+// each frame's GPU work from the frame's start to the moment it is handed to the headset; the results are read a few
+// frames later (four queries in turn, never waited for), a line every 10 s and on Show performance.
+namespace {
+struct GpuTimer {
+    GLuint q[4] = {};
+    bool made = false, running = false, waiting[4] = {};
+    int next = 0, n = 0;
+    double sum = 0, most = 0, last_ms = 0, recent = 0;  // recent: the last results, averaged (10% each)
+    std::chrono::steady_clock::time_point since{};
+} gpu;
+}  // namespace
+
+double gpu_recent_ms() { return gpu.recent; }
+// The GPU's recent work under three quarters of a refresh (only where the timer works and has results)
+bool gpu_has_room() {
+    return gl_caps.timer && gpu.recent > 0.0 && display_hz > 1.0f && gpu.recent < 0.75 * 1000.0 / display_hz;
+}
+
+void gpu_timer_end();
+void gpu_timer_begin() {
+    if (!gl_caps.timer) return;
+    if (gpu.running) gpu_timer_end();  // a frame that was never handed over: its query closed here
+    if (!gpu.made) {
+        glGenQueriesEXT(4, gpu.q);
+        gpu.made = true;
+        gpu.since = std::chrono::steady_clock::now();
+    }
+    for (int i = 0; i < 4; i++) {
+        if (!gpu.waiting[i]) continue;
+        GLuint ready = 0;
+        glGetQueryObjectuivEXT(gpu.q[i], GL_QUERY_RESULT_AVAILABLE_EXT, &ready);
+        if (!ready) continue;
+        GLuint64 ns = 0;
+        glGetQueryObjectui64vEXT(gpu.q[i], GL_QUERY_RESULT_EXT, &ns);
+        gpu.waiting[i] = false;
+        GLint disjoint = 0;
+        glGetIntegerv(GL_GPU_DISJOINT_EXT, &disjoint);  // the GPU's clock jumped (power state): not a time
+        if (disjoint) continue;
+        gpu.last_ms = (double)ns * 1e-6;
+        gpu.recent = gpu.recent > 0.0 ? gpu.recent * 0.9 + gpu.last_ms * 0.1 : gpu.last_ms;
+        gpu.sum += gpu.last_ms;
+        gpu.most = std::max(gpu.most, gpu.last_ms);
+        gpu.n++;
+    }
+    if (gpu.waiting[gpu.next]) return;  // all four still on the GPU: this frame is not timed
+    glBeginQueryEXT(GL_TIME_ELAPSED_EXT, gpu.q[gpu.next]);
+    gpu.running = true;
+}
+
+void gpu_timer_end() {
+    if (!gpu.running) return;
+    glEndQueryEXT(GL_TIME_ELAPSED_EXT);
+    gpu.running = false;
+    gpu.waiting[gpu.next] = true;
+    gpu.next = (gpu.next + 1) % 4;
+    const auto t = std::chrono::steady_clock::now();
+    if (t - gpu.since < std::chrono::seconds(10) || gpu.n == 0) return;
+    const double budget = display_hz > 1.0f ? 1000.0 / display_hz : 0.0;
+    rt_log("[vr-gpu] the GPU's work %.2f ms a frame (most %.2f) over %d frames; a refresh is %.2f ms, the 3D pictures "
+           "at %d%%: %s", gpu.sum / gpu.n, gpu.most, gpu.n, budget, (int)(sh3vr_picture_scale() * 100.0f + 0.5f),
+           budget > 0.0 && gpu.sum / gpu.n > budget * 0.9 ? "the GPU is near its limit"
+                                                          : "the GPU has room (any slowness is the game's own work)");
+    gpu.sum = gpu.most = 0;
+    gpu.n = 0;
+    gpu.since = t;
+}
+
+// 0.1.5 (the owner's 0.1.4 report: "L3+R3 together recentre"): both sticks clicked together recentre the view, as the
+// headset's own recentre. No other action is lost to it: a stick click is held back 0.12 s for the other one; pressed
+// together (within that time) they recentre and neither reaches the game until both are let go; alone it goes on to the
+// game (a quick tap still reaches it, two frames long), and a click held already (running) never makes a pair with a
+// later one (the search view while running stays). A controller without both stick clicks is left as it is.
+bool stick_chord() {
+    static bool chord = false, was[2] = {false, false};
+    static float pending[2] = {0.0f, 0.0f};  // a click held back for the other: the time it has left (s)
+    static int tail[2] = {0, 0};             // a tap held back: frames it is still given to the game
+    bool* const click[2] = {&fi.controls.left_click, &fi.controls.right_click};
+    const bool down[2] = {*click[0], *click[1]};
+    if (!fi.controls.left_click_sensed || !fi.controls.right_click_sensed) {
+        chord = false, pending[0] = pending[1] = 0.0f, tail[0] = tail[1] = 0;
+        was[0] = down[0], was[1] = down[1];
+        return false;
+    }
+    bool recentre = false;
+    if (chord) {
+        if (!down[0] && !down[1]) chord = false;
+        *click[0] = *click[1] = false;
+    } else {
+        for (int h = 0; h < 2; h++)
+            if (down[h] && !was[h]) pending[h] = 0.12f;
+        if (down[0] && down[1] && pending[0] > 0.0f && pending[1] > 0.0f) {  // both pressed within 0.12 s
+            chord = recentre = true;
+            pending[0] = pending[1] = 0.0f, tail[0] = tail[1] = 0;
+            *click[0] = *click[1] = false;
+        } else {
+            for (int h = 0; h < 2; h++) {
+                if (pending[h] > 0.0f) {
+                    if (!down[h]) pending[h] = 0.0f, tail[h] = 2;  // let go in time: a tap, given to the game now
+                    else if ((pending[h] -= frame_dt()) <= 0.0f) pending[h] = 0.0f;  // held: on to the game from now
+                    else *click[h] = false;
+                }
+                if (tail[h] > 0) *click[h] = true, tail[h]--;
+            }
+        }
+    }
+    was[0] = down[0], was[1] = down[1];
+    if (recentre) {
+        rt_log("VR: frame %d: both sticks clicked together: the view recentred", rt_frame);
+        hand_sound(kSoundMenu, world_point(fi.head.position), 2);
+        buzz(kLeft, 0.25f, 0.04f, 160.0f);
+        buzz(kRight, 0.25f, 0.04f, 160.0f);
+    }
+    return recentre;
+}
+
 // ---------------------------------------------------------------- the frame
 
 void begin_next_frame() {
@@ -2421,6 +2618,8 @@ void begin_next_frame() {
         map.valid = false;
         return;
     }
+    if (stick_chord()) fi.recentred = true;  // 0.1.5: both sticks clicked together, as the headset's recentre
+    gpu_timer_begin();
     dynamic_resolution_frame();
     if (fi.frame_seconds > 0) display_hz = (float)(1.0 / fi.frame_seconds);
     {
@@ -2429,6 +2628,12 @@ void begin_next_frame() {
         motion_seconds = 0;
         if (fi.display_time > 0 && last_display > 0 && fi.display_time > last_display)
             motion_seconds = std::clamp((float)((fi.display_time - last_display) * 1e-9), 0.5f * frame_dt(), 0.1f);
+        // 0.1.5 (the owner's report: scenes out of step with their voices): the game's own time this frame is the
+        // time from the last picture's display to this one's, so the game runs at its true speed at any frame rate
+        // (sh3.c sub_0060DA50). Up to 3/60 s, the longest step the game itself takes (its 20 frames a second).
+        game_seconds = frame_dt();
+        if (fi.display_time > 0 && last_display > 0 && fi.display_time > last_display)
+            game_seconds = std::clamp((float)((fi.display_time - last_display) * 1e-9), 0.5f * frame_dt(), 3.0f / 60.0f);
         last_display = fi.display_time;
         static int told = 0;
         if (motion_seconds > 1.6f * frame_dt() && told < 3 && in_play()) {
@@ -2597,6 +2802,8 @@ void sh3vr_eye_size(uint32_t* w, uint32_t* h) {
 int sh3vr_wants_exit(void) { return active && hs->wants_exit(); }
 
 float sh3vr_display_hz(void) { return active && have_frame ? display_hz : 0.0f; }
+/* 0.1.5: the real time this frame stands for (from the last picture's display to this one's, up to 3/60 s); 0: not paced. */
+float sh3vr_frame_seconds(void) { return active && have_frame && game_seconds > 0 ? game_seconds : 0.0f; }
 
 int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
     if (!active) return 1;
@@ -2693,11 +2900,14 @@ int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
         show_guide_dot();
         show_wrist_bar();
         if (opt.show_performance) {
+            // 0.1.5: the frame's CPU work and the GPU's (gpu_timer_*), so which one holds the game back is on screen
             char line[160];
-            std::snprintf(line, sizeof line, "%.0f Hz  3D %d%%  view %d  weapon %d  hp %.0f/%.0f", display_hz,
-                          (int)(sh3vr_picture_scale() * 100.0f + 0.5f), (int)view_mode, game.weapon, game.hp, game.hp_max);
+            std::snprintf(line, sizeof line, "%.0f Hz  3D %d%%  CPU %.1f ms  GPU %.1f ms  view %d", display_hz,
+                          (int)(sh3vr_picture_scale() * 100.0f + 0.5f), hs->last_work_seconds() * 1000.0,
+                          gpu.last_ms, (int)view_mode);
             hs->show_performance(line);
         } else hs->show_performance("");
+        gpu_timer_end();
         hs->finish_frame(!screen && fi.should_render, false, panel);
     }
     // 0.1.4 smoother frames: this frame's camera is the next one's last (none when the game made none this frame)
@@ -2859,34 +3069,157 @@ int sh3vr_life_gauge_skip(void) {
 // LIST 51: the size the game's 3D pictures are to be drawn at, of the eye's (sh3.c sh3_vr_after_present).
 float sh3vr_picture_scale(void) { return active && opt.dynamic_resolution ? scale.now : 1.0f; }
 
-int sh3vr_effect_map(const float ndc[3], int tex_w, float out_gl[16]) {
+// 0.1.5 (the owner, on the rig's pictures: the coloured orbs "should follow whatever theyre coming from in view, then not
+// be there when out of view"; vr267: the park lamps' glows, 0x5F69F8's and 0x5F6937's 128x128 sprites with 0x5F68CC's
+// sparkles, stayed at the same place in the picture as the head turned 80 degrees, beside or far from their lamps): the
+// game projects its effects with its own camera (the view it gave 0x4162A0, kept in sh3.c as game_cam_view), not the
+// head's the frame is drawn from, so each effect is taken back through the game's camera to its place in the world and
+// from there through the frame camera's (the head's): P Vh Vg^-1 P^-1, the identity where the two views agree (the
+// flat game, the game's camera in a scene). The weapon's own effects are already at the gun in the hand (vr275).
+int sh3vr_effect_map(const float ndc[3], const float half[2], int tex_w, const float game_view[16], float out_gl[16],
+                     float* fade) {
+    if (fade) *fade = 1.0f;
     if (!sh3vr_world_effects()) return 0;
-    M4 inv;
-    if (!invert(vp_m, inv)) return 0;
+    M4 pinv, game_c2w;  // the game's clip -> the world, through the camera the game projected its effects with
+    const bool own_camera = game_view && p_main_valid;
+    if (own_camera) {
+        M4 vinv;
+        if (!invert(M4::from_d3d(game_view), vinv) || !invert(M4::from_d3d(p_main), pinv)) return 0;
+        game_c2w = vinv * pinv;
+    } else if (!invert(vp_m, game_c2w)) {
+        return 0;
+    }
     const float h[4] = {ndc[0], ndc[1], ndc[2], 1.0f};
     float w[4];
-    for (int i = 0; i < 4; i++) w[i] = inv.m[i][0] * h[0] + inv.m[i][1] * h[1] + inv.m[i][2] * h[2] + inv.m[i][3] * h[3];
+    for (int i = 0; i < 4; i++)
+        w[i] = game_c2w.m[i][0] * h[0] + game_c2w.m[i][1] * h[1] + game_c2w.m[i][2] * h[2] + game_c2w.m[i][3] * h[3];
     if (!(std::fabs(w[3]) > 1e-9f)) return 0;
     const float p[3] = {w[0] / w[3], w[1] / w[3], w[2] / w[3]};
     float r[3][3], t[3], info[7];
-    if (!combat_effect_rel(p, tex_w, r, t, info)) return 0;
     M4 R = M4::identity();
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) R.m[i][j] = r[i][j];
-        R.m[i][3] = t[i];
+    const bool weapon = combat_effect_rel(p, tex_w, r, t, info);
+    if (weapon) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) R.m[i][j] = r[i][j];
+            R.m[i][3] = t[i];
+        }
+    } else if (!own_camera) {
+        return 0;  // no camera of the game's known and not the weapon's: as the game's clip says
     }
-    const M4 map = vp_m * R * inv;  // the game's clip -> its world -> moved to the hand -> the game's clip
+    M4 map = vp_m * R * game_c2w;  // the game's clip -> its world (its camera) -> moved to the hand -> the frame's clip
+    // Session 22 (vr273, the handgun's flash smeared back along the slide): the game's effects are sprites, flat cards it
+    // turned to its own camera. Put in the world as they are, the head sees a card from the side when the two cameras
+    // look different ways (the park's: -x against +z), a streak running from past the muzzle back over the gun. So a
+    // small draw (under 0.75 m across in the world) keeps its middle's place in the world and its size, and is turned
+    // to face the head: its points' offsets from the middle in the game camera's view are kept as they are in the
+    // head's view (P T P^-1, T the middle's move from the game's view to the head's). A wide draw keeps its points'
+    // own places in the world.
+    bool facing = false;
+    if (own_camera && half) {
+        auto mul4 = [](const M4& a, const float v[4], float o[4]) {
+            for (int i = 0; i < 4; i++) o[i] = a.m[i][0] * v[0] + a.m[i][1] * v[1] + a.m[i][2] * v[2] + a.m[i][3] * v[3];
+        };
+        float span = 0.0f;
+        for (int axis = 0; axis < 2 && span < 1e29f; axis++) {
+            float lo[4] = {ndc[0], ndc[1], ndc[2], 1.0f}, hi[4] = {ndc[0], ndc[1], ndc[2], 1.0f}, a[4], b[4];
+            lo[axis] -= half[axis], hi[axis] += half[axis];
+            mul4(game_c2w, lo, a);
+            mul4(game_c2w, hi, b);
+            if (!(std::fabs(a[3]) > 1e-9f) || !(std::fabs(b[3]) > 1e-9f)) {
+                span = 1e30f;
+                break;
+            }
+            float s = 0.0f;
+            for (int i = 0; i < 3; i++) s += (a[i] / a[3] - b[i] / b[3]) * (a[i] / a[3] - b[i] / b[3]);
+            span = std::max(span, std::sqrt(s));
+        }
+        float cg[4], c2[4];
+        mul4(pinv, h, cg);  // the middle in the game camera's view
+        const float pw[4] = {p[0], p[1], p[2], 1.0f};
+        mul4(R, pw, c2);  // its place in the world (R: the identity now, vr275)
+        const M4 view_frame = pinv * vp_m;  // the frame camera's view (vp_m = P V)
+        float ch[4];
+        mul4(view_frame, c2, ch);  // the middle in the head's view
+        if (span < 0.75f * kUnitsPerMetre && std::fabs(cg[3]) > 1e-9f && std::fabs(ch[3]) > 1e-9f) {
+            M4 T = M4::identity();
+            for (int i = 0; i < 3; i++) T.m[i][3] = ch[i] / ch[3] - cg[i] / cg[3];
+            map = M4::from_d3d(p_main) * T * pinv;
+            facing = true;
+        }
+        static int told;
+        if (told < 3 && ++told)
+            rt_log("VR: frame %d: an effect of the game's %.2f m across (texture %d)%s", rt_frame, span / kUnitsPerMetre,
+                   tex_w, facing ? ": turned to face the head at its place in the world" : ": its points at their places");
+    }
+    // Session 22 (owner 106, "be sure game visuals are perfect"): the game draws an effect only while its own camera
+    // sees it, and in first person that camera is not the head's (vr269: the lamps' glows the game drew were at their
+    // lamps, out of the head's view; a lamp the head turned to had none, as the game's camera did not see it). So that
+    // a glow never pops as its lamp crosses the edge of the game's view, it fades over the outer part of the game's
+    // picture (its middle's place there): whole inside 0.75 of the way to the edge, gone at the edge.
+    float shown = 1.0f;
+    if (!weapon) {
+        const float e = std::max(std::fabs(ndc[0]), std::fabs(ndc[1]));
+        const float t = std::clamp((e - 0.75f) / 0.25f, 0.0f, 1.0f);
+        shown = 1.0f - t * t * (3.0f - 2.0f * t);
+    }
+    // Session 22 (vr270): the lamps' glows the game draws round its lights (0x5F69F8's and 0x5F6937's 128x128 halos,
+    // 0x5F68CC's sparkles at the blue light) come out exactly at their lamps (the park's, a grid at x -21400 / -18600 /
+    // -15800, z 18600 / 22200, all 3.3 m up), but only for the lamps the game's own camera sees, and the game's camera
+    // keeps its own fixed angles while the head looks about (there it faced -x while the head faced +z): in first
+    // person a lamp's halo would come and go as the game's camera cuts, which no fade can hide. So in first person (her
+    // eyes in play or in a scene) the game's glows of its lights, the effects over 2.1 m above her feet that are not
+    // the weapon's, are left out, as the PC VR mod puts no screen-space sprite in its eyes; the lamps' glowing bulbs (3D)
+    // stay. Combat's effects about her (blood, sparks, smoke) stay at their place in the world; at the game's camera
+    // (third person) every effect is drawn there, its glows on their lamps.
+    if (!weapon && view_mode == ViewMode::kFirstPerson && game.player_valid &&
+        game.pos[1] - p[1] > 2.1f * kUnitsPerMetre) {
+        shown = 0.0f;
+        static int told;
+        if (!told++)
+            rt_log("VR: frame %d: the game's glow of a light %.1f m over her feet (texture %d) left out in first person (its "
+                   "camera, not the head, decides which it draws), as the PC VR mod leaves them; the lamps' bulbs stay",
+                   rt_frame, (game.pos[1] - p[1]) / kUnitsPerMetre, tex_w);
+    }
+    if (fade) *fade = shown;
+    {
+        // testing (session 22): SH3_FX_LOG=A:B logs every effect of the game's mapped in frames A..B (rt_frame)
+        static int fx_from = -2, fx_to = -1;
+        if (fx_from == -2) {
+            fx_from = -1;
+            if (const char* s = getenv("SH3_FX_LOG")) std::sscanf(s, "%d:%d", &fx_from, &fx_to);
+        }
+        if (fx_from >= 0 && rt_frame >= fx_from && rt_frame <= fx_to) {
+            float c[4];
+            for (int i = 0; i < 4; i++) c[i] = map.m[i][0] * h[0] + map.m[i][1] * h[1] + map.m[i][2] * h[2] + map.m[i][3] * h[3];
+            const float cw = std::fabs(c[3]) > 1e-9f ? c[3] : 1.0f;
+            rt_log("fx %d: %s texture %d at %.0f %.0f %.0f: the game's camera %.3f %.3f (%.5f), the head's %.3f %.3f (%.5f, w %.0f), "
+                   "shown %.2f%s", rt_frame, weapon ? "the weapon's" : "the game's", tex_w, p[0], p[1], p[2], ndc[0],
+                   ndc[1], ndc[2], c[0] / cw, c[1] / cw, c[2] / cw, c[3], shown, facing ? ", facing the head" : "");
+        }
+    }
+    {
+        static int told = 0, told_frame = -100000;
+        if (!weapon && (told < 6 || rt_frame - told_frame >= 3600)) {
+            told++, told_frame = rt_frame;
+            float c[4];
+            for (int i = 0; i < 4; i++) c[i] = map.m[i][0] * h[0] + map.m[i][1] * h[1] + map.m[i][2] * h[2] + map.m[i][3] * h[3];
+            const float cw = std::fabs(c[3]) > 1e-9f ? c[3] : 1.0f;
+            rt_log("VR: frame %d: an effect of the game's (texture %d) put at its place in the world, %.0f %.0f %.0f: the "
+                   "game's camera saw it at %.3f %.3f (depth %.5f), the head's sees it at %.3f %.3f (depth %.5f)", rt_frame,
+                   tex_w, p[0], p[1], p[2], ndc[0], ndc[1], ndc[2], c[0] / cw, c[1] / cw, c[2] / cw);
+        }
+    }
     float g[16];
     map.to_gl(g);
     for (float v : g)
         if (!std::isfinite(v)) return 0;
     std::memcpy(out_gl, g, sizeof g);
     static int told = 0;
-    if (told < 6 && ++told) {
+    if (weapon && told < 6 && ++told) {
         float q[3];
         for (int i = 0; i < 3; i++) q[i] = r[i][0] * p[0] + r[i][1] * p[1] + r[i][2] * p[2] + t[i];
-        rt_log("VR: frame %d: the weapon's effect at %.0f %.0f %.0f (%.0f units from the game's weapon %.0f %.0f %.0f, texture %d) moved with "
-               "it to %.0f %.0f %.0f (the flash's or beam's middle at %.0f %.0f %.0f; ndc %.3f %.3f %.4f)", rt_frame, p[0], p[1],
+        rt_log("VR: frame %d: the weapon's effect at %.0f %.0f %.0f (%.0f units from the gun, the game's at %.0f %.0f %.0f, texture %d) placed "
+               "at %.0f %.0f %.0f (the flash's or beam's middle at %.0f %.0f %.0f; ndc %.3f %.3f %.4f)", rt_frame, p[0], p[1],
                p[2], info[0], info[1], info[2], info[3], tex_w, q[0], q[1], q[2], info[4], info[5], info[6], ndc[0], ndc[1],
                ndc[2]);
     }
@@ -2942,6 +3275,21 @@ int sh3vr_far_layer_map(float out_gl[16]) {
     return 1;
 }
 int sh3vr_drifting_fog(void) { return opt.drifting_fog ? 1 : 0; }
+
+// 0.1.5: the flare's lamp test (sh3.c sub_0049FAC0) without the GPU's read back: the lamp's point (its flare record's
+// view point) in front and inside the frame camera's picture. The flare itself is left out in VR (d3d8.c vr_route_pick,
+// as the PC VR mod leaves it), so this only spares the game's per-lamp wait on the GPU.
+static bool frame_clip(const float v[4], float clip[4]) {
+    if (!p_main_valid) return false;
+    for (int j = 0; j < 4; j++) clip[j] = v[0] * p_main[j] + v[1] * p_main[4 + j] + v[2] * p_main[8 + j] + v[3] * p_main[12 + j];
+    return std::isfinite(clip[0]) && std::isfinite(clip[1]) && std::isfinite(clip[2]) && std::isfinite(clip[3]);
+}
+
+int sh3vr_point_in_view(const float view_pt[4]) {
+    float c[4];
+    if (!frame_clip(view_pt, c) || !(c[3] > 1.0f)) return 0;
+    return std::fabs(c[0]) <= c[3] && std::fabs(c[1]) <= c[3] ? 1 : 0;
+}
 
 // Session 17 (the handoff's item 2): the game's lens flare round a lamp (d3d8.c vr_route_pick: 0x468CDA's streaks,
 // 0x468F6E's rings) is drawn at a fixed depth, z 0.50003: 0.40 m from the eyes in VR, a double image in front of the

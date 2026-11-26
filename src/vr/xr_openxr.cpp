@@ -177,6 +177,10 @@ constexpr int kInfo = 1;
 constexpr int kWarn = 2;
 constexpr int kError = 3;
 constexpr int kPointerSize = 32;
+// 0.1.5 (owner 99: "a subtle red line at the pointer circle. right side of the circle, very thin"): the dot's square
+// and the beam's sit in one picture; the compositor's filtering at the dot's right edge read the beam's first
+// column (its strongest, solid rust). Clear columns between them keep each square to itself.
+constexpr int kPointerGap = 4;
 constexpr float kBeamWidth = 0.006f, kDotSize = 0.05f;  // metres
 
 double now_seconds() {
@@ -202,6 +206,8 @@ struct Swapchain {
     std::vector<SwapchainImage> images;
     bool acquired = false;
     uint32_t index = 0;
+    bool seeded = false;  // 0.1.5: every image written once (fill_chain), before the headset has shown any of them
+    long filled_frame = -1;  // session 22: the frame (m_frame_serial) it was last written in: once a frame at most
 };
 
 class OpenXr final : public Headset {
@@ -236,14 +242,23 @@ public:
         XrFrameState state{XR_TYPE_FRAME_STATE};
         XrFrameWaitInfo wait{XR_TYPE_FRAME_WAIT_INFO};
         const double before = now_seconds();
+        // 0.1.5 (the owner's 0.1.4 logs: single frames of ~2 s, "freezing/cutting to black"): each frame's parts timed
+        // for finish_frame's [vr-frame] line; the time since the last xrEndFrame returned is the game's own outside it.
+        m_fb_start = before;
+        m_fb_outside = m_fb_end_done > 0.0 ? before - m_fb_end_done : 0.0;
+        m_fb_acquire = m_fb_acquire_most = 0.0;
+        m_fb_acquire_w = m_fb_acquire_h = 0;
         if (!check(xrWaitFrame(m_session, &wait, &state), "xrWaitFrame")) {
             return false;
         }
+        m_fb_wait = now_seconds() - before;
         XrFrameBeginInfo begin{XR_TYPE_FRAME_BEGIN_INFO};
         if (!check(xrBeginFrame(m_session, &begin), "xrBeginFrame")) {
             return false;
         }
+        m_fb_begin = now_seconds() - before - m_fb_wait;
         m_frame_begun = true;
+        ++m_frame_serial;  // session 22: fill_chain writes a chain once a frame at most
         m_frame_time = state.predictedDisplayTime;
         // Displays this frame came too late for: more than the last frame's step since its display time (one period, two
         // with smoother frames, finish_frame's m_frame_periods). SH3 0.1.4: the period is the display's own (its refresh
@@ -329,6 +344,7 @@ public:
         if (chain.acquired) {
             return chain.images[chain.index].image;
         }
+        const double t0 = now_seconds();
         XrSwapchainImageAcquireInfo acquire{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
         if (!check(xrAcquireSwapchainImage(chain.handle, &acquire, &chain.index),
                    "xrAcquireSwapchainImage")) {
@@ -338,6 +354,13 @@ public:
         wait.timeout = XR_INFINITE_DURATION;
         if (!check(xrWaitSwapchainImage(chain.handle, &wait), "xrWaitSwapchainImage")) {
             return 0;
+        }
+        const double took = now_seconds() - t0;  // 0.1.5: the [vr-frame] line's image waits
+        m_fb_acquire += took;
+        if (took > m_fb_acquire_most) {
+            m_fb_acquire_most = took;
+            m_fb_acquire_w = chain.width;
+            m_fb_acquire_h = chain.height;
         }
         chain.acquired = true;
         return chain.images[chain.index].image;
@@ -553,7 +576,7 @@ public:
                 layer.subImage.swapchain = m_pointer_chain.handle;
                 // SH3 Quest VR: the picture's left square is the dot, its right square the beam (draw_pointer).
                 // (is_beam: the dot's size changes with dot_scale, session 12)
-                layer.subImage.imageRect.offset = {is_beam ? kPointerSize : 0, 0};
+                layer.subImage.imageRect.offset = {is_beam ? kPointerSize + kPointerGap : 0, 0};
                 layer.subImage.imageRect.extent = {kPointerSize, kPointerSize};
                 layer.pose = xr_pose(pose);
                 layer.size = {width, height};
@@ -597,7 +620,35 @@ public:
         end.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
         end.layerCount = count;
         end.layers = count > 0 ? layers : nullptr;
+        const double end_from = now_seconds();
         check(xrEndFrame(m_session, &end), "xrEndFrame");
+        frame_breakdown(end_from);
+    }
+
+    // 0.1.5 (the owner's 0.1.4 logs: "most 2021.47" ms, one frame each in successive 10 s spells, and the headset's
+    // black): a frame that took over 250 ms, or a part of it over 150 ms, is told with its parts, so a player's log
+    // says where the time went: the game's own time before the frame (its update since the last frame ended),
+    // xrWaitFrame (the headset's pacing), xrBeginFrame, the frame's work (the game's drawing and VR's), of which the
+    // waits for swapchain images (the slowest one's size), and xrEndFrame. At most 40 a run.
+    void frame_breakdown(double end_from) {
+        const double now = now_seconds();
+        const double ended = now - end_from, total = m_fb_start > 0.0 ? now - m_fb_start + m_fb_outside : 0.0;
+        const double work = end_from - m_fb_start - m_fb_wait - m_fb_begin;
+        m_fb_end_done = now;
+        ++m_fb_frames;
+        const double longest = std::max({m_fb_outside, m_fb_wait, m_fb_begin, work, ended});
+        if ((total < 0.25 && longest < 0.15) || m_fb_told >= 40) {
+            return;
+        }
+        ++m_fb_told;
+        char line[400];
+        std::snprintf(line, sizeof line,
+                      "[vr-frame] frame %ld took %.0f ms: the game before it %.0f, xrWaitFrame %.0f, xrBeginFrame %.0f, "
+                      "the frame's work %.0f (waiting for images %.0f, the slowest %dx%d %.0f), xrEndFrame %.0f%s",
+                      m_fb_frames, total * 1000.0, m_fb_outside * 1000.0, m_fb_wait * 1000.0, m_fb_begin * 1000.0,
+                      work * 1000.0, m_fb_acquire * 1000.0, m_fb_acquire_w, m_fb_acquire_h,
+                      m_fb_acquire_most * 1000.0, ended * 1000.0, m_fb_told == 40 ? " (the last such line)" : "");
+        warn(line);
     }
 
     void haptic(Hand hand, float strength, float seconds, float hertz) override {
@@ -2390,7 +2441,7 @@ private:
     // SH3 Quest VR (LIST 12): two squares side by side, the dot (left) and the beam (right, x along the beam from the
     // hand), in the look asked for; the Silent Hill look's dot carries a faint static that changes every frame.
     bool draw_pointer() {
-        const int w = kPointerSize * 2, h = kPointerSize;
+        const int w = kPointerSize * 2 + kPointerGap, h = kPointerSize;
         std::string why;
         if (m_pointer_chain.handle == XR_NULL_HANDLE && !create_target(m_pointer_chain, w, h, why)) {
             m_pointer = {};
@@ -2408,8 +2459,12 @@ private:
         std::uint32_t noise = m_pointer_noise;
         for (int y = 0; y < h; ++y) {
             for (int x = 0; x < w; ++x) {
+                if (x >= kPointerSize && x < kPointerSize + kPointerGap) {
+                    continue;  // the clear columns between the dot and the beam (left at zero: no colour, no alpha)
+                }
                 const bool beam = x >= kPointerSize;
-                const float u = (static_cast<float>(x % kPointerSize) + 0.5f) / kPointerSize;  // 0..1
+                const int sx = beam ? x - kPointerSize - kPointerGap : x;  // the column within its own square
+                const float u = (static_cast<float>(sx) + 0.5f) / kPointerSize;  // 0..1
                 const float dx = u * 2.0f - 1.0f;
                 const float dy = (static_cast<float>(y) + 0.5f) / kPointerSize * 2.0f - 1.0f;
                 float a;
@@ -2456,8 +2511,23 @@ private:
     // HUD at the end of the gun's laser. The GL state it touches is put back.
     // 0.1.7 (LIST-0.1.7 item 5): one_image writes only the image the runtime hands out next (a picture kept fresh each
     // frame).
+    // 0.1.5 (a player's 0.1.4 report and video: "black screen after approx. 5 seconds", the owner's "stuttering/freezing/
+    // cutting to black"): every image only the first time, while the headset shows none of them. After that one image a
+    // call, whatever one_image says: the image the headset shows (the last one released) is only given back when the
+    // next frame comes, so waiting for it inside the frame (xrWaitSwapchainImage, no time limit) stopped the game until
+    // the headset let go some other way (the player's log: the wrist's bar first shown at frame 3915, its fade changing
+    // the picture each frame, then 7 frames in 3.5 s of black until the Meta button). Each frame's picture is in the
+    // image it releases, which is the one shown (OpenXR: the last released), and the images it comes round to next are
+    // written in their turn by the pictures kept fresh each frame.
     bool fill_chain(Swapchain& chain, int width, int height, const std::uint8_t* pixels, const char* what,
                     bool one_image = false) {
+        one_image = one_image || chain.seeded;
+        // Session 22 (owner 106: "no crash/black screen risks"): once its images are seeded, a chain is written once a
+        // frame at most. A second write in the same frame would come round to the image the headset shows, which it
+        // gives back only at the next frame: the wait below (no time limit) would stop the game, the 0.1.4 black screen.
+        // The picture of a second call that frame goes in at the next frame's write.
+        if (chain.seeded && chain.filled_frame == m_frame_serial) return true;
+        chain.filled_frame = m_frame_serial;
         const std::string acquire_name = std::string("xrAcquireSwapchainImage(") + what + ")";
         const std::string wait_name = std::string("xrWaitSwapchainImage(") + what + ")";
         const std::string release_name = std::string("xrReleaseSwapchainImage(") + what + ")";
@@ -2496,6 +2566,7 @@ private:
             warn(std::string("the ") + what + "'s picture is in " + std::to_string(chain.images.size() - left) + " of its "
                  + std::to_string(chain.images.size()) + " images");
         }
+        if (ok) chain.seeded = true;
         glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture));
         glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, static_cast<GLuint>(unpack_buffer));
@@ -2898,10 +2969,16 @@ private:
     double m_stats_start = 0;
     double m_wait_seconds = 0;
     long m_frames = 0;
+    long m_frame_serial = 0;  // session 22: every frame begun (never reset; fill_chain)
     // The frame's own work (from xrBeginFrame's return to xrEndFrame) since the last [vr-perf] line: in all, the most,
     // the frames longer than the display's period, and the displays the frames came too late for (display times
     // skipped between one frame and the next).
     double m_work_start = 0;
+    // 0.1.5: one frame's parts for frame_breakdown (begin_frame, acquire_chain, finish_frame)
+    double m_fb_start = 0, m_fb_outside = 0, m_fb_wait = 0, m_fb_begin = 0, m_fb_acquire = 0, m_fb_acquire_most = 0;
+    double m_fb_end_done = 0;
+    int m_fb_acquire_w = 0, m_fb_acquire_h = 0, m_fb_told = 0;
+    long m_fb_frames = 0;
     double m_last_work = 0;  // 0.1.3: the last frame's work (last_work_seconds)
     double m_period_seconds = 1.0 / 72.0;
     double m_work_seconds = 0;

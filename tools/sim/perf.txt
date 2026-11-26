@@ -1,0 +1,19 @@
+# SH3 Quest VR, the PC rig (0.1.5): a stretch of play for tools/prof_sample.c (where the frame's time goes): walking,
+# turning and looking about in first person, the knife in hand, from the save the rig starts from.
+# Command line: QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" QUEST_SIM_SCRIPT=<this> QUEST_SIM_OUT=<shots folder>;
+# then, once the log says "[sim] frame 7500": build/prof_sample.exe <pid> 18
+7320 left_y 1
+7500 head_yaw_rate 40
+7600 head_yaw_rate -40
+7700 head_yaw_rate 0
+7700 right_x 1
+7760 right_x 0
+7900 left_y 0
+7900 left_x 1
+8000 left_x 0
+8000 left_y 1
+8300 right_x -1
+8360 right_x 0
+8700 left_y 0
+8800 quit 0

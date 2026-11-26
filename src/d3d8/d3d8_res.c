@@ -513,6 +513,7 @@ static GLuint spare_depth(uint32_t w, uint32_t h, int layers) {
     return tex[k];
 }
 
+static void res_report_framebuffer(GLenum st, Res *rt, int views);
 void res_bind_targets(void) {
     Res *rt = res_of(dev->rt), *ds = res_of(dev->ds);
     GLuint color = surface_tex(rt);
@@ -534,9 +535,41 @@ void res_bind_targets(void) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth, depth_level);
     }
     dev->views = views;
-    GLenum st = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (st != GL_FRAMEBUFFER_COMPLETE)
-        rt_log("framebuffer incomplete: %04X (rt %ux%u fmt %u, %d views)", st, rt->w, rt->h, rt->fmt, views);
+    /* 0.1.5 (performance): a set of attachments found complete once is not asked about again (the driver's check runs
+     * its whole validation; the game binds the same few targets many times a frame) */
+    {
+        static struct { GLuint color, depth; int level, depth_level, views; } ok[32];
+        static int n_ok;
+        const int level = rt->level;
+        for (int i = 0; i < n_ok; i++)
+            if (ok[i].color == color && ok[i].depth == depth && ok[i].level == level &&
+                ok[i].depth_level == depth_level && ok[i].views == views)
+                return;
+        GLenum st0 = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (st0 == GL_FRAMEBUFFER_COMPLETE) {
+            const int slot = n_ok < 32 ? n_ok++ : (int)(((unsigned)color * 7u + (unsigned)depth) % 32u);
+            ok[slot].color = color, ok[slot].depth = depth, ok[slot].level = level;
+            ok[slot].depth_level = depth_level, ok[slot].views = views;
+            return;
+        }
+        res_report_framebuffer(st0, rt, views);
+    }
+}
+
+static void res_report_framebuffer(GLenum st, Res *rt, int views) {
+    if (st == 0) {
+        /* 0.1.5: 0 is no answer at all (GL has no context: after the headset's session stopped, at the end of a run):
+         * told once, not a line a frame */
+        static int told_none;
+        if (!told_none++)
+            rt_log("framebuffer status not known (GL gave 0: its context gone, as after the headset's session stopped); "
+                   "not told again");
+    } else if (st != GL_FRAMEBUFFER_COMPLETE) {
+        static int told;
+        if (told < 20 && ++told)
+            rt_log("framebuffer incomplete: %04X (rt %ux%u fmt %u, %d views)%s", st, rt->w, rt->h, rt->fmt, views,
+                   told == 20 ? " (not told again)" : "");
+    }
 }
 
 /* Reads a render target back into the surface's guest copy, for locks of rendered images. */

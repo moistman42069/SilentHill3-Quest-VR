@@ -1,0 +1,5 @@
+# SH3 Quest VR, the PC rig (session 21): which draws make the glows that stay put as the head turns (vr267 c07410,
+# c07440): SH3_ROUTE_DUMP over the shot's frames, SH3_HALO_DUMP for the flare record.
+7400 head_yaw 40
+7410 shot c07410-left
+7420 quit 0

@@ -55,6 +55,8 @@ Vec3 heather_head;
 int heather_head_frame = -1;
 Vec3 game_head;          // LIST 48: her head as the game posed it (no VR turn or IK), world
 int game_head_frame = -1;
+Vec3 game_head_fwd{0.0f, 0.0f, 1.0f};  // 0.1.5: where her face points as the game posed her head (world, unit) ...
+int game_head_fwd_frame = -1;           // ... in this frame (-1: not known, her rest pose not read yet)
 HerHand her_hands[2];
 
 namespace {
@@ -978,20 +980,54 @@ bool ik_pose_for_hand_bone(int h, const Vec3 axes[3], Vec3 origin, Pose& out) {
     return true;
 }
 
+// 0.1.5 (the owner's 0.1.4 report: in Dynamic cutscenes "im not facing the exact look direction of heather when it
+// switches to 1st person"): her face's way in her head bone's own axes, from her rest pose (her bones chained up to
+// the model's own axes: x her right, y down, z forward; GAME_FACTS, Bones). A scene turns her head and body, not her
+// place's facing (0 in a scene: the log's "Heather's facing 0.00").
+bool head_forward_local(Vec3& out) {
+    if (sk.state != 1 || !sk.rest_kind[0]) return false;
+    Bone b = sk.rel[kHead];
+    for (int p = sk.parent[kHead], guard = 0; p >= 0 && guard < kN; p = sk.parent[p], guard++) b = compose(b, sk.rel[p]);
+    out = normalized(local_dir(b, Vec3{0.0f, 0.0f, 1.0f}));
+    return length(out) > 0.5f && std::isfinite(out.x) && std::isfinite(out.y) && std::isfinite(out.z);
+}
+// Her head as the game posed it this frame: its middle (game_head) and where her face points (game_head_fwd).
+void note_game_head(const float* bones) {
+    const Bone hb = load(bones + 16 * kHead);
+    game_head = hb.o + Vec3{0.0f, -12.0f, 0.0f};
+    game_head_frame = rt_frame;
+    Vec3 lf;
+    if (head_forward_local(lf)) {
+        const Vec3 f = normalized(apply_dir(hb, lf));
+        if (length(f) > 0.5f && std::isfinite(f.x) && std::isfinite(f.y) && std::isfinite(f.z)) {
+            game_head_fwd = f;
+            game_head_fwd_frame = rt_frame;
+        }
+    }
+}
+
+// 0.1.5 (the owner's 0.1.4 report: hide "her head" in Dynamic cutscenes' first person): a scene that draws her away
+// from her place has no VR pose of her (ik_heather_bones leaves her), so her draws there are told by the scene's own
+// bones (body_cut) and her head and hair are cut from her eyes as in play.
+Vec3 scene_drawn[kN];
+int scene_drawn_frame = -1;
+
 // LIST 48 (vr146): during a scene her model may be drawn away from the player's own place (sh3.c's 1 m test): her head
 // as the scene poses it is still what dynamic cutscenes need. Her bones are left as they are.
 void ik_scene_head(const float* bones) {
     if (!active || !bones) return;
     const Vec3 h = load(bones + 16 * kHead).o;
     if (!std::isfinite(h.x) || !std::isfinite(h.y) || !std::isfinite(h.z)) return;
+    note_game_head(bones);
+    for (int b = 0; b < kN; b++) scene_drawn[b] = load(bones + 16 * b).o;
+    scene_drawn_frame = rt_frame;
     static int told_at = -1000;
     if (rt_frame - told_at >= 240) {
         told_at = rt_frame;
-        rt_log("VR: frame %d: her model drawn away from her place in a scene: her head at %.0f %.0f %.0f", rt_frame, h.x,
-               h.y, h.z);
+        rt_log("VR: frame %d: her model drawn away from her place in a scene: her head at %.0f %.0f %.0f, her face to "
+               "%.2f %.2f %.2f%s", rt_frame, h.x, h.y, h.z, game_head_fwd.x, game_head_fwd.y, game_head_fwd.z,
+               game_head_fwd_frame == rt_frame ? "" : " (not known: her rest pose not read yet)");
     }
-    game_head = h + Vec3{0.0f, -12.0f, 0.0f};
-    game_head_frame = rt_frame;
 }
 
 // From the game's model draw (src/game/sh3.c, after 0x45EC00): 1 when her bones were changed.
@@ -1005,8 +1041,7 @@ int ik_heather_bones(float* bones, int n, const Sh3VrModel* m) {
     // Her head where the game posed it, for the cut (sh3vr_body_cut) whatever the view.
     const Vec3 anim_root = load(bones + 16 * kPelvis).o;
     // LIST 48: her head as the game's animation poses it, before VR moves her (a scene's first-person eyes ride it).
-    game_head = load(bones + 16 * kHead).o + Vec3{0.0f, -12.0f, 0.0f};
-    game_head_frame = rt_frame;
+    note_game_head(bones);
     if (view_mode != ViewMode::kFirstPerson || !map_ready() || !head_known()) {
         heather_head = load(bones + 16 * kHead).o + Vec3{0.0f, -12.0f, 0.0f};
         heather_head_frame = rt_frame;
@@ -2075,6 +2110,71 @@ int body_cut(const float vsc[96][4], uint32_t stride, int main_cam, int ffp, int
         return true;
     };
     const Vec3 eye = map_ready() ? world_point(fi.head.position) : Vec3{};
+    if (scene_drawn_frame == rt_frame && (game.cutscene || game.demo) && sk.state == 1 && map_ready()) {
+        // 0.1.5: a scene drawing her away from her place (Dynamic cutscenes put the eyes in her head as it poses her):
+        // her draws told by the scene's own bones; her head and hair cut as in play, the rest of her faded at the eyes.
+        int matched = 0, unmatched = 0;
+        bool head = false, all_at_head = true, all_near_her = true;
+        for (int b = 0; b < slots; b++) {
+            if (!affine(b)) continue;
+            const Vec3 o{vsc[48 + b * 3][3], vsc[48 + b * 3 + 1][3], vsc[48 + b * 3 + 2][3]};
+            if (length(o - scene_drawn[kHead]) > 0.30f * kU) all_at_head = false;
+            if (length(o - scene_drawn[kPelvis]) > 1.2f * kU) all_near_her = false;
+            int c = -1;
+            for (int k = 0; k < kN && c < 0; k++)
+                if (std::fabs(scene_drawn[k].x - o.x) < 0.5f && std::fabs(scene_drawn[k].y - o.y) < 0.5f &&
+                    std::fabs(scene_drawn[k].z - o.z) < 0.5f)
+                    c = sk.cls[k];
+            if (c < 0) {
+                // a blend of two of her bones lies between them: at her head when it is within her head's reach
+                if (length(o - scene_drawn[kHead]) < 0.25f * kU) head = true;
+                unmatched++;
+                continue;
+            }
+            matched++;
+            if (c == kHeadC) head = true;
+        }
+        // Her hair (or her face) drawn on its own, every bone a blend at her head (vr266, frame 5200: a dark dithered
+        // shape across the eyes, her hair from inside, only near-faded): never seen from her own eyes, as in play.
+        if (matched + unmatched > 0 && all_at_head) {
+            out->near_cut = 0.07f * kU;
+            out->fade[0] = 1.0f;
+            static int told_hair = -1000;
+            if (rt_frame - told_hair >= 600) {
+                told_hair = rt_frame;
+                rt_log("VR body: frame %d: a scene draws her away from her place: a draw all at her head (%d bones, her "
+                       "hair or face) hidden from her eyes", rt_frame, matched + unmatched);
+            }
+            return 1;
+        }
+        if (matched > 0 && (matched >= unmatched || all_near_her)) {
+            if (!clip_to_world(out->clip_to_world)) {
+                out->near_cut = 0.12f * kU;
+                return 1;
+            }
+            out->eye[0] = eye.x, out->eye[1] = eye.y, out->eye[2] = eye.z, out->eye[3] = 1.0f;
+            out->near_cut = (opt.body_fade ? 0.03f : 0.07f) * kU;
+            if (head && !ik_off(2048)) {
+                const Vec3 nk = scene_drawn[kNeck], hd = scene_drawn[kHead];
+                const Vec3 up = hd - nk;
+                const float ul = length(up);
+                const Vec3 dir = ul > 1.0f ? up * (1.0f / ul) : Vec3{0.0f, -1.0f, 0.0f};
+                const Vec3 a = nk + up * 0.3f, top = hd + dir * (0.09f * kU);
+                out->sphere[0] = a.x, out->sphere[1] = a.y, out->sphere[2] = a.z, out->sphere[3] = 0.14f * kU;
+                out->cap_b[0] = top.x, out->cap_b[1] = top.y, out->cap_b[2] = top.z, out->cap_b[3] = 1.0f;
+            }
+            if (opt.body == 1) out->fade[0] = 1.0f;  // "Hidden (hands only)": hidden in her scenes' first person too
+            if (opt.body_fade) out->fade[1] = 0.05f * kU, out->fade[2] = 0.20f * kU;
+            static int told_at = -1000;
+            if (rt_frame - told_at >= 600) {
+                told_at = rt_frame;
+                rt_log("VR body: frame %d: a scene draws her away from her place: her draw told by the scene's bones (%d "
+                       "matched, %d not), %s", rt_frame, matched, unmatched,
+                       head ? "her head and hair cut from her eyes" : "no head in it");
+            }
+            return 1;
+        }
+    }
     if (st.bones_frame != rt_frame) {
         // Her bones are not known this frame: what of her is nearer than 25 cm is cut (all of her when hidden).
         int near = 0, far = 0;

@@ -110,7 +110,13 @@
 
 /* Extension entry points: NULL when the driver lacks them (gl_has says which extensions are there). */
 #define GL_EXT_FUNCS(X) \
-    X(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glFramebufferTextureMultiviewOVR)
+    X(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glFramebufferTextureMultiviewOVR) \
+    X(PFNGLGENQUERIESEXTPROC, glGenQueriesEXT) \
+    X(PFNGLBEGINQUERYEXTPROC, glBeginQueryEXT) \
+    X(PFNGLENDQUERYEXTPROC, glEndQueryEXT) \
+    X(PFNGLGETQUERYOBJECTUIVEXTPROC, glGetQueryObjectuivEXT) \
+    X(PFNGLGETQUERYOBJECTUI64VEXTPROC, glGetQueryObjectui64vEXT)
+/* (0.1.5: the queries are GL_EXT_disjoint_timer_query's, the GPU time of a frame: sh3vr.cpp gpu_timer_begin/end) */
 
 #define GL_DECLARE(type, name) extern type p_##name;
 GL_FUNCS(GL_DECLARE)
@@ -216,6 +222,11 @@ GL_EXT_FUNCS(GL_DECLARE)
 #define glClientWaitSync p_glClientWaitSync
 #define glDeleteSync p_glDeleteSync
 #define glFramebufferTextureMultiviewOVR p_glFramebufferTextureMultiviewOVR
+#define glGenQueriesEXT p_glGenQueriesEXT
+#define glBeginQueryEXT p_glBeginQueryEXT
+#define glEndQueryEXT p_glEndQueryEXT
+#define glGetQueryObjectuivEXT p_glGetQueryObjectuivEXT
+#define glGetQueryObjectui64vEXT p_glGetQueryObjectui64vEXT
 #endif
 
 /* What the driver offers beyond ES 3.2 (filled by gl_load). */
@@ -225,6 +236,7 @@ typedef struct {
     int anisotropic;   /* GL_EXT_texture_filter_anisotropic */
     int multiview;     /* GL_OVR_multiview2: both eyes in one pass */
     int max_views;
+    int timer;         /* GL_EXT_disjoint_timer_query: the GPU time of each frame in the log (0.1.5) */
 } GlCaps;
 extern GlCaps gl_caps;
 

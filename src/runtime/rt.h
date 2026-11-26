@@ -5,6 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* getenv read once per call site (0.1.5, "COMPLETELY MAXIMIZE PERFORMANCE": the PC profile vr264 had getenv at 6% of
+ * the main thread, from calls made on every draw, frame or input poll). The environment does not change while the game
+ * runs; the cached pointer is one aligned word, so two threads reading it first at once both store the same value. */
+#define RT_ENV(name) __extension__({ \
+    static const char *rt_env_v_ = (const char *)1; \
+    if (rt_env_v_ == (const char *)1) rt_env_v_ = getenv(name); \
+    rt_env_v_; })
+
 /* Guest <-> host pointers. Guest address 0 stays NULL. */
 #define GPTR(va) ((va) ? (void *)XBOX_PTR(va) : NULL)
 static inline uint32_t GVA(const void *p) {
