@@ -89,13 +89,18 @@ commit, tag and the APK's digest). Read HANDOFF-2026-11-26-SESSION23.md for wher
   only, controls/features/whats_new, classes.dex, libmain.so; libSDL2 and the OpenXR loader byte-identical; no text
   relocations; the same certificate). The new rows' names, the fold's and the culling's log lines are in libmain.so,
   the launcher's rows in classes.dex.
-- Published per owner 120 ("dont ask for my permission, just publish when done"): the commit, tag and release page are
-  recorded by the handoff commit after it.
+- Published per owner 120 ("dont ask for my permission, just publish when done"): main **ba72cb1** (pushed), annotated
+  tag **v0.1.6**, release page https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.6 with
+  SH3QuestVR-0.1.6.apk and docs/RELEASE-NOTES-0.1.6.md as its text. releases/latest is v0.1.6; its asset 9,522,642
+  bytes, GitHub digest sha256:7b16d82a...2206, the downloaded copy hashed the same (what the launcher's update checks).
 
 ## Open
 
-- The player's reply (C:/SH3Quest/notes/reply-player-report-0.1.5.txt) waits for the owner (not posted unasked).
+- The players' replies wait for the owner (not posted unasked): C:/SH3Quest/notes/reply-player-report-0.1.5.txt (the
+  0.1.4 report, answered by 0.1.5) and reply-player-report-0.1.6.txt (the 0.1.5 report on the monsters, answered by
+  0.1.6).
 - Headset checks: docs/HEADSET_CHECKLIST.md's 0.1.6 rows (the monsters at a distance in the park and the dogs' run,
   the holsters, the pouch radius by feel, 120 Hz).
 - Cleanup for the owner to decide (listed, not deleted): C:/SH3Quest/shots/video114 and video116 (the videos' frames),
-  docs/RELEASE-NOTES-0.1.5.draft.md and docs/whats_new-0.1.5.draft.txt (untracked drafts).
+  docs/RELEASE-NOTES-0.1.5.draft.md and docs/whats_new-0.1.5.draft.txt (untracked drafts); C:/SH3Quest/shots holds
+  28 GB in 276 rig picture folders (this session's vr284-vr290 about 1.5 GB).
