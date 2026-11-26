@@ -1,6 +1,15 @@
-# SH3 Quest VR handoff, session 22 (2026-11-26): 0.1.5 finished on the rig, the APK next
+# SH3 Quest VR handoff, session 22 (2026-11-26): 0.1.5 published
 
-Repo C:/SH3Quest/SH3QuestVR at 147792d (0.1.4 = 50047a1, tag v0.1.4), everything since **uncommitted**. Read
+**0.1.5 is published** (the owner: "Yes, publish"): main 4761a88, annotated tag v0.1.5, the GitHub release
+"Silent Hill 3 Quest VR 0.1.5" (https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.5), its
+text docs/RELEASE-NOTES-0.1.5.md as it is (as 0.1.4's), the asset SH3QuestVR-0.1.5.apk. Checked after: releases/latest
+is v0.1.5 (not a draft or prerelease); the asset's size 9,516,546 and digest sha256:fb3d8873...704d; the download
+redirects to release-assets.githubusercontent.com (200, as the launcher's UpdatePolicy allows) and the file
+downloaded hashes the same. Before the commit the notes and README were corrected: a player's European disc played
+0.1.4 (owner message 102), so only Asian exes are untried. The drafts (docs/RELEASE-NOTES-0.1.5.draft.md,
+docs/whats_new-0.1.5.draft.txt) stay uncommitted, as earlier drafts did.
+
+Before that: repo C:/SH3Quest/SH3QuestVR at 147792d (0.1.4 = 50047a1, tag v0.1.4). Read
 HANDOFF-2026-11-26-SESSION21.md for sessions 20-21's work; this one picks up from its list.
 
 ## The owner's messages this session (saved in C:/SH3Quest/notes/owner-messages-sessions1-7.txt)
@@ -102,6 +111,8 @@ HANDOFF-2026-11-26-SESSION21.md for sessions 20-21's work; this one picks up fro
 
 ## Next
 
-1. Hand over the APK path and SHA-256; **ask the owner before publishing**.
-2. On their yes: commit, tag v0.1.5, push, the GitHub release with docs/RELEASE-NOTES-0.1.5.md and the APK; then the
-   player's reply (C:/SH3Quest/notes/reply-player-report-0.1.5.txt).
+1. The player's reply (C:/SH3Quest/notes/reply-player-report-0.1.5.txt): the owner sends it, or says where it goes
+   (it came forwarded, owner message 102).
+2. Players' reports on 0.1.5: whether the 0.1.4 launcher offered and installed it (Updates), the black screen
+   gone, the effects, the pistol's flash; the HEADSET_CHECKLIST's 0.1.5 rows (the stomp is only read in the code:
+   no rig run downs a monster).
