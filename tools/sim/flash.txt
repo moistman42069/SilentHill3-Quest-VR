@@ -1,0 +1,19 @@
+# SH3 Quest VR, the PC rig (session 6): the handgun's muzzle flash and its light, about 2.1 minutes. Run with
+# QUEST_SIM_ALIGN=7312 SH3_GIVE="10:10" SH3_EQUIP="1" QUEST_SIM_GRIP_TILT=50 (sh3.log's "gun's effect" lines: each of
+# the game's screen-space effects that is the gun's own, the flash and its smoke, moved to the muzzle in the hand). The
+# shot lands at about script frame 7440 (Quick gun raise): a picture each frame round it.
+7403 head_pitch -20
+7404 hand_pitch -20
+7420 shot h07420-aim
+7422 right_trigger 1
+7436 shot h07436-fire
+7438 shot h07438-fire
+7439 shot h07439-fire
+7440 shot h07440-fire
+7441 shot h07441-fire
+7442 shot h07442-fire
+7443 shot h07443-fire
+7444 shot h07444-fire
+7446 shot h07446-fire
+7448 right_trigger 0
+7460 quit 0

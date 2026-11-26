@@ -1,0 +1,17 @@
+# SH3 Quest VR, the PC rig (session 10): dynamic resolution (LIST 51, the owner: "highest resolution is set with dynamic
+# resolution"), about 2.2 minutes. "late 1" makes each frame a display missed, as a headset falling behind tells it: in
+# about a second the game's 3D pictures step down to 60% of the eye (600x600 here), then each 5 s with none late a
+# tenth back up (the rig paces 60 frames a second: 300 frames a step). Run with QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return".
+# The log: "dynamic resolution: the 3D pictures at N%", "3D pictures: frame N: WxH for dynamic resolution",
+# "the scene's depth for the probes". Pictures whole: the same view at 100% (d07330) and 60% (d07440), only softer;
+# both eyes; her hands and the wrist as sharp as before; back to 100% at d08700.
+7318 head_pitch -10
+7330 shot d07330-full
+7340 late 1
+7420 late 0
+7440 shot d07440-least
+7700 shot d07700-before-up
+8100 shot d08100-up
+8700 shot d08700-full-again
+8710 quit 0

@@ -1,0 +1,2 @@
+# SH3 Quest VR, the PC rig: quits at frame 2500 (the title; the game's shaders made by then), about 40 seconds.
+2500 quit 0

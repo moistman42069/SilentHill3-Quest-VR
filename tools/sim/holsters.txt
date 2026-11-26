@@ -1,0 +1,43 @@
+# SH3 Quest VR, the PC rig: the holsters (LIST 28, the owner's layout: the gun over the right shoulder, the melee
+# weapon on the right hip, each giving back the one last put there), about 2.5 minutes. Run with
+# SH3_GIVE="10:10,15:20,2:0" SH3_EQUIP=5 (the handgun with 10 loaded, the steel pipe, the pipe in her hand). The right
+# hand rests 0.2 m right, 0.35 m down and 0.3 m ahead of the eyes; the shoulder holster is (0.16, -0.165, +0.08) from
+# them (a 165 cm player), the hip (0.20, -0.66, -0.02).
+7400 shot h07400-pipe-in-hand
+# the shoulder: the handgun comes out, the pipe goes to the hip
+7440 rh_x -0.04
+7440 rh_y 0.185
+7440 rh_z 0.38
+7460 right_grip 1
+7480 rh_x 0
+7480 rh_y 0
+7480 rh_z 0
+7500 right_grip 0
+7530 shot h07530-handgun-drawn
+# the hip: the pipe (the last put there) comes out, the handgun goes to the shoulder
+7560 rh_y -0.31
+7560 rh_z 0.28
+7580 right_grip 1
+7600 rh_y 0
+7600 rh_z 0
+7620 right_grip 0
+7650 shot h07650-pipe-drawn
+# the pipe put away at the hip: the hand empty
+7680 rh_y -0.31
+7680 rh_z 0.28
+7690 right_grip 1
+7700 right_grip 0
+7720 rh_y 0
+7720 rh_z 0
+7740 shot h07740-hands-empty
+# the shoulder again, the grip let go before the hand leaves it: the handgun stays drawn
+7760 rh_x -0.04
+7760 rh_y 0.185
+7760 rh_z 0.38
+7770 right_grip 1
+7790 right_grip 0
+7800 rh_x 0
+7800 rh_y 0
+7800 rh_z 0
+7840 shot h07840-handgun-again
+7860 quit 0

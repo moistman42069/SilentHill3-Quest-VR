@@ -1,0 +1,37 @@
+# SH3 Quest VR, the PC rig (session 11, owner message 44: the inventory and menus "projected in front of the screen,
+# with ability to use pointer and allat to navigate it properly and smoothly"): open the inventory with Y in play,
+# pictures as it fades in in front of the eyes, the right hand's beam on it at three spots, the selection moved with
+# the left stick, the head turned 40 degrees away (the screen stays, then glides round after half a second), closed
+# with B (it fades out where it was). About 2 minutes. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return".
+7320 y 1
+7326 y 0
+7334 shot i07334-opening
+7360 shot i07360-open
+# the right hand's beam up at the middle of the screen (the hand 35 cm under the eyes, 20 cm right)
+7370 hand_pitch 15
+7370 hand_yaw 10
+7390 shot i07390-middle
+# off to the right side
+7400 hand_yaw -12
+7420 shot i07420-right
+# the left side, low
+7430 hand_yaw 30
+7430 hand_pitch 5
+7450 shot i07450-left-low
+# the selection one step with the left stick
+7460 left_x 1
+7466 left_x 0
+7490 shot i07490-step
+# the head 40 degrees left: the screen stays where it opened, then glides round in front after half a second
+7500 head_yaw 40
+7506 shot i07506-turned
+7560 shot i07560-glided
+7580 head_yaw 0
+7610 shot i07610-back
+# closed with B: fades out where it was
+7620 b 1
+7626 b 0
+7632 shot i07632-closing
+7660 shot i07660-closed
+7680 quit 0

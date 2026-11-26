@@ -1,0 +1,21 @@
+# SH3 Quest VR, the PC rig (session 7): which IK step draws the sliver out of her top's left side looking down (runs
+# vr78-vr84, build 76 on), about 2 minutes. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0"
+# SH3_EQUIP=0 SH3_IK_OFF="7480:64,7494:128,7508:256,7522:5,7536:16,7550:32,7564:8,7578:512,7592:1024,7606:2047"
+# and "body_fade = 0" in the game folder's sh3vr.ini (her top whole, so the sliver shows). The game's frames run -2
+# to +7 from the script's: each picture is 7 script frames after its step goes, inside its 14 frames. Looking down
+# 65 degrees, the hands where a player holds them.
+7318 right_grip 1
+7318 right_thumb_touch 1
+7318 head_pitch -65
+7470 shot s07470-all-on
+7487 shot s07487-no-collar
+7501 shot s07501-no-arms
+7515 shot s07515-no-twist
+7529 shot s07529-no-lean-hang
+7543 shot s07543-no-head
+7557 shot s07557-no-legs
+7571 shot s07571-no-bend
+7585 shot s07585-no-fingers
+7599 shot s07599-rigid-hands
+7613 shot s07613-none
+7620 quit 0

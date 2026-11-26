@@ -1,0 +1,294 @@
+# SH3 Quest VR, the PC rig: session 5's diagnostic run (every weapon held as the game holds it: its own gripping hands),
+# session 12: also the handgun firing (its slide), the maul at a wall (LIST 53) and the Options tab (LIST 12): about 4 minutes.
+# Run with
+#   SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0" SH3_EQUIP="1,2,3,8,4,5,6,7"
+#   SH3_EQUIP_EVERY=200 SH3_WEAPON_BONES=1 QUEST_SIM_GRIP_TILT=50
+#   SH3_MESH_DUMP="259/650+,258/634+,257/642+,257/646+,257/638+,297/670+,258/638+,257/650+,259/638+,259/654+,260/642+,
+#                  261/646+,261/650+,258/626+"   (one line: Heather's gripping hands, groups 12-31, each kept)
+# (every weapon given; the handgun first, then the shotgun, the submachine gun, the stun gun, the knife, the steel pipe,
+# the katana and the maul, 200 frames of play each: play's count starts about frame 7266, so the equips come about
+# 7466, 7666, 7866, 8066, 8266, 8466 and 8666). The log gets each weapon's bones as the game poses them while idle
+# (SH3_WEAPON_BONES), the game's own grips as read (VR native grip), her finger shapes (VR hand geometry), and each
+# gripping hand's mesh (mesh_N_P_k.txt in the game folder).
+#
+# Each weapon is seen from the eyes (the hands at rest, looking down 30 degrees) and from its left side and above (the
+# right hand 0.15 m out to the right and 0.1 m forward, looking down 40 degrees: cocking.txt's way, since the free view
+# only re-aims the picture the game drew from the head).
+#
+# The handgun (10 loaded, 20 in reserve) also: the magazine released (it falls from the well), a new one taken from the
+# ammo pouch (the left grip at (-0.10, -0.627, -0.06) from the eyes: lh 0.10 -0.277 0.24), brought 5 cm short of the
+# well and lined up, pushed home (it is guided onto the well's line and seated, the hand with it); then from the eyes
+# with the other hand on its second grip (round the main hand's fingers, 4 cm ahead of the main hand's grip point).
+# Every weapon with a second grip is then held in both hands: the left grip closed and the left controller swept along
+# the weapon from the right hand (the shotgun along its barrel to the pump, its stock at the shoulder; the submachine gun
+# under its receiver; the pipe, the katana and the maul down their handles below the right hand), so the other hand
+# takes the grip wherever the game's own hold puts it.
+#
+# Session 12: the trigger at 7316 fires one shot about script 7354 (vr188: game frame 7328; here the script runs about
+# 26 frames ahead of the game, and the shot comes after the magazine release, one round in the chamber): a picture each frame
+# round it shows the handgun's slide cycling back and forward as its own faces (sh3vr_parts.cpp, 0.09 s).
+# --- the handgun (equipped at the give; play from about 7315)
+7300 rh_x 0.15
+7300 rh_z -0.1
+7300 head_pitch -40
+7316 right_trigger 1
+7330 shot w07330-handgun-side
+7339 right_trigger 0
+7340 right_y -1
+7346 shot w07346-handgun-magazine-falls
+7350 right_y 0
+7352 shot w07352-handgun-fire
+7352 lh_x 0.10
+7352 lh_y -0.277
+7352 lh_z 0.24
+7353 shot w07353-handgun-fire
+7354 shot w07354-handgun-fire
+7355 shot w07355-handgun-fire
+7356 shot w07356-handgun-fire
+7357 shot w07357-handgun-fire
+7358 shot w07358-handgun-fire
+7360 shot w07360-handgun-fire
+7362 left_grip 1
+7372 lh_x 0.551
+7372 lh_y -0.132
+7372 lh_z -0.0383
+7390 shot w07390-handgun-magazine-lined-up
+7395 lh_y -0.088
+7395 lh_z -0.0478
+7397 shot w07397-handgun-magazine-seating
+7405 left_grip 0
+7410 lh_x 0
+7410 lh_y 0
+7410 lh_z 0
+7425 shot w07425-handgun-seated
+7440 rh_x 0
+7440 rh_z 0
+7440 head_pitch -30
+7450 shot w07450-handgun-eyes
+7452 lh_x 0.392
+7452 lh_y -0.004
+7452 lh_z -0.038
+7454 left_grip 1
+7462 shot w07462-handgun-two-hands
+7464 left_grip 0
+7464 lh_x 0
+7464 lh_y 0
+7464 lh_z 0
+# --- the shotgun (about 7466)
+7540 shot w07540-shotgun-eyes
+7550 rh_x 0.15
+7550 rh_z -0.1
+7550 head_pitch -40
+7575 shot w07575-shotgun-side
+7620 rh_x 0
+7620 rh_z 0
+7622 rh_y 0.1
+7622 rh_z 0.25
+7622 head_pitch -35
+7624 lh_x 0.4
+7624 lh_y 0.13
+7624 lh_z 0.15
+7624 left_grip 1
+7626 lh_z 0.10
+7628 lh_z 0.05
+7630 lh_z 0.0
+7632 lh_z -0.05
+7634 lh_z -0.10
+7636 lh_z -0.15
+7638 lh_z -0.20
+7640 lh_z -0.25
+7642 lh_z -0.30
+7644 lh_z -0.35
+7648 lh_z -0.18
+7656 shot w07656-shotgun-two-hands
+7660 left_grip 0
+7660 lh_x 0
+7660 lh_y 0
+7660 lh_z 0
+7660 rh_y 0
+7660 rh_z 0
+7660 head_pitch -30
+# --- the submachine gun (about 7666)
+7740 shot w07740-smg-eyes
+7750 rh_x 0.15
+7750 rh_z -0.1
+7750 head_pitch -40
+7775 shot w07775-smg-side
+7785 lh_x 0.55
+7785 lh_y 0.0265
+7785 lh_z -0.15
+7793 left_grip 1
+7795 lh_z -0.17
+7797 lh_z -0.19
+7799 lh_z -0.21
+7801 lh_z -0.23
+7803 lh_z -0.25
+7807 lh_z -0.205
+7815 shot w07815-smg-two-hands
+7825 left_grip 0
+7830 lh_x 0
+7830 lh_y 0
+7830 lh_z 0
+7840 rh_x 0
+7840 rh_z 0
+7840 head_pitch -30
+# --- the stun gun (about 7866)
+7940 shot w07940-stun-eyes
+7950 rh_x 0.15
+7950 rh_z -0.1
+7950 head_pitch -40
+7975 shot w07975-stun-side
+8020 rh_x 0
+8020 rh_z 0
+8020 head_pitch -30
+# --- the knife (about 8066)
+8140 shot w08140-knife-eyes
+8150 rh_x 0.15
+8150 rh_z -0.1
+8150 head_pitch -40
+8175 shot w08175-knife-side
+8220 rh_x 0
+8220 rh_z 0
+8220 head_pitch -30
+# --- the steel pipe (about 8266)
+8340 shot w08340-pipe-eyes
+8350 rh_x 0.15
+8350 rh_z -0.1
+8350 head_pitch -40
+8375 shot w08375-pipe-side
+8420 rh_x 0
+8420 rh_z 0
+8420 head_pitch -30
+8422 lh_x 0.4
+8422 lh_y -0.023
+8422 lh_z 0.019
+8422 left_grip 1
+8424 lh_y -0.046
+8424 lh_z 0.039
+8426 lh_y -0.069
+8426 lh_z 0.058
+8428 lh_y -0.092
+8428 lh_z 0.077
+8430 lh_y -0.115
+8430 lh_z 0.096
+8432 lh_y -0.138
+8432 lh_z 0.116
+8434 lh_y -0.161
+8434 lh_z 0.135
+8436 lh_y -0.184
+8436 lh_z 0.154
+8438 lh_y -0.207
+8438 lh_z 0.174
+8442 lh_y -0.100
+8442 lh_z 0.084
+8452 shot w08452-pipe-two-hands
+8456 left_grip 0
+8456 lh_x 0
+8456 lh_y 0
+8456 lh_z 0
+# --- the katana (about 8466)
+8540 shot w08540-katana-eyes
+8550 rh_x 0.15
+8550 rh_z -0.1
+8550 head_pitch -40
+8575 shot w08575-katana-side
+8620 rh_x 0
+8620 rh_z 0
+8620 head_pitch -30
+8622 lh_x 0.4
+8622 lh_y -0.023
+8622 lh_z 0.019
+8622 left_grip 1
+8624 lh_y -0.046
+8624 lh_z 0.039
+8626 lh_y -0.069
+8626 lh_z 0.058
+8628 lh_y -0.092
+8628 lh_z 0.077
+8630 lh_y -0.115
+8630 lh_z 0.096
+8632 lh_y -0.138
+8632 lh_z 0.116
+8634 lh_y -0.161
+8634 lh_z 0.135
+8636 lh_y -0.184
+8636 lh_z 0.154
+8642 lh_y -0.115
+8642 lh_z 0.096
+8652 shot w08652-katana-two-hands
+8656 left_grip 0
+8656 lh_x 0
+8656 lh_y 0
+8656 lh_z 0
+# --- the maul (about 8666)
+8740 shot w08740-maul-eyes
+8750 rh_x 0.15
+8750 rh_z -0.1
+8750 head_pitch -40
+8775 shot w08775-maul-side
+8820 rh_x 0
+8820 rh_z 0
+8820 head_pitch -30
+8822 lh_x 0.4
+8822 lh_y -0.023
+8822 lh_z 0.019
+8822 left_grip 1
+8824 lh_y -0.046
+8824 lh_z 0.039
+8826 lh_y -0.069
+8826 lh_z 0.058
+8828 lh_y -0.092
+8828 lh_z 0.077
+8830 lh_y -0.115
+8830 lh_z 0.096
+8832 lh_y -0.138
+8832 lh_z 0.116
+8834 lh_y -0.161
+8834 lh_z 0.135
+8836 lh_y -0.184
+8836 lh_z 0.154
+8838 lh_y -0.207
+8838 lh_z 0.174
+8842 lh_y -0.100
+8842 lh_z 0.084
+8852 shot w08852-maul-two-hands
+8856 left_grip 0
+# --- LIST 53: the maul walked into the brick wall ahead (world.txt's walk: the wall about 308 frames ahead), the hand
+# then pushed 17 and 35 cm forward: the weapon is held back from the wall ("held at a surface" lines), never through it.
+8858 head_pitch 0
+8858 rh_x 0
+8858 rh_y 0
+8858 rh_z 0
+8860 left_y 1
+9170 left_y 0
+9180 head_yaw -10
+9180 head_pitch -15
+9180 rh_x -0.049
+9180 rh_y 0.15
+9180 rh_z -0.169
+9200 shot w09200-maul-at-wall
+9202 rh_z -0.35
+9222 shot w09222-maul-pushed-into-wall
+# --- LIST 12: the Options tab with the pointer (shadow_screens.txt's way: the inventory opened with Y, the right hand
+# 8 degrees left and 32 down; one pull moves the selection to it, a second opens it), then B back.
+9226 head_yaw 0
+9226 head_pitch 0
+9226 rh_x 0
+9226 rh_y 0
+9226 rh_z 0
+9230 y 1
+9236 y 0
+9260 hand_yaw -8
+9260 hand_pitch 32
+9285 shot s09285-on-options
+9290 right_trigger 1
+9296 right_trigger 0
+9315 shot s09315-options-once
+9320 right_trigger 1
+9326 right_trigger 0
+9370 shot s09370-options-twice
+9410 shot s09410-options-later
+9420 b 1
+9426 b 0
+9460 shot s09460-options-back
+9480 quit 0

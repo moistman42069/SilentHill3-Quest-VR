@@ -1,0 +1,26 @@
+**Silent Hill 3 Quest VR — testers wanted**
+
+An unofficial fan port of Silent Hill 3 (PC, 2003) to VR, running **standalone on Meta Quest 3 / 3S** (Quest 2 and Pro too). No emulator: it's built on cutarev's **sh3-nx**, which recompiles the PC game's own code, with **NotGodlikeUwU's PC VR mod** findings refined, and the VR layer from our Ratchet & Clank and Jak and Daxter Quest ports.
+
+**What 0.1.0 brings**
+- First person, full 6DoF: walk around your room, crouch, lean
+- Heather's own body: full-body IK, her real hands with every finger, fading near your eyes
+- Third person any time (hold left menu), cutscenes staged in VR
+- Weapons in your hands at real size, aimed where the gun points, two-hand grips
+- Manual reloads, holsters on your body (gun on the shoulder, melee on the hip)
+- Physical melee with every weapon, punches, guns as clubs
+- Hands that stop on walls and floors, with a ghost hand where your controller went
+- Pick up items and open doors with your hand
+- Spatial sound and world vibration (steps, doors, hits, the radio's static)
+- A Silent Hill pointer for every menu, the inventory, the map and the puzzles
+- Every VR feature on by default, simple options in-game and in the launcher
+
+**What you need**
+Your own PC copy of Silent Hill 3 (the SILENT HILL 3 folder, about 5 GB). No game files are included; the launcher copies and checks yours.
+
+**Testers wanted**
+The first release is being finished now. I'm looking for players with a Quest 3, 3S, 2 or Pro to play through it and report crashes, comfort problems, bugs and anything that feels off. The app writes its own detailed logs, so reporting is easy. Reply here or DM me if you want in.
+
+GitHub (releases land here): <https://github.com/moistman42069/SilentHill3-Quest-VR>
+
+*Silent Hill 3 is © Konami. Unofficial fan project, not affiliated with Konami.*

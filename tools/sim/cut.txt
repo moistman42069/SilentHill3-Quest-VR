@@ -1,0 +1,26 @@
+# SH3 Quest VR, the PC rig (session 7): whether the sliver out of her top's left side looking down 65 degrees is her
+# body cut at a grazing angle (her head's cut, the near cut), about 2 minutes. Run with QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0 SH3_IK_OFF="7480:2048,7494:0,7508:4096,7522:0,7536:6144,7550:0,
+# 7564:2048,7578:0" and "body_fade = 0" in the game folder's sh3vr.ini. Two pictures in each 14 frames (the game's
+# frames run -2 to +7 from the script's).
+7318 right_grip 1
+7318 right_thumb_touch 1
+7318 head_pitch -65
+7470 shot c07470-all
+7484 shot c07484-no-head-cut
+7490 shot c07490-no-head-cut
+7498 shot c07498-all
+7504 shot c07504-all
+7512 shot c07512-no-near-cut
+7518 shot c07518-no-near-cut
+7526 shot c07526-all
+7532 shot c07532-all
+7540 shot c07540-no-cuts
+7546 shot c07546-no-cuts
+7554 shot c07554-all
+7560 shot c07560-all
+7568 shot c07568-no-head-cut
+7574 shot c07574-no-head-cut
+7582 shot c07582-all
+7588 shot c07588-all
+7595 quit 0

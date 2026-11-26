@@ -1,0 +1,397 @@
+# SH3 Quest VR, the PC rig (session 13, build 171), about 4 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="2,3,1,17,5,6,7,13,9,10,14" SH3_EQUIP_EVERY=170 SH3_WEAPON_BONES=1 SH3_STEER_TO="-17386,21386"
+# (vr195: the script 23 frames ahead of the game in play; weapons drawn at script 7471 3, 7641 1, 7811 17, 7981 5,
+# 8151 6, 8321 7, 8491 13, 8661 9, 8831 10, 9001 14.)
+# 1. Every two-hand weapon as vr195 (lh_at_second, 9 cm out, grip, onto it, out, let go), now with build 170's record:
+#    "second grip taken, eased W: the hand N cm from the grip" each frame of the take and the let-go, and once held
+#    "the palm toward ..., the fist along ..., the weapon's top ..." (vr195's SMG left hand looked turned palm-in on the
+#    receiver's side, the hold says palm up under it: the numbers decide).
+# 2. The extras now held (build 170): the gold pipe as the steel pipe, the beam saber (the game's hand 34, a second
+#    hand stacked on its hilt), the flamethrower in both hands (the game's 37, 38: "VR native grip: flamethrower"
+#    tells where the game's own hands are); the silver pipe one picture.
+# 3. LIST 45: at event 8's place the free left hand reaches 0.8 m out all round her and low ahead, closing at each
+#    ("can use event", "used event").
+# 4. LIST 12: the inventory's tabs with the click zones read at the game's own question (build 170: the wrapper now
+#    reached), "the game's click zones: N" and the pulls "over click zone N".
+# 5. The submachine guns and the flamethrower held as a player holds them (vr195 had the right hand 35 cm out right
+#    and 10 cm ahead: the left controller past her arm's reach, her hand left beside the receiver): the right hand
+#    in front of her chest (8 cm in from its usual place, 12 cm up); build 171 holds the weapon back toward her by
+#    what her arm lacks if its grip is still past her reach ("held back toward her").
+# --- shotgun (segment at script 7320)
+7320 rh_y 0.1
+7320 rh_z 0.25
+7320 head_pitch -15
+7320 head_yaw -20
+7322 lh_at_second 1
+7322 lh_x -0.09
+7338 left_grip 1
+7340 shot a07340-shotgun-take-2
+7352 lh_x -0.06
+7354 lh_x -0.03
+7356 lh_x 0
+7364 shot a07364-shotgun-held
+7366 lh_x -0.03
+7368 lh_x -0.06
+7370 lh_x -0.09
+7374 left_grip 0
+7377 shot a07377-shotgun-letgo-3
+7384 lh_at_second 0
+7384 lh_x 0
+7384 lh_y 0
+7384 lh_z 0
+7384 rh_x 0
+7384 rh_y 0
+7384 rh_z 0
+7384 head_pitch 0
+7384 head_yaw 0
+# --- smg (segment at script 7480)
+7480 rh_x -0.08
+7480 rh_y 0.12
+7480 head_pitch -25
+7480 head_yaw -10
+7482 lh_at_second 1
+7482 lh_x -0.09
+7498 left_grip 1
+7500 shot b07500-smg-take-2
+7512 lh_x -0.06
+7514 lh_x -0.03
+7516 lh_x 0
+7524 shot b07524-smg-held
+7526 lh_x -0.03
+7528 lh_x -0.06
+7530 lh_x -0.09
+7534 left_grip 0
+7537 shot b07537-smg-letgo-3
+7544 lh_at_second 0
+7544 lh_x 0
+7544 lh_y 0
+7544 lh_z 0
+7544 rh_x 0
+7544 rh_y 0
+7544 rh_z 0
+7544 head_pitch 0
+7544 head_yaw 0
+# --- handgun (segment at script 7650)
+7650 rh_y 0.15
+7650 rh_z -0.05
+7650 head_pitch -25
+7650 head_yaw -20
+7652 lh_at_second 1
+7652 lh_x -0.09
+7668 left_grip 1
+7670 shot c07670-handgun-take-2
+7682 lh_x -0.06
+7684 lh_x -0.03
+7686 lh_x 0
+7694 shot c07694-handgun-held
+7696 lh_x -0.03
+7698 lh_x -0.06
+7700 lh_x -0.09
+7704 left_grip 0
+7707 shot c07707-handgun-letgo-3
+7714 lh_at_second 0
+7714 lh_x 0
+7714 lh_y 0
+7714 lh_z 0
+7714 rh_x 0
+7714 rh_y 0
+7714 rh_z 0
+7714 head_pitch 0
+7714 head_yaw 0
+# --- unlimited-smg (segment at script 7820)
+7820 rh_x -0.08
+7820 rh_y 0.12
+7820 head_pitch -25
+7820 head_yaw -10
+7822 lh_at_second 1
+7822 lh_x -0.09
+7838 left_grip 1
+7840 shot d07840-unlimited-smg-take-2
+7852 lh_x -0.06
+7854 lh_x -0.03
+7856 lh_x 0
+7864 shot d07864-unlimited-smg-held
+7866 lh_x -0.03
+7868 lh_x -0.06
+7870 lh_x -0.09
+7874 left_grip 0
+7877 shot d07877-unlimited-smg-letgo-3
+7884 lh_at_second 0
+7884 lh_x 0
+7884 lh_y 0
+7884 lh_z 0
+7884 rh_x 0
+7884 rh_y 0
+7884 rh_z 0
+7884 head_pitch 0
+7884 head_yaw 0
+# --- steel-pipe (segment at script 7990)
+7990 rh_y 0.1
+7990 head_pitch -40
+7990 head_yaw -20
+7992 lh_at_second 1
+7992 lh_x -0.09
+8008 left_grip 1
+8010 shot e08010-steel-pipe-take-2
+8022 lh_x -0.06
+8024 lh_x -0.03
+8026 lh_x 0
+8034 shot e08034-steel-pipe-held
+8036 lh_x -0.03
+8038 lh_x -0.06
+8040 lh_x -0.09
+8044 left_grip 0
+8047 shot e08047-steel-pipe-letgo-3
+8054 lh_at_second 0
+8054 lh_x 0
+8054 lh_y 0
+8054 lh_z 0
+8054 rh_x 0
+8054 rh_y 0
+8054 rh_z 0
+8054 head_pitch 0
+8054 head_yaw 0
+# --- katana (segment at script 8160)
+8160 rh_y 0.1
+8160 head_pitch -40
+8160 head_yaw -20
+8162 lh_at_second 1
+8162 lh_x -0.09
+8178 left_grip 1
+8180 shot f08180-katana-take-2
+8192 lh_x -0.06
+8194 lh_x -0.03
+8196 lh_x 0
+8204 shot f08204-katana-held
+8206 lh_x -0.03
+8208 lh_x -0.06
+8210 lh_x -0.09
+8214 left_grip 0
+8217 shot f08217-katana-letgo-3
+8224 lh_at_second 0
+8224 lh_x 0
+8224 lh_y 0
+8224 lh_z 0
+8224 rh_x 0
+8224 rh_y 0
+8224 rh_z 0
+8224 head_pitch 0
+8224 head_yaw 0
+# --- maul (segment at script 8330)
+8330 rh_y 0.1
+8330 head_pitch -40
+8330 head_yaw -20
+8332 lh_at_second 1
+8332 lh_x -0.09
+8348 left_grip 1
+8350 shot g08350-maul-take-2
+8362 lh_x -0.06
+8364 lh_x -0.03
+8366 lh_x 0
+8374 shot g08374-maul-held
+8376 lh_x -0.03
+8378 lh_x -0.06
+8380 lh_x -0.09
+8384 left_grip 0
+8387 shot g08387-maul-letgo-3
+8394 lh_at_second 0
+8394 lh_x 0
+8394 lh_y 0
+8394 lh_z 0
+8394 rh_x 0
+8394 rh_y 0
+8394 rh_z 0
+8394 head_pitch 0
+8394 head_yaw 0
+# --- gold-pipe (segment at script 8500)
+8500 rh_y 0.1
+8500 head_pitch -40
+8500 head_yaw -20
+8502 lh_at_second 1
+8502 lh_x -0.09
+8518 left_grip 1
+8520 shot h08520-gold-pipe-take-2
+8532 lh_x -0.06
+8534 lh_x -0.03
+8536 lh_x 0
+8544 shot h08544-gold-pipe-held
+8546 lh_x -0.03
+8548 lh_x -0.06
+8550 lh_x -0.09
+8554 left_grip 0
+8557 shot h08557-gold-pipe-letgo-3
+8564 lh_at_second 0
+8564 lh_x 0
+8564 lh_y 0
+8564 lh_z 0
+8564 rh_x 0
+8564 rh_y 0
+8564 rh_z 0
+8564 head_pitch 0
+8564 head_yaw 0
+# --- beam-saber (segment at script 8670)
+8670 rh_y 0.1
+8670 head_pitch -40
+8670 head_yaw -20
+8672 lh_at_second 1
+8672 lh_x -0.09
+8688 left_grip 1
+8690 shot h08690-beam-saber-take-2
+8702 lh_x -0.06
+8704 lh_x -0.03
+8706 lh_x 0
+8714 shot h08714-beam-saber-held
+8716 lh_x -0.03
+8718 lh_x -0.06
+8720 lh_x -0.09
+8724 left_grip 0
+8727 shot h08727-beam-saber-letgo-3
+8734 lh_at_second 0
+8734 lh_x 0
+8734 lh_y 0
+8734 lh_z 0
+8734 rh_x 0
+8734 rh_y 0
+8734 rh_z 0
+8734 head_pitch 0
+8734 head_yaw 0
+# --- flamethrower (segment at script 8840)
+8840 rh_x -0.08
+8840 rh_y 0.12
+8840 head_pitch -25
+8840 head_yaw -10
+8842 lh_at_second 1
+8842 lh_x -0.09
+8858 left_grip 1
+8860 shot h08860-flamethrower-take-2
+8872 lh_x -0.06
+8874 lh_x -0.03
+8876 lh_x 0
+8884 shot h08884-flamethrower-held
+8886 lh_x -0.03
+8888 lh_x -0.06
+8890 lh_x -0.09
+8894 left_grip 0
+8897 shot h08897-flamethrower-letgo-3
+8904 lh_at_second 0
+8904 lh_x 0
+8904 lh_y 0
+8904 lh_z 0
+8904 rh_x 0
+8904 rh_y 0
+8904 rh_z 0
+8904 head_pitch 0
+8904 head_yaw 0
+9030 head_pitch -40
+9030 head_yaw -20
+9030 rh_y 0.1
+9040 shot h09040-silver-pipe-held
+9046 rh_y 0
+9046 head_pitch 0
+9046 head_yaw 0
+# --- the door (event 8): walk there, then the left hand out all round her
+9050 right_x -1
+9054 right_x 0
+9058 right_x -1
+9062 right_x 0
+9066 right_x -1
+9070 right_x 0
+9080 left_y 1
+9400 left_y 0
+9405 shot i09405-at-event-8
+# ahead
+9412 lh_x 0.200
+9412 lh_y 0.100
+9412 lh_z -0.500
+9418 left_grip 1
+9422 left_grip 0
+# right-ahead
+9425 lh_x 0.766
+9425 lh_y 0.100
+9425 lh_z -0.266
+9431 left_grip 1
+9435 left_grip 0
+# right
+9438 lh_x 1.000
+9438 lh_y 0.100
+9438 lh_z 0.300
+9444 left_grip 1
+9448 left_grip 0
+# right-behind
+9451 lh_x 0.766
+9451 lh_y 0.100
+9451 lh_z 0.866
+9457 left_grip 1
+9461 left_grip 0
+# behind
+9464 lh_x 0.200
+9464 lh_y 0.100
+9464 lh_z 1.100
+9470 left_grip 1
+9474 left_grip 0
+# left-behind
+9477 lh_x -0.366
+9477 lh_y 0.100
+9477 lh_z 0.866
+9483 left_grip 1
+9487 left_grip 0
+# left
+9490 lh_x -0.600
+9490 lh_y 0.100
+9490 lh_z 0.300
+9496 left_grip 1
+9500 left_grip 0
+# left-ahead
+9503 lh_x -0.366
+9503 lh_y 0.100
+9503 lh_z -0.266
+9509 left_grip 1
+9513 left_grip 0
+# low-ahead
+9516 lh_x 0.200
+9516 lh_y -0.650
+9516 lh_z -0.300
+9522 left_grip 1
+9526 left_grip 0
+# low-right
+9529 lh_x 0.700
+9529 lh_y -0.650
+9529 lh_z 0.000
+9535 left_grip 1
+9539 left_grip 0
+# low-left
+9542 lh_x -0.300
+9542 lh_y -0.650
+9542 lh_z 0.000
+9548 left_grip 1
+9552 left_grip 0
+9555 shot i09555-after-sweep
+9560 b 1
+9566 b 0
+9567 lh_x 0
+9567 lh_y 0
+9567 lh_z 0
+# --- the inventory's tabs with the zones read; out by B
+9585 y 1
+9591 y 0
+9625 hand_yaw -8
+9625 hand_pitch 32
+9655 right_trigger 1
+9661 right_trigger 0
+9695 right_trigger 1
+9701 right_trigger 0
+9755 shot j09755-options
+9760 hand_yaw 10.3
+9760 hand_pitch 23.3
+9775 hand_pitch 6.6
+9785 shot j09785-exit-hovered
+9790 b 1
+9796 b 0
+9810 a 1
+9816 a 0
+9835 b 1
+9841 b 0
+9855 shot j09855-closed
+9860 quit 0

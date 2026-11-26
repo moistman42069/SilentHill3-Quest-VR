@@ -1,0 +1,36 @@
+# SH3 Quest VR, the PC rig (session 12, for the run after vr190; build 164 or later), about 2.5 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-16400,22600" SH3_EVENT_SCAN=7300 SH3_EVENT_SCAN_EVERY=40
+# (no SH3_GIVE or SH3_EQUIP: her hands empty, as at the game's start)
+# LIST 45, a hand on a world thing other than Robbie: the start room's event 18 (trigger 1, the button's kind; flag B
+# 780 with events 17 and 19). Its region from vr189's "event table 18" line: bytes 14 5e 82 c6 45 fe b2 46 =
+# -16687, 22911; the scan's front points for it (-16150 22940 and -16705 22997) make it a strip along z 22950, 3 m
+# from her start (-16000 20000, facing +x). vr189's straight walk along -z to event 20 stopped at a railing, so:
+# 1. two snap turns LEFT (a right one raised her yaw 45: 90 to 180 in vr189), her facing +x to +z;
+# 2. the stick held: SH3_STEER_TO (sh3.c steer_rig) walks her to (-16400 22600), round anything in the way ("steer
+#    test: ... stuck ... degrees left of the line"), and stands her there ("point 1 ... reached");
+# 3. the right hand out 0.45 m (about 0.75 m before her eyes: z about 22967) feels it ("the right hand can use event
+#    18", a light tick), grips ("used event 18"), and what the game does shows in the pictures and sh3.log (a message,
+#    a door's sound, a room change); then B (a message closed).
+7330 right_x -1
+7338 right_x 0
+7346 right_x -1
+7354 right_x 0
+7370 shot d07370-facing-z
+7380 left_y 1
+7700 left_y 0
+7705 shot d07705-at-the-point
+7710 rh_z -0.45
+7710 rh_y 0.1
+7740 shot d07740-reach
+7750 right_grip 1
+7770 shot d07770-grip
+7775 right_grip 0
+7800 shot d07800-after
+7850 shot d07850-later
+7860 b 1
+7866 b 0
+7900 shot d07900-after-b
+7905 rh_z 0
+7905 rh_y 0
+7950 quit 0

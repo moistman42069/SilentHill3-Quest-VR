@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A rust-red ring with a halo's gap and a dot: the pointer's look (src/vr/pointer.h), no game artwork. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FF9C2A1E" android:pathData="M54,26 a28,28 0 1,0 0.01,0 Z M54,33 a21,21 0 1,1 -0.01,0 Z" />
+    <path android:fillColor="#FFD8D0C4" android:pathData="M54,48 a6,6 0 1,0 0.01,0 Z" />
+</vector>

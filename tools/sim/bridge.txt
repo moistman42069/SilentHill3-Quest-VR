@@ -1,0 +1,6 @@
+# SH3 Quest VR, the PC rig (session 10): the opening's bridge walk in her eyes (dynamic cutscenes, the default), frame
+# 2880, where vr146 and vr160 show two pole-like strips fixed in the view (part of her?). Run with SH3_VSC_DUMP=2880
+# (each of her draws in that frame: its parts and the cut it gets) and SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return",
+# no ALIGN. About 1 minute.
+2880 shot b02880-bridge
+2890 quit 0

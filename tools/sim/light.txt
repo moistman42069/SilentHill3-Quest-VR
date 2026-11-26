@@ -1,0 +1,4 @@
+# SH3 Quest VR, the PC rig (session 7): does the game's own light key (L, by SH3_KEYS) turn the flashlight on in this
+# save? About 2.5 minutes; the log tells each change (combat_flashlight).
+7318 right_grip 0
+7900 quit 0

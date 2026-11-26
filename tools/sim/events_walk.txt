@@ -1,0 +1,19 @@
+# SH3 Quest VR, the PC rig (session 10): walking from the start of play with the action check scanned round her
+# (LIST 45, "Take items with your hand"), about 3 minutes. Run with SH3_EVENT_SCAN=7300 SH3_EVENT_SCAN_EVERY=40
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return". The log's "event scan:" lines: her place every 40
+# frames and every event and floor item within 6 m of it, with where.
+7320 left_y 1
+7520 left_y 0
+7525 right_x 1
+7535 right_x 0
+7545 left_y 1
+7745 left_y 0
+7750 right_x -1
+7760 right_x 0
+7770 right_x -1
+7780 right_x 0
+7790 left_y 1
+7990 left_y 0
+7995 shot v07995-end
+8000 quit 0

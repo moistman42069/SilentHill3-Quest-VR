@@ -1,0 +1,125 @@
+# SH3 Quest VR, the PC rig (written in session 12 for the next run, vr190), about 3.3 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_EQUIP="2,3,1" SH3_EQUIP_EVERY=200
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0"
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_MEM_SNAP="7990,8020,8045,8075"
+# (the shotgun from the start of play, the submachine gun about 200 game frames on, the handgun 200 after that; the
+# script runs about 24-26 frames ahead of the game's frame numbers here, vr188).
+# 0. Build 160's uniform caching (LIST 6): every picture against vr187/vr188's like ones draws the same.
+# 1. LIST 52: the shotgun in both hands, its stock at the shoulder, the left hand swept along the barrel to the pump
+#    (weapons.txt's way), the eyes 20 degrees RIGHT (the sim's yaw is positive to the left: vr189's head_yaw 25 looked
+#    away from the gun) and 15 down: the pump hand, the thumbs and fingers on the gun whole in the picture.
+# 2. The same for the submachine gun (its left hand under the receiver).
+# 3. The handgun's slide cycling on a shot as its own faces (sh3vr_parts.cpp, 0.09 s): the trigger held, a picture
+#    every frame round where vr188's shot landed (38 script frames after the press).
+# 4. LIST 12: the inventory (Y), Options chosen by two pulls (vr189), then the pointer on the OPTIONS screen's "Exit"
+#    (hand_yaw 12, hand_pitch 56 from vr189's pictures: the tabs 12 degrees apart, Exit 24 degrees under the page
+#    arrow) and one pull: hovering an entry selects it (back to the inventory) or the click confirms the highlighted
+#    "Button Config" (its page, or the row two down after part 5's presses): which one the game does. Then B.
+# 5. LIST 12, build 161: before that pull, two down presses with the memory snapshots (SH3_MEM_SNAP, sh3.c): the
+#    dwords changed by each press and not in the quiet frames before are logged; the highlighted row's variable steps
+#    by one each time (or by its row's size). With it, VR's pointer can choose the OPTIONS screen's rows by hover (the
+#    game's menus read only the click, not where the cursor is: vr189).
+# --- 1. the shotgun (equipped at the start of play)
+7420 rh_y 0.1
+7420 rh_z 0.25
+7420 head_pitch -15
+7420 head_yaw -20
+7422 lh_x 0.4
+7422 lh_y 0.13
+7422 lh_z 0.15
+7422 left_grip 1
+7424 lh_z 0.10
+7426 lh_z 0.05
+7428 lh_z 0.0
+7430 lh_z -0.05
+7432 lh_z -0.10
+7434 lh_z -0.15
+7436 lh_z -0.20
+7438 lh_z -0.25
+7440 lh_z -0.30
+7442 lh_z -0.35
+7446 lh_z -0.18
+7462 shot c07462-shotgun-two-hands
+7466 shot c07466-shotgun-two-hands-b
+7470 left_grip 0
+7472 lh_x 0
+7472 lh_y 0
+7472 lh_z 0
+7472 rh_y 0
+7472 rh_z 0
+7472 head_yaw 0
+7472 head_pitch 0
+# --- 2. the submachine gun (equipped about script 7515)
+7600 rh_x 0.15
+7600 rh_z -0.1
+7600 head_pitch -25
+7600 head_yaw -15
+7602 lh_x 0.55
+7602 lh_y 0.0265
+7602 lh_z -0.15
+7610 left_grip 1
+7612 lh_z -0.17
+7614 lh_z -0.19
+7616 lh_z -0.21
+7618 lh_z -0.23
+7620 lh_z -0.25
+7624 lh_z -0.205
+7636 shot c07636-smg-two-hands
+7640 left_grip 0
+7642 lh_x 0
+7642 lh_y 0
+7642 lh_z 0
+7642 rh_x 0
+7642 rh_z 0
+7642 head_yaw 0
+7642 head_pitch 0
+# --- 3. the handgun (equipped about script 7715): the eyes 20 degrees down on it, the trigger at 7760
+7740 head_pitch -20
+7740 head_yaw -10
+7755 shot c07755-handgun-before
+7760 right_trigger 1
+7790 shot c07790-handgun-fire
+7792 shot c07792-handgun-fire
+7794 shot c07794-handgun-fire
+7795 shot c07795-handgun-fire
+7796 shot c07796-handgun-fire
+7797 shot c07797-handgun-fire
+7798 shot c07798-handgun-fire
+7799 shot c07799-handgun-fire
+7800 shot c07800-handgun-fire
+7802 shot c07802-handgun-fire
+7804 shot c07804-handgun-fire
+7806 right_trigger 0
+7806 head_pitch 0
+7806 head_yaw 0
+# --- 4. Options with the pointer; with SH3_MEM_SNAP="7990,8020,8045,8075" (game frames, about script 8015, 8045,
+# 8070, 8100) two down presses on the OPTIONS screen (left stick down, script 8050 and 8080) find its highlighted
+# row's variable (sh3.log "memory snapshots: ... (steps 1, 1)"), the pointer held still through them
+7820 y 1
+7826 y 0
+7860 hand_yaw -8
+7860 hand_pitch 32
+7905 shot c07905-on-options
+7910 right_trigger 1
+7916 right_trigger 0
+7945 shot c07945-options-selected
+7950 right_trigger 1
+7956 right_trigger 0
+8000 shot c08000-options-open
+8050 left_y -1
+8056 left_y 0
+8066 shot c08066-options-down-1
+8080 left_y -1
+8086 left_y 0
+8096 shot c08096-options-down-2
+8105 hand_yaw 12
+8105 hand_pitch 56
+8130 shot c08130-pointer-on-exit
+8135 right_trigger 1
+8141 right_trigger 0
+8180 shot c08180-after-exit-pull
+8220 shot c08220-after-exit-pull-later
+8230 b 1
+8236 b 0
+8270 shot c08270-back
+8300 quit 0

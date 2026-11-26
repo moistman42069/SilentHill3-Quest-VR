@@ -1,0 +1,146 @@
+# SH3 Quest VR, the PC rig (session 15, build 177), about 4 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="3,9,4" SH3_EQUIP_EVERY=200 SH3_BEAM_LOG=10 SH3_BEAM_VERTS=40 SH3_STEER_TO="-17386,21386;-17560,21570" SH3_EVENT_SCAN=8060
+# SH3_HAND_RAY_LOG=4
+# 1. beam saber (owner 61): vr204 lit it by the trigger alone, but the strip stayed at her animated hand and the hand's
+#    probes took it for a wall. Build 177: SH3_BEAM_VERTS logs the strip's vertices (its depths, its route); the
+#    candidate log counts only printed lines of small textures (vr205's fog quads used up its count).
+# 2. event 8 (Robbie the Rabbit, examine; owner 66): the steer on to -17560,21570 (vr205 stopped 0.2 m short of the
+#    button's range); the event scan from her very spot (which way the button finds it), then the
+#    free left hand 0.6 m out all round her in 16 ways, each closed: the hand's ray, then the game's reach.
+# --- beam saber (segment at script 7520; drawn at about 7480)
+7520 rh_y 0.1
+7520 rh_z -0.1
+7520 head_pitch -15
+7520 head_yaw -10
+7530 shot w07530-beam-held
+7540 right_trigger 1
+7570 shot w07570-beam-ready
+7590 shot w07590-beam-ready-2
+7600 rh_x 0.3
+7600 rh_z -0.05
+7610 rh_x -0.2
+7610 rh_z -0.4
+7612 shot w07612-beam-swing
+7625 shot w07625-beam-after-swing
+7640 right_trigger 0
+7650 rh_x 0
+7650 rh_y 0
+7650 rh_z 0
+7650 head_pitch 0
+7650 head_yaw 0
+# --- the door (event 8): walk there, then the left hand out all round her
+7850 right_x -1
+7854 right_x 0
+7858 right_x -1
+7862 right_x 0
+7866 right_x -1
+7870 right_x 0
+7880 left_y 1
+8200 left_y 0
+8205 shot i08205-at-event-8
+# 16 ways round her, 0.6 m out from her middle (0.2 right, 0.3 back of the left hand's rest)
+# 0.0 deg right of ahead
+8212 lh_x 0.200
+8212 lh_y 0.100
+8212 lh_z -0.300
+8219 left_grip 1
+8223 left_grip 0
+# 22.5 deg right of ahead
+8226 lh_x 0.430
+8226 lh_y 0.100
+8226 lh_z -0.254
+8233 left_grip 1
+8237 left_grip 0
+# 45.0 deg right of ahead
+8240 lh_x 0.624
+8240 lh_y 0.100
+8240 lh_z -0.124
+8247 left_grip 1
+8251 left_grip 0
+# 67.5 deg right of ahead
+8254 lh_x 0.754
+8254 lh_y 0.100
+8254 lh_z 0.070
+8261 left_grip 1
+8265 left_grip 0
+# 90.0 deg right of ahead
+8268 lh_x 0.800
+8268 lh_y 0.100
+8268 lh_z 0.300
+8275 left_grip 1
+8279 left_grip 0
+# 112.5 deg right of ahead
+8282 lh_x 0.754
+8282 lh_y 0.100
+8282 lh_z 0.530
+8289 left_grip 1
+8293 left_grip 0
+# 135.0 deg right of ahead
+8296 lh_x 0.624
+8296 lh_y 0.100
+8296 lh_z 0.724
+8303 left_grip 1
+8307 left_grip 0
+# 157.5 deg right of ahead
+8310 lh_x 0.430
+8310 lh_y 0.100
+8310 lh_z 0.854
+8317 left_grip 1
+8321 left_grip 0
+# 180.0 deg right of ahead
+8324 lh_x 0.200
+8324 lh_y 0.100
+8324 lh_z 0.900
+8331 left_grip 1
+8335 left_grip 0
+# 202.5 deg right of ahead
+8338 lh_x -0.030
+8338 lh_y 0.100
+8338 lh_z 0.854
+8345 left_grip 1
+8349 left_grip 0
+# 225.0 deg right of ahead
+8352 lh_x -0.224
+8352 lh_y 0.100
+8352 lh_z 0.724
+8359 left_grip 1
+8363 left_grip 0
+# 247.5 deg right of ahead
+8366 lh_x -0.354
+8366 lh_y 0.100
+8366 lh_z 0.530
+8373 left_grip 1
+8377 left_grip 0
+# 270.0 deg right of ahead
+8380 lh_x -0.400
+8380 lh_y 0.100
+8380 lh_z 0.300
+8387 left_grip 1
+8391 left_grip 0
+# 292.5 deg right of ahead
+8394 lh_x -0.354
+8394 lh_y 0.100
+8394 lh_z 0.070
+8401 left_grip 1
+8405 left_grip 0
+# 315.0 deg right of ahead
+8408 lh_x -0.224
+8408 lh_y 0.100
+8408 lh_z -0.124
+8415 left_grip 1
+8419 left_grip 0
+# 337.5 deg right of ahead
+8422 lh_x -0.030
+8422 lh_y 0.100
+8422 lh_z -0.254
+8429 left_grip 1
+8433 left_grip 0
+8436 shot i08436-after-sweep
+8441 b 1
+8447 b 0
+8448 lh_x 0
+8448 lh_y 0
+8448 lh_z 0
+8466 quit 0

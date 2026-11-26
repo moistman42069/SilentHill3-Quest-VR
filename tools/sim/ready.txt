@@ -1,0 +1,11 @@
+# SH3 Quest VR, the PC rig (session 6): the trigger's delay, about 2.2 minutes. Run with QUEST_SIM_ALIGN=7312
+# SH3_GIVE="10:10" SH3_EQUIP="1" SH3_PLAYER_DIFF=7400:7560 (sh3.log's "player diff" lines: what of Heather's struct
+# changes as the ready stance goes up after a fresh pull, as it fires, and as it goes down after the release).
+7404 hand_pitch -20
+7420 shot r07420-before
+7422 right_trigger 1
+7474 right_trigger 0
+7500 right_trigger 1
+7510 right_trigger 0
+7540 shot r07540-after
+7545 quit 0

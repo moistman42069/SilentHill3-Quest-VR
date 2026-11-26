@@ -1,0 +1,31 @@
+# SH3 Quest VR, the PC rig (session 6): where the view sits in her body as the head looks down, standing (no crouch),
+# about 2.4 minutes (a hand at the face and a crouch at the end). Run with QUEST_SIM_ALIGN=7312 SH3_BODY_LOG=10 QUEST_SIM_GRIP_TILT=50 (sh3.log's "VR body place"
+# lines: the eyes, the level eyes and her head, neck, chest, collar, shoulder and pelvis in cm from her feet).
+7330 head_pitch 0
+7350 shot l07350-level
+7360 head_pitch -30
+7380 shot l07380-down-30
+7390 head_pitch -55
+7410 shot l07410-down-55
+7420 head_pitch -75
+7440 shot l07440-down-75
+7450 head_pitch -55
+7451 head_yaw -50
+7470 shot l07470-down-55-right
+7480 head_yaw 50
+7500 shot l07500-down-55-left
+7505 head_yaw 0
+7506 head_pitch -10
+7507 rh_x -0.12
+7507 rh_y 0.28
+7507 rh_z 0.18
+7530 shot l07530-hand-at-face
+7532 rh_x 0
+7532 rh_y 0
+7532 rh_z 0
+7535 head_y -0.45
+7536 head_pitch -20
+7570 shot l07570-crouch
+7572 head_pitch -60
+7590 shot l07590-crouch-down
+7600 quit 0

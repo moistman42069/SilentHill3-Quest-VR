@@ -1,0 +1,20 @@
+# SH3 Quest VR, the PC rig: manual reload's data (LIST 46), about 3 minutes. Run with
+# SH3_GIVE="10:0,15:20,11:0,16:12,12:0,17:60,9:0,14:3" SH3_EQUIP="1,2,3,8" SH3_EQUIP_EVERY=360
+# SH3_MESH_DUMP="368,557,290,132" (every gun with none loaded and a reserve; the handgun first, then the shotgun, the
+# submachine gun and the stun gun, 360 frames of play each; each gun's mesh dumped as it is first drawn).
+# 1. Both controllers tracked ("Manual reload" on): the trigger at none loaded twice. The game's reload must be held
+#    back and the dry fire must leave the count at 0; the hint shows on the panel.
+# 2. The left controller lost: the game reloads each gun itself (its reload event's sound learned), the trigger held.
+7400 shot r07400-handgun-empty
+7420 right_trigger 1
+7450 shot r07450-dry-1
+7470 right_trigger 0
+7490 right_trigger 1
+7520 right_trigger 0
+7530 shot r07530-hint
+7560 left_gone 1
+7580 right_trigger 1
+7700 shot r07700-game-reload
+8560 right_trigger 0
+8600 shot r08600-end
+8620 quit 0

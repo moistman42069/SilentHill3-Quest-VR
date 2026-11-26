@@ -1,0 +1,14 @@
+# SH3 Quest VR, the PC rig: the handgun's reload (LIST 46), about 2.5 minutes. Run with SH3_GIVE="10:0,15:20"
+# SH3_EQUIP=1 (the handgun with none loaded and 20 in reserve): the trigger held three times, to see the game's own
+# attack decision (3 = its reload) and that a dry fire at none loaded is safe.
+7450 right_trigger 1
+7480 shot g07480-trigger-1
+7500 right_trigger 0
+7550 right_trigger 1
+7580 shot g07580-trigger-2
+7600 right_trigger 0
+7650 right_trigger 1
+7680 shot g07680-trigger-3
+7700 right_trigger 0
+7760 shot g07760-after
+7800 quit 0

@@ -1,0 +1,82 @@
+plugins {
+    id "com.android.application"
+}
+
+// SH3 Quest VR. What tools/build_quest.py stages in build/stage: the native libraries (libmain.so: the game, its VR
+// and the runtime; libSDL2.so; libopenxr_loader.so) and SDL2's Java (org.libsdl.app, from its source's android-project).
+def stage = new File(rootDir, "build/stage")
+
+// Our release key (never in the repository): every release signed with it installs over the last one and the
+// launcher's updater accepts it. tools/build_quest.py --release checks the result against tools/release-cert.sha256.
+def signing = new File(System.getenv("SH3QUEST_SIGNING") ?: "C:/SH3Quest/keys/release.properties")
+def signingProps = new Properties()
+if (signing.isFile()) {
+    signing.withInputStream { signingProps.load(it) }
+}
+
+android {
+    namespace "dev.sh3quest.vr"
+    compileSdk 34
+    buildToolsVersion "34.0.0"
+
+    defaultConfig {
+        applicationId "dev.sh3quest.vr"
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0"
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs += [new File(stage, "java")]
+            jniLibs.srcDirs = [new File(stage, "jniLibs")]
+            assets.srcDirs = ["src/main/assets", new File(stage, "assets")]
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (signing.isFile()) {
+                storeFile file(signingProps["storeFile"])
+                storePassword signingProps["storePassword"]
+                keyAlias signingProps["keyAlias"]
+                keyPassword signingProps["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+            signingConfig signing.isFile() ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}

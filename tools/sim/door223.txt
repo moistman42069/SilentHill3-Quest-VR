@@ -1,0 +1,26 @@
+# SH3 Quest VR, the PC rig (session 15, build 192), about 4 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244" SH3_EVENT_SCAN=8100 SH3_EVENT_SCAN_EVERY=60 SH3_HAND_RAY_LOG=8
+# (no weapons given: her hands as the game starts them)
+# LIST 45, toward a floor item by hand: the opening's entrance door (event 5, vr222: used by the left hand straight
+# ahead of her at -13406 23244), then the second area: its events and floor items logged (the scan, once a room).
+7740 left_y 1
+8100 left_y 0
+8105 shot j08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8200 shot j08200-second-area
+8260 head_yaw 90
+8270 shot j08270-look-right
+8280 head_yaw -90
+8290 shot j08290-look-left
+8300 head_yaw 180
+8310 shot j08310-look-back
+8320 head_yaw 0
+8380 quit 0

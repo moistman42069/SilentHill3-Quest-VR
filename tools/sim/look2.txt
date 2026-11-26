@@ -1,0 +1,6 @@
+# SH3 Quest VR, the PC rig (session 6): her draws while looking down 75 degrees, about 2.1 minutes. Run with
+# QUEST_SIM_ALIGN=7312 SH3_VSC_DUMP=7352 SH3_BODY_LOG=10 QUEST_SIM_GRIP_TILT=50 (sh3.log's "VR body: her draw" lines:
+# each of her draws, its parts and what it is cut or faded by).
+7318 head_pitch -75
+7345 shot m07345-down-75
+7360 quit 0

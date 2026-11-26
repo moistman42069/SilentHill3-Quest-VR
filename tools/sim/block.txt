@@ -1,0 +1,31 @@
+# SH3 Quest VR, the PC rig (session 9): physical blocking (LIST 50), about 2.5 minutes with the load. The start has no
+# monster, so SH3_HIT_TEST puts a hit on her (1 m ahead at her chest's height, coming at her, 20 damage, as a monster's
+# would be added) while her guard is up and while it is down. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_GIVE="10:10" SH3_EQUIP=1 SH3_HIT_TEST="7345:20,7385:20,7425:20,7465:20"
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" and no SH3_HP (her health must be free to drop).
+# 1. The handgun held up ahead of her face: guarded by the gun, half kept (her health 100 -> 90).
+# 2. Both hands down at her sides: not guarded, all of it (90 -> 70).
+# 3. The left arm held out ahead at eye height, the gun down: guarded by the arm, 60% kept (70 -> 58; vr147 missed it:
+#    the angle was taken in 3D, and a guard before the face sits high over the chest; now taken flat).
+# 4. The left forearm across the face, its hand to the right (hand_yaw -80): the arm again (58 -> 46).
+# vr147 (build 122): her health never dropped: her damage step takes a hit only with the kind word +0x16C set.
+# The log: "hit test:" (the hit and her health after it), "a hit on her ..." and "guarded by ..." (VR's verdict).
+7318 head_pitch -10
+7318 rh_y 0.30
+7318 rh_z -0.15
+7318 lh_y -0.20
+7318 lh_z 0.20
+7340 shot g07340-guard-gun
+7360 rh_y -0.20
+7360 rh_z 0.20
+7380 shot g07380-open
+7400 lh_x 0.15
+7400 lh_y 0.30
+7400 lh_z -0.05
+7420 shot g07420-guard-arm
+7440 lh_x 0.28
+7440 lh_y 0.25
+7440 lh_z 0.0
+7440 hand_yaw -80
+7460 shot g07460-guard-across
+7472 quit 0

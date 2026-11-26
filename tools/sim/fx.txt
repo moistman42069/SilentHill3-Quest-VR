@@ -1,0 +1,55 @@
+# SH3 Quest VR, the PC rig (session 6): her body from her eyes, and the guns' shots and effects; about 2.5 minutes. Run
+# with  QUEST_SIM_ALIGN=7312 SH3_GIVE="10:10,15:20,11:4,16:12" SH3_EQUIP="1,2" SH3_EQUIP_EVERY=300
+# QUEST_SIM_GRIP_TILT=50 (the frames from 7312 on count from the first frame of first person in play; the handgun in
+# the hand from the start, the shotgun about 7566).
+# Her body looking down at 30, 55 and 75 degrees and to the right side (whole: no skirt or edges of her top left
+# floating, nothing sticking out or out of line); then the handgun fired at the floor ahead, a picture every second
+# frame about the shot (a fresh pull fires about 22 frames later with Quick gun raise, 47 without), the muzzle flash at the gun in
+# the hand, the shot's mark where the guide dot is; then the shotgun the same way.
+7318 head_y -0.15
+7322 head_pitch -30
+7340 shot f07340-look-down-30
+7342 head_pitch -55
+7360 shot f07360-look-down-55
+7362 head_pitch -75
+7380 shot f07380-look-down-75
+7382 head_pitch -45
+7383 head_yaw -60
+7400 shot f07400-look-right-side
+7402 head_yaw 0
+7403 head_pitch -20
+7404 hand_pitch -20
+7420 shot f07420-handgun-aim
+7422 right_trigger 1
+7432 shot f07432-handgun-fire
+7434 shot f07434-handgun-fire
+7436 shot f07436-handgun-fire
+7438 shot f07438-handgun-fire
+7440 shot f07440-handgun-fire
+7442 shot f07442-handgun-fire
+7444 shot f07444-handgun-fire
+7446 shot f07446-handgun-fire
+7448 shot f07448-handgun-fire
+7450 shot f07450-handgun-fire
+7452 shot f07452-handgun-fire
+7454 shot f07454-handgun-fire
+7456 shot f07456-handgun-fire
+7458 shot f07458-handgun-fire
+7460 shot f07460-handgun-fire
+7474 right_trigger 0
+7490 shot f07490-handgun-after
+7590 shot f07590-shotgun-aim
+7592 right_trigger 1
+7600 shot f07600-shotgun-fire
+7603 shot f07603-shotgun-fire
+7606 shot f07606-shotgun-fire
+7609 shot f07609-shotgun-fire
+7612 shot f07612-shotgun-fire
+7615 shot f07615-shotgun-fire
+7618 shot f07618-shotgun-fire
+7621 shot f07621-shotgun-fire
+7624 shot f07624-shotgun-fire
+7627 shot f07627-shotgun-fire
+7660 right_trigger 0
+7675 shot f07675-shotgun-after
+7690 quit 0

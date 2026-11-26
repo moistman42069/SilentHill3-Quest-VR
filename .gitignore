@@ -1,3 +1,17 @@
+.venv
 build/
+/game
+src/recomp/gen/
+__pycache__/
+build-switch.log
+dist/
+*.nro
+sh3-progs.bin
+icon.jpg.bak
+.gradle/
+local.properties
+*.jks
+*.keystore
+release.properties
 *.apk
 *.log

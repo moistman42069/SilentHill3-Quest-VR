@@ -1,0 +1,4 @@
+# SH3 Quest VR, the PC rig: the opening's real-time scene up to frame 5300, for SH3_VSC_DUMP=5280 (Heather's model and
+# parts as the scenes draw her: which bones each part uses, tools/palette_bones.py). About 1.5 minutes.
+5280 shot c05280
+5300 quit 0

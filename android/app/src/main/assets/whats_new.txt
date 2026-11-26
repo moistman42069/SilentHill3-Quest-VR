@@ -1,0 +1,57 @@
+The first release: Silent Hill 3 in VR on the Quest, standalone, from your own PC copy of the game.
+
+- First person at Heather's eyes, head and hands tracked (6DoF); walk in your room and she walks. Third person with the
+  game's own camera whenever you like: hold the left menu button for a second.
+- Cutscenes play around you, in the scene at the game's camera (or first person, or a cinema screen: Options, View).
+- The game's movies play: the opening, the endings and the others, on a big cinema screen in front of you with their
+  sound (they were skipped before). Skip one with the game's own button, as on the PC.
+- Dynamic cutscenes: through Heather's eyes while the scene shows her, from the game's camera when it shows something
+  else or her face up close. Off for steady third-person cutscenes: Options, View.
+- Every weapon in your hand: aim where the gun points (a red guide dot shows it), hold long guns, the pipe, the katana
+  and the maul with both hands.
+- Physical melee: swing to hit, where the weapon really goes. Punch with empty hands (half the weakest weapon's hit);
+  club with a gun.
+- Holsters on your body: your gun over your right shoulder, your melee weapon on your right hip, each giving back the
+  one you last put there; supplies in a belt pouch, the flashlight in your chest pocket.
+- Spatial sound: every sound in the world comes from where it is around your head; turn your head and it stays put,
+  and sounds behind you are softer. Options, View.
+- Manual reload: drop the magazine (right stick down), take a new one from the ammo pouch at the front of your belt and
+  push it into the gun; shells into the shotgun one at a time; then rack the handgun's slide, the submachine gun's
+  knob or the shotgun's pump, and see them move. The game's own ammo and reload sounds, no free rounds; hints on the
+  screen for your first reloads. Options, Hands and weapons.
+- Heather's whole body follows yours: her own arms, hands and fingers go where your hands are, she leans, crouches,
+  turns her head and steps as you do, and her body fades where it would fill your view. Her fingers stop on walls and
+  objects; a ghost of her hand shows where yours is when it goes into a wall. Close your hand on an item or a door to
+  take or use it.
+- Her health and stamina on her watch: turn your left wrist toward you and look at it (health on top, pulsing as the
+  game's own Life Display does when it runs low; stamina under it, draining as she runs). In first person the
+  watch takes the place of the game's HUD; third person shows the game's normal HUD.
+- The flashlight on her chest moves with her as you crouch or lean, and lights your hands and arms where they are in
+  its beam, the side away from it dark.
+- Her shadow: her whole body as you move it, her hands and fingers, and the weapon or the magazine you hold cast
+  shadows in the flashlight's beam, in the game's own shadows (her raised hand darkens the beam on the floor and walls
+  ahead; her legs' shadows fall at her feet). Turn it off or on any time: "Heather's shadow" on the VR menu's View
+  page (or the launcher's Options, View).
+- Block: hold your weapon or your forearm up between you and a monster and its hit does less damage.
+- Shake to break free: when a monster knocks Heather down or grabs her, shake your controllers to get free sooner
+  (the buttons still work too). Options, Hands and weapons.
+- A sound for everything your hands do, heard from where they are: holsters, the pouch, the slide, the pump, a
+  magazine, a hand on a wall, a gun knocked on one.
+- A Silent Hill pointer for every screen: menus, the inventory, the map, memos, puzzles. Point at what you want and
+  pull the trigger; your hand ticks and the dot grows on each thing a pull can choose, and a pull still works after
+  holding the beam still while you read.
+- Screens and messages made for VR: the inventory, the map, memos and menus open whole on a screen in front of you,
+  fading in, and stay put while you point at them (turn far away and they come round to you); what Heather says
+  about a thing shows right next to it, and subtitles sit low in your view. Options, View.
+- The VR menu in the game (pause, then hold the left menu button) and the same options here, every VR feature on and
+  the Quest 3's best performance options from the start.
+- Both eyes are drawn together in one pass (each of the game's draws goes to both eyes at once), at 120 Hz with
+  Smoother frames (AppSW) to start. A Quest 3 or 3S draws at the top resolution, and Dynamic resolution draws the
+  game's 3D picture a little smaller for a moment whenever the headset starts falling behind (Options, Performance).
+- Vibration for shots, hits, holsters, weapon changes, walls and floors under your hands, pickups and footsteps; a
+  heartbeat at low health. Each kind can be turned off (Options, Vibration).
+- Comfort: snap or smooth turning, a vignette, seated play, your height.
+- The launcher copies the game in from a folder or a .zip, checks every file, brings in your PC saves, shows the logs
+  and shares a report. Updates come from the project's GitHub releases.
+
+Known for now: the extra weapons stay in Heather's own hand.

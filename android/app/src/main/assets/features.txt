@@ -1,0 +1,31 @@
+Dynamic cutscenes (on)
+In a cutscene you see through Heather's eyes while the scene shows her, and from the game's camera when it shows
+something else or her face up close. For steady third-person cutscenes, always from the game's camera: Options, View,
+turn "Dynamic cutscenes" off. "Cutscenes" there also offers first person all the way, or a cinema screen.
+
+Your hands are hers
+Her arms, hands and fingers follow yours. Her fingers stop on walls and objects; close your hand on an item, a handle
+or a door to take or use it. Turn your left wrist toward you and look at her watch: her health and stamina show there.
+
+Weapons
+Grip at your right shoulder for your gun, at your right hip for your melee weapon; let go there to put it back. Supplies
+are in the pouch at your belt, the flashlight in your chest pocket. Swing to hit; hold a weapon or your forearm up
+between you and a monster to block. Reload by hand: right stick down drops the magazine, take a new one from the front
+of your belt and push it in, then rack the slide. When a monster knocks you down or grabs you, shake your controllers to
+get free.
+
+Controls
+Left stick walks (click it to run), right stick turns. The main trigger fires; melee weapons you swing. A is the action
+button, X the map, Y the inventory, B the supplies. A short press of the left menu button pauses; hold it for a second
+for third person; pause and hold it for the VR menu. The Controls tab has the whole list.
+
+Comfort
+Snap or smooth turning, a vignette while turning, seated play and your height are on the Options tab, Comfort.
+
+Picture and performance
+120 Hz with Smoother frames (AppSW), foveated rendering at Medium, and on a Quest 3 or 3S the top resolution, with
+Dynamic resolution drawing the 3D picture a little smaller for a moment if the headset starts falling behind. Both
+eyes are drawn together in one pass: each of the game's draws goes to both eyes at once, so the work of a frame is done
+once.
+
+Every VR feature is on from the start; each one can be turned off on the Options tab or in the VR menu in the game.

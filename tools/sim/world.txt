@@ -1,0 +1,118 @@
+# SH3 Quest VR, the PC rig (session 8): her hands on the world, as Half-Life: Alyx's and our Jak and Ratchet ports
+# (the owner: "should go for all world items really. drawers, objects, handles, doors, etc."; "im not seeing the
+# fingers/hands properly bending to the walls ... i want it similar to half life alyx/our other ports"), about 2.9
+# minutes. The same set-up as flashlight.txt (QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0).
+# Run with SH3_SURF_DUMP=7778 (the wall) or 7368 (the floor) to log each hand's surface points and planes for three frames there.
+# 1. At the start (a solid floor to her left, the grating to her right): she crouches and looks down to the left; the
+#    left hand is laid flat on the floor (hand_roll -90: its palm down, its fingers ahead and to the left), then grips
+#    it, then pokes it fingers first (hand_roll 0).
+# 2. She walks into the brick wall ahead (head-directed; the wall stops her). The right hand is pushed 13 cm into it
+#    fingers first (it stops at its fingertips, bent back against it), then grips (a fist against the wall); then it is
+#    turned palm to the wall, its fingers up (hand_yaw 90, hand_pitch 50, hand_roll -180) and pushed in (the palm flat
+#    on it, the fingers lying on it), then grips
+#    (the fingertips on the bricks).
+# 3. The bench against the wall to her left (vr126's looks: its near end about 0.7 m away): she turns left and walks
+#    along the wall to its end, crouches and leans over it (head_x -0.15: vr127, the seat starts 45 cm ahead of her
+#    eyes, past her reach), and lays the right hand palm down on the seat, its fingers
+#    toward the seat's front edge (hand_yaw -140, hand_roll 90), then grips; then 18 cm nearer the edge in the room (head_z 0.15 and rh_z 0.43 both move it: vr129 stopped 6-10 cm short, vr130 at +24 cm had the tips at the edge, vr131 at +38 cm the whole hand past it; the fingers
+#    out over it, to curl down over it: an edge, two faces) and grips again.
+# The sim's hands are 0.3 m ahead of the head and 0.35 m below it (its eyes 1.7 m up), turned with the head's yaw (not
+# its pitch); the rh_/lh_ offsets are in the room's axes. Her arm reaches about 0.58 m from the shoulder (vr124: past
+# it the ghost hand shows): crouched to head_y -1.15 a hand at the floor is within it (tools: the offsets from the scratch simpose.py sums). hand_yaw/hand_roll turn both
+# hands (the other one is kept out of the way). A gripping hand rests its index on the trigger and its thumb on the
+# rest, as a player's does. The log tells each hand on a surface ("rests on", "grips": the plane, how far the palm and
+# the fingers are from it, each finger's curl).
+7318 right_grip 0
+7330 shot w07330-start
+7332 head_y -1.15
+7332 head_pitch -50
+7332 head_yaw 40
+7332 hand_roll -90
+7332 lh_y -0.23
+7332 lh_x -0.014
+7332 lh_z -0.099
+7332 hand_yaw -10
+7332 rh_y 0.25
+7370 shot w07370-floor-palm
+7372 left_first_touch 1
+7372 left_thumb_touch 1
+7372 left_grip 1
+7395 shot w07395-floor-grip
+7397 left_grip 0
+7397 left_first_touch 0
+7397 left_thumb_touch 0
+7397 hand_roll 0
+7397 hand_yaw 0
+7420 shot w07420-floor-poke
+7422 head_y 0
+7422 head_pitch 0
+7422 head_yaw 0
+7422 lh_y 0
+7422 lh_x 0
+7422 lh_z 0
+7422 rh_y 0
+7432 left_y 1
+7530 shot w07530-walking
+7740 left_y 0
+7750 shot w07750-walked
+7760 head_yaw -10
+7760 head_pitch -15
+7760 rh_x -0.049
+7760 rh_z -0.169
+7760 rh_y 0.15
+7760 lh_y -0.2
+7780 shot w07780-wall-poke
+7782 right_first_touch 1
+7782 right_thumb_touch 1
+7782 right_grip 1
+7805 shot w07805-wall-poke-grip
+7807 right_grip 0
+7807 right_first_touch 0
+7807 right_thumb_touch 0
+7807 hand_yaw 90
+7807 hand_pitch 50
+7807 hand_roll -180
+7830 shot w07830-wall-palm
+7832 right_first_touch 1
+7832 right_thumb_touch 1
+7832 right_grip 1
+7855 shot w07855-wall-palm-grip
+7857 right_grip 0
+7857 right_first_touch 0
+7857 right_thumb_touch 0
+7857 hand_yaw 0
+7857 hand_pitch 0
+7857 hand_roll 0
+7857 rh_x 0
+7857 rh_y -0.3
+7857 rh_z 0
+7857 lh_y -0.3
+7857 head_yaw 90
+7857 head_pitch -20
+7860 left_y 1
+7900 left_y 0
+7905 shot w07905-bench-walked
+7906 head_y -0.7
+7906 head_pitch -50
+7906 hand_yaw -140
+7906 hand_roll 90
+7906 rh_x -0.07
+7906 head_x -0.15
+7906 rh_y -0.18
+7906 rh_z 0.2
+7935 shot w07935-bench-edge
+7937 right_first_touch 1
+7937 right_thumb_touch 1
+7937 right_grip 1
+7960 shot w07960-bench-edge-grip
+7962 right_grip 0
+7962 right_first_touch 0
+7962 right_thumb_touch 0
+7962 rh_z 0.43
+7962 head_z 0.15
+7985 shot w07985-bench-edge-out
+7987 right_first_touch 1
+7987 right_thumb_touch 1
+7987 right_grip 1
+8010 shot w08010-bench-edge-out-grip
+8012 quit 0

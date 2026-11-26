@@ -1,0 +1,42 @@
+# SH3 Quest VR, the PC rig (session 11, ask 28 "drawers, objects, handles, doors"): walk to the start room's event 10
+# (its region a 0.55 m edge along x at z 18997, x -16759 to -16489; vr171's scan: reached facing -z from near
+# -16600 19300), reach the right hand out to it, feel it ("the right hand can use event N"), close it ("the right hand
+# used event N"), pictures before, reaching, closed and after. About 2.5 minutes. Run with SH3_EVENT_SCAN=7300
+# SH3_EVENT_SCAN_EVERY=40 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" (the scan's lines give her place every 40 frames).
+# session 11: the opening scene's subtitles (low in the view) before play (headset frames from the start)
+6200 shot v06200-subtitles
+6260 shot v06260-subtitles
+# facing 90 (+x) -> 180 (-z): two snap turns right
+7320 right_x 1
+7328 right_x 0
+7336 right_x 1
+7344 right_x 0
+# walk about 700 units along -z
+7350 left_y 1
+7406 left_y 0
+# 180 -> 270 (-x)
+7415 right_x 1
+7423 right_x 0
+7431 right_x 1
+7439 right_x 0
+# walk about 600 units along -x
+7450 left_y 1
+7500 left_y 0
+# back to 180 (-z), facing the edge
+7510 right_x -1
+7518 right_x 0
+7526 right_x -1
+7534 right_x 0
+7560 shot v07560-before
+# the right hand out ahead at chest height
+7570 rh_z -0.45
+7570 rh_y 0.1
+7590 shot v07590-reach
+7600 right_grip 1
+7615 shot v07615-grip
+7620 right_grip 0
+7630 shot v07630-msg
+7650 shot v07650-msg
+7680 shot v07680-after
+7700 quit 0

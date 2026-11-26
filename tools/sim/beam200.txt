@@ -1,0 +1,15 @@
+# SH3 Quest VR, the PC rig (session 14, build 174), about 2.7 minutes: the beam saber's beam (owner 61). vr199: the
+# trigger held lights the beam (the game's ready, action 7, flag 0x712C66B), but the beam is drawn where the game's own
+# animated hand holds the saber, not at the hilt in her hand. Its draw found here: SH3_ROUTE_DUMP and SH3_VSC_DUMP in
+# a frame with the beam whole. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0" SH3_EQUIP="4,9" SH3_EQUIP_EVERY=40 SH3_BEAM_LOG=10 (vr200-201 gave item 9 only: the stun gun, not the beam saber)
+# SH3_ROUTE_DUMP=7400 SH3_VSC_DUMP=7400
+7318 rh_y 0.1
+7318 rh_z -0.1
+7318 head_pitch -15
+7318 head_yaw -10
+7330 right_trigger 1
+7395 shot w07395-beam-on
+7412 shot w07412-beam-on-2
+7414 right_trigger 0
+7440 quit 0

@@ -1,0 +1,41 @@
+# SH3 Quest VR, the PC rig: spatial sound (LIST 34) and the submachine gun's moving knob (LIST 46), about 2.5 minutes.
+# Run with SH3_GIVE="12:0,17:60" SH3_EQUIP="3" QUEST_SIM_GRIP_TILT=50 (and SH3_WAV=file to keep the mix). sh3.log:
+# "spatial sound: the game's listener is its camera's view (checked ...)", then every half second "a 3D sound at x z
+# from the eyes": standing still, a sound's place turns the other way as the head turns (head_yaw 0, 90, 180, -90),
+# and "behind" rises as it comes behind the head. First the knob (as tools/sim/cocking.txt): "the moving part of the
+# 557-vertex gun now -19.6 0.0 0.0 from rest" while it is held back, 0 after.
+7380 rh_x 0.15
+7380 rh_z -0.1
+7420 right_y -1
+7430 right_y 0
+7440 lh_x 0.10
+7440 lh_y -0.277
+7440 lh_z 0.24
+7450 left_grip 1
+7470 lh_x 0.55
+7470 lh_y -0.168
+7470 lh_z -0.0491
+7480 lh_y -0.1195
+7480 lh_z -0.0611
+7490 left_grip 0
+7500 lh_x 0.62
+7500 lh_y 0.12
+7500 lh_z -0.02
+7510 left_grip 1
+7520 lh_z 0.03
+7540 left_grip 0
+7550 lh_x 0
+7550 lh_y 0
+7550 lh_z 0
+7550 rh_x 0
+7550 rh_z 0
+# The head turned in place (the body follows it within a second), then a few steps forward.
+7600 head_yaw 0
+7700 head_yaw 90
+7800 head_yaw 180
+7900 head_yaw -90
+8000 head_yaw 0
+8020 left_y 0.8
+8090 left_y 0
+8100 shot s08100-after-walk
+8120 quit 0

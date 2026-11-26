@@ -1,0 +1,18 @@
+# SH3 Quest VR, the PC rig (session 7): which draw shows a fault looking down 65 degrees (the sliver out of her top's
+# left side), about 2 minutes. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0
+# SH3_VSC_DUMP=7470 SH3_HIDE_DRAWS="7480:179-207,7494:179-186,7508:187-198,7522:199-207,7536:185-186,7550:179-184,
+# 7564:0-178,7578:" and "body_fade = 0" in the game folder's sh3vr.ini. Each picture 7 script frames after its range
+# goes (the game's frames run -2 to +7 from the script's).
+7318 right_grip 1
+7318 right_thumb_touch 1
+7318 head_pitch -65
+7470 shot d07470-all
+7487 shot d07487-hide-179-207
+7501 shot d07501-hide-179-186
+7515 shot d07515-hide-187-198
+7529 shot d07529-hide-199-207
+7543 shot d07543-hide-185-186
+7557 shot d07557-hide-179-184
+7571 shot d07571-hide-0-178
+7585 shot d07585-none
+7592 quit 0

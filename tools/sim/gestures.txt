@@ -1,0 +1,35 @@
+# SH3 Quest VR, the PC rig (session 6): finger gestures and her shadow, about 2 minutes. Run with QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 (no weapon: the right hand free). The right hand raised before the eyes: a point (grip held,
+# index off the trigger), a thumbs up (thumb lifted), the middle finger (trigger pulled, grip half held, thumb down),
+# a fist, an open hand; then looking down at her body and her shadow on the floor, the hand pointing.
+7318 head_pitch -15
+7318 rh_y 0.35
+7318 rh_z -0.15
+7318 hand_pitch 60
+7330 right_grip 1
+7330 right_thumb_touch 1
+7345 shot g07345-point
+7350 right_first_touch 1
+7350 right_thumb_touch 0
+7365 shot g07365-thumbs-up
+7370 right_trigger 1
+7370 right_grip 0.45
+7370 right_thumb_touch 1
+7390 shot g07390-middle
+7395 right_grip 1
+7410 shot g07410-fist
+7415 right_grip 0
+7415 right_trigger 0
+7415 right_first_touch 0
+7415 right_thumb_touch 0
+7430 shot g07430-open
+7435 rh_y 0
+7435 rh_z 0
+7435 hand_pitch 0
+7435 right_grip 1
+7435 right_thumb_touch 1
+7435 head_pitch -65
+7460 shot g07460-down
+7465 head_yaw 120
+7490 shot g07490-down-turned
+7500 quit 0

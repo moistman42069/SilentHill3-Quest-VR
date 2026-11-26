@@ -1,0 +1,22 @@
+# SH3 Quest VR, the PC rig (session 13): the extra weapons in the hand (LIST 24), about 3 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="5:0,6:0,7:0,8:0,13:0" SH3_EQUIP="9,10,13,14,17"
+# SH3_EQUIP_EVERY=150 SH3_WEAPON_BONES=1 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# (items 5, 6, 7, 8, 13 are weapons 9, 10, 13, 14, 17 by 0x6BDD4C's table; one equipped every 150 game frames of play
+# from the start; the script runs about 25 frames ahead of the game's numbers.)
+# The log: "weapon bones: weapon N ... a skinned draw nv/np" (each extra's draws), "weapon model: ..." (its model),
+# and build 165's "VR: <name> (weapon N, no hold of its own): in the hand, carried from her animated hand to her hand
+# as posed". Each picture x<frame>-<weapon>: the right hand held out ahead and a little right, the eyes on it: the
+# extra in her hand at the controller, whole, the right way round (not floating where her animated hand would be).
+7330 rh_x 0.05
+7330 rh_y 0.12
+7330 rh_z -0.15
+7330 head_pitch -12
+7330 head_yaw -8
+7415 shot x07415-w9
+7565 shot x07565-w10
+7715 shot x07715-w13
+7865 shot x07865-w14
+8015 shot x08015-w17
+8020 hand_pitch 40
+8030 shot x08030-w17-tilted
+8040 quit 0

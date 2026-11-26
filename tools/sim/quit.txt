@@ -1,0 +1,2 @@
+# SH3 Quest VR, the PC rig (session 7): play starts, then quits (for SH3_MESH_DUMP and the like), about 1 minute.
+7330 quit 0

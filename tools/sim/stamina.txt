@@ -1,0 +1,19 @@
+# SH3 Quest VR, the PC rig (session 9): where SH3 keeps her stamina (owner message 37: "silent hill 3 has a health and
+# stamina bar"; guides: the Life Display's green bar, spent by the Heather Beam's shots), about 2.5 minutes. The beam
+# is weapon 17 (its other mode 18), the inventory's item 13. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_GIVE="13:0" SH3_EQUIP=17 SH3_PLAYER_DIFF=7330:7470 SH3_PEEK=712C660,712C664,712C668,712C66C,712C670,712C674
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return": her work struct's changed fields each frame (the
+# log's "player diff"): a value falling with each shot and rising again after is the stamina.
+7318 head_pitch -5
+7318 rh_y 0.25
+7318 rh_z -0.25
+7340 right_trigger 1
+7344 right_trigger 0
+7360 right_trigger 1
+7364 right_trigger 0
+7380 right_trigger 1
+7384 right_trigger 0
+7390 shot t07390-beam
+7400 right_trigger 1
+7430 right_trigger 0
+7470 quit 0

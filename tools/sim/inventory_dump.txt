@@ -1,0 +1,5 @@
+# session 11: the inventory open, one frame of draws dumped (SH3_ROUTE_DUMP=7400). About 1.5 minutes.
+7320 y 1
+7326 y 0
+7400 shot d07400
+7420 quit 0

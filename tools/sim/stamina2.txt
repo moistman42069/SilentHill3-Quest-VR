@@ -1,0 +1,83 @@
+# SH3 Quest VR, the PC rig (session 9): her stamina (owner message 37), about 3 minutes. 0x712C620 (a float) grows as
+# she moves (0x4B3F60: speed squared times the frame time, by her movement state 0x712C190) up to 0x712C624, falls
+# while she rests, and past 30% of it her tired breathing blends in (0x4D4DB1); healing items clear it. Here she runs
+# in a wide circle for 10 s (the left stick held forward, its click held to run, the head turned 12 degrees each
+# 20 frames: head-directed movement), then stands 5 s. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_GIVE="0:0" SH3_EQUIP=0 SH3_PEEK=712C620,712C624,712C190,712C108
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"; the log's "peek" lines each 60 frames.
+# Session 10: also SH3_LIFE_BARS=1 SH3_LIFE_DISPLAY=1 SH3_HP=40 (the game's Life Gauge and its Life Display cross forced
+# on): in first person neither may be in the eyes (m07700, m08510: no yellow, green or red in the top-left 500 x 120 and
+# the lower part); after the left menu button held 1.25 s (third person) both go to the panel (m08760, m08800). About
+# 2.2 minutes.
+7318 left_y 1
+7318 left_click 1
+7340 head_yaw 12
+7360 head_yaw 24
+7380 head_yaw 36
+7400 head_yaw 48
+7420 head_yaw 60
+7440 head_yaw 72
+7460 head_yaw 84
+7480 head_yaw 96
+7500 head_yaw 108
+7520 head_yaw 120
+7540 head_yaw 132
+7560 head_yaw 144
+7580 head_yaw 156
+7600 head_yaw 168
+7620 head_yaw 180
+7640 head_yaw 192
+7660 head_yaw 204
+7680 head_yaw 216
+7700 head_yaw 228
+7720 head_yaw 240
+7740 head_yaw 252
+7760 head_yaw 264
+7780 head_yaw 276
+7800 head_yaw 288
+7820 head_yaw 300
+7840 head_yaw 312
+7860 head_yaw 324
+7880 head_yaw 336
+7900 head_yaw 348
+7920 head_yaw 0
+7940 head_yaw 12
+7960 head_yaw 24
+7980 head_yaw 36
+8000 head_yaw 48
+8020 head_yaw 60
+8040 head_yaw 72
+8060 head_yaw 84
+8080 head_yaw 96
+8100 head_yaw 108
+8120 head_yaw 120
+8140 head_yaw 132
+8160 head_yaw 144
+8180 head_yaw 156
+8200 head_yaw 168
+8220 head_yaw 180
+8240 head_yaw 192
+8260 head_yaw 204
+8280 head_yaw 216
+8300 head_yaw 228
+8320 head_yaw 240
+8340 head_yaw 252
+8360 head_yaw 264
+8380 head_yaw 276
+8400 head_yaw 288
+8420 head_yaw 300
+8440 head_yaw 312
+8460 head_yaw 324
+8480 head_yaw 336
+8500 head_yaw 348
+8520 head_yaw 0
+8520 left_y 0
+8520 left_click 0
+8520 head_yaw 0
+7700 shot m07700-running
+8510 shot m08510-tired
+8600 menu 1
+8690 menu 0
+8760 shot m08760-third
+8800 shot m08800-third-pulse
+8820 quit 0

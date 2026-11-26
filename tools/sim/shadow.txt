@@ -1,0 +1,61 @@
+# SH3 Quest VR, the PC rig (session 7, rewritten in session 9): her shadow in the flashlight's beam, with the hand's
+# gestures and her head, then the health bar on her left wrist, about 2 minutes. Run with QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" (the
+# title menu's presses: without them the game waits at the title, vr137-vr138) SH3_HP=40 (her health held at 40%: the wrist's bar amber, pulsing
+# once each 2 s). The flashlight is on from the start (on her chest, the game's; session 8: the left trigger that used
+# to be pressed at 7335 turned it OFF, so it is gone).
+# 1. The right hand held IN the beam before her chest (vr136 had it 11 cm over the beam's middle, 27 degrees off it,
+#    outside the lit cone: rh_y 0.06 and rh_z -0.15 put it 0.35 m along the beam, on its line): a point, a thumbs up,
+#    the middle finger, an open hand, their shadows on the wall ahead. The game's shadow caster sits 0.51 m along the
+#    beam (vr136's log), past her hand; vr139 put it at 0.25 m (SH3_CASTER_AHEAD=0.25): still no hand shadow on the
+#    wall (the pictures' difference from the start shows none), so the game's place stays.
+# 2. The hand back where vr136 had it and the eyes down at the floor and turned: the body's shadow, its head and hair
+#    (the eyes' view hides them, the shadow keeps them: LIST 56, ask 16). vr136's and vr139's 7455 showed the right
+#    hand flat grey beside a lit wristband: not the ghost (SH3_VSC_DUMP=7455: the arm free, no ghost drawn) but the
+#    flashlight's light given per draw (her forearm's draw in the beam, her hand's out); session 9 lights her per point.
+# 3. The left wrist turned up (its back to the eyes) and raised before the face, the eyes on it: the health bar over
+#    her watch (LIST 49); then the wrist turned away: the bar fades.
+7318 shot o07318-start
+7318 right_grip 1
+7318 right_thumb_touch 1
+7348 rh_x -0.2
+7348 rh_y 0.06
+7348 rh_z -0.15
+7348 hand_pitch 20
+7365 shot o07365-shadow-point
+7370 right_first_touch 1
+7370 right_thumb_touch 0
+7385 shot o07385-shadow-thumbs-up
+7390 right_trigger 1
+7390 right_grip 0.45
+7390 right_thumb_touch 1
+7410 shot o07410-shadow-middle
+7415 right_trigger 0
+7415 right_grip 0
+7415 right_first_touch 0
+7415 right_thumb_touch 0
+7430 shot o07430-shadow-open
+7432 rh_x -0.17
+7432 rh_y 0.18
+7432 rh_z -0.02
+7435 head_pitch -40
+7455 shot o07455-shadow-floor
+7460 head_pitch -65
+7460 head_yaw 35
+7480 shot o07480-shadow-floor-turned
+7485 head_yaw -35
+7505 shot o07505-shadow-floor-other-side
+7508 head_pitch -40
+7508 head_yaw 10
+7508 hand_roll -90
+7508 hand_pitch 30
+7508 lh_x 0.12
+7508 lh_y 0.12
+7508 lh_z 0
+7508 rh_x 0
+7508 rh_y 0
+7508 rh_z 0
+7530 shot o07530-wrist
+7533 hand_roll 0
+7550 shot o07550-wrist-away
+7555 quit 0

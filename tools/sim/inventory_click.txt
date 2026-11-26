@@ -1,0 +1,30 @@
+# SH3 Quest VR, the PC rig (session 11, LIST 12 and owner message 44: the pointer on the inventory): open the
+# inventory with Y, point the right hand's beam at "Weapons" (the screen's 0.14, 0.66: hand yaw 30, pitch 7 from the
+# sim's resting hand) and pull the trigger, then at "Maps" (0.40, 0.05: yaw 16, pitch 32) and pull it; pictures after
+# each. Does the game's own mouse work its inventory? About 2 minutes. Run with QUEST_SIM_HEADSET=1
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return".
+7320 y 1
+7326 y 0
+7370 hand_yaw 30
+7370 hand_pitch 7
+7395 shot c07395-on-weapons
+7400 right_trigger 1
+7406 right_trigger 0
+7430 shot c07430-weapons-clicked
+7440 hand_yaw 16
+7440 hand_pitch 32
+7465 shot c07465-on-maps
+7470 right_trigger 1
+7476 right_trigger 0
+7510 shot c07510-maps-clicked
+# the head 40 degrees left: the screen comes round after half a second (over 35 degrees off)
+7520 head_yaw 40
+7590 shot c07590-turned-glided
+7600 head_yaw 0
+# B closes it (the game's cancel)
+7640 b 1
+7646 b 0
+7652 shot c07652-closing
+7690 shot c07690-closed
+7700 quit 0

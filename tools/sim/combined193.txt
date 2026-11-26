@@ -1,0 +1,176 @@
+# SH3 Quest VR, the PC rig (session 13, build 166), about 3 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="2,3,1,17,13,9,10,14" SH3_EQUIP_EVERY=200 SH3_MEM_SNAP="8070,8100,8125,8155" SH3_MESH_DUMP=W
+# SH3_WEAPON_BONES=1 SH3_STEER_TO="-17386,21386"
+# (the shotgun from the start of play, the submachine gun about script 7515, the handgun about 7715; the inventory
+# holds the count, so the unlimited submachine gun comes about 8330 and the extras every 200 after: their own draws
+# dumped (mesh_N_P_wW.txt, "mesh dump: weapon W's own draw") for their holds. The script runs about 25 frames ahead.)
+# 1. LIST 52: the shotgun, the left hand onto the pump (0.25 m before the right fist, the game's own left hand there:
+#    vr190's native grip) and kept there: "took shotgun's second grip (x m from it)", the pump hand whole; then slid
+#    37 cm on past it: "left shotgun's second grip: x m out" (vr190's picture was this: the sweep went past the pump).
+# 2. The submachine gun as vr190 (taken at lh_z -0.15, on to -0.25, back to -0.205): the new lines say whether and why
+#    the hold ended ("let go ... (grip, in the hand, reload, valid, view)" or "left ... m out").
+# 3. The handgun's slide on its shot (vr190's one shot was game 7749 = script ~7775): a picture every frame 7766-7786.
+# 4. LIST 12: Y 94 frames after the trigger's release (vr190's Y 14 frames after a burst was not taken by the game),
+#    Options by two pulls, two down presses on its page with the memory snapshots, the pointer on Exit and a pull;
+#    B twice back to play.
+# 5. LIST 24: the unlimited submachine gun now held as the submachine gun (its own model): both hands on it.
+# 6. LIST 45: event 8 with the free LEFT hand (vr191: the right hand holds the knife, a hand holding a weapon never
+#    takes; event 18's spot was 1.6 m behind a ledge, past the game's own 1.02 m reach): three snap turns left (her
+#    facing +x to 315, the scan's facing for it), the stick held: SH3_STEER_TO walks her to the scan's place
+#    (-17386 21386, "point 1 ... reached"), the left hand out 0.65 m and then 0.8 m: "the left hand can use event 8",
+#    its grip "used event 8", the game's answer in the pictures; B (a message closed).
+# --- 1. the shotgun
+7420 rh_y 0.1
+7420 rh_z 0.25
+7420 head_pitch -15
+7420 head_yaw -20
+7422 lh_x 0.4
+7422 lh_y 0.13
+7422 lh_z 0.15
+7422 left_grip 1
+7426 lh_z 0.10
+7430 lh_z 0.05
+7434 lh_z 0.02
+7450 shot c07450-shotgun-pump
+7458 shot c07458-shotgun-pump-b
+7462 lh_z -0.35
+7468 shot c07468-shotgun-hand-past-pump
+7470 left_grip 0
+7472 lh_x 0
+7472 lh_y 0
+7472 lh_z 0
+7472 rh_y 0
+7472 rh_z 0
+7472 head_yaw 0
+7472 head_pitch 0
+# --- 2. the submachine gun (about script 7515)
+7600 rh_x 0.15
+7600 rh_z -0.1
+7600 head_pitch -25
+7600 head_yaw -15
+7602 lh_x 0.55
+7602 lh_y 0.0265
+7602 lh_z -0.15
+7610 left_grip 1
+7614 shot c07614-smg-taken
+7616 lh_z -0.19
+7620 lh_z -0.25
+7624 lh_z -0.205
+7636 shot c07636-smg-two-hands
+7640 left_grip 0
+7642 lh_x 0
+7642 lh_y 0
+7642 lh_z 0
+7642 rh_x 0
+7642 rh_z 0
+7642 head_yaw 0
+7642 head_pitch 0
+# --- 3. the handgun (about script 7715): the eyes 20 degrees down on it, the trigger at 7760
+7740 head_pitch -20
+7740 head_yaw -10
+7755 shot c07755-handgun-before
+7760 right_trigger 1
+7766 shot c07766-handgun
+7768 shot c07768-handgun
+7770 shot c07770-handgun
+7772 shot c07772-handgun
+7773 shot c07773-handgun
+7774 shot c07774-handgun
+7775 shot c07775-handgun
+7776 shot c07776-handgun
+7777 shot c07777-handgun
+7778 shot c07778-handgun
+7779 shot c07779-handgun
+7780 shot c07780-handgun
+7781 shot c07781-handgun
+7782 shot c07782-handgun
+7784 shot c07784-handgun
+7786 shot c07786-handgun
+7790 right_trigger 0
+7790 head_pitch 0
+7790 head_yaw 0
+# --- 4. the inventory, Options, the snapshots (game 8070 quiet, 8100 quiet, 8125 after press 1, 8155 after press 2)
+7884 shot c07884-before-y
+7900 y 1
+7906 y 0
+7930 shot c07930-inventory
+7940 hand_yaw -8
+7940 hand_pitch 32
+7985 shot c07985-on-options
+7990 right_trigger 1
+7996 right_trigger 0
+8025 shot c08025-options-selected
+8030 right_trigger 1
+8036 right_trigger 0
+8080 shot c08080-options-open
+8130 left_y -1
+8136 left_y 0
+8146 shot c08146-options-down-1
+8160 left_y -1
+8166 left_y 0
+8176 shot c08176-options-down-2
+8185 hand_yaw 12
+8185 hand_pitch 56
+8210 shot c08210-pointer-on-exit
+8215 right_trigger 1
+8221 right_trigger 0
+8260 shot c08260-after-exit-pull
+8270 b 1
+8276 b 0
+8290 shot c08290-after-b-1
+8310 b 1
+8316 b 0
+8330 shot c08330-after-b-2
+8335 hand_yaw 0
+8335 hand_pitch 0
+# --- 5. the unlimited submachine gun (about script 8330) in both hands
+8370 rh_x 0.15
+8370 rh_z -0.1
+8370 head_pitch -25
+8370 head_yaw -15
+8372 lh_x 0.55
+8372 lh_y 0.0265
+8372 lh_z -0.15
+8380 left_grip 1
+8400 shot c08400-unlimited-smg-two-hands
+8406 left_grip 0
+8408 lh_x 0
+8408 lh_y 0
+8408 lh_z 0
+8408 rh_x 0
+8408 rh_z 0
+8408 head_yaw 0
+8408 head_pitch 0
+# --- 6. event 8 by the left hand
+8430 right_x -1
+8438 right_x 0
+8446 right_x -1
+8454 right_x 0
+8462 right_x -1
+8470 right_x 0
+8480 shot d08480-facing-315
+8490 left_y 1
+8820 left_y 0
+8825 shot d08825-at-event-8
+8830 lh_x 0.15
+8830 lh_y 0.2
+8830 lh_z -0.35
+8850 shot d08850-reach
+8855 left_grip 1
+8875 shot d08875-grip
+8880 left_grip 0
+8890 lh_z -0.5
+8910 shot d08910-reach-far
+8915 left_grip 1
+8935 shot d08935-grip-far
+8940 left_grip 0
+8970 shot d08970-after
+9000 b 1
+9006 b 0
+9020 shot d09020-after-b
+9025 lh_x 0
+9025 lh_y 0
+9025 lh_z 0
+9200 quit 0

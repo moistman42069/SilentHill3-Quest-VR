@@ -1,0 +1,40 @@
+IN PLAY (first person; third person where it differs)
+Move: left stick (towards where the head looks, or the left hand: Options, Comfort, Walk towards). Walking in the room moves Heather too.
+Turn: right stick (snap 45 degrees, or smooth: Options, Comfort).
+Run: left stick click.
+Action, examine, talk: A. Or reach out and grip.
+Ready the weapon: main trigger held (third person: main grip or trigger).
+Attack, fire: main trigger. Melee weapons: swing them. Empty hands: punch.
+Flashlight: off-hand trigger, or grip at your chest pocket.
+Map: X.   Inventory: Y.   Supplies (health): B, or grip at the belt pouch.
+Search view: right stick click.
+Strafe (third person): off grip held with the left stick left or right.
+Pause, skip a scene: left menu button, a short press.
+First / third person: hold the left menu button for a second.
+
+WEAPONS (first person)
+Draw: main hand to the holster, grip. Your gun (handgun, shotgun, submachine gun, stun gun) over your right
+shoulder; your melee weapon (knife, steel pipe, katana, maul) on your right hip. Each gives back the one you last
+put there; drawing one puts the one in your hand in its own holster. Left-handed: the left side.
+Put away: hold it at its holster and let go.
+Two hands: off grip on the foregrip of a long gun, the pipe, katana or maul (under the handgun to steady it).
+Aim: where the gun points; the red guide dot shows it.
+Melee: a real swing hits where the weapon went. Punches land half the weakest weapon's hit; a gun swung hard hits like
+a pipe.
+Block: hold the weapon, or your forearm, up between you and a monster (Options, Hands and weapons).
+Health and stamina: in first person, turn your left wrist toward you and look at her watch (third person: the game's HUD).
+Get free when knocked down or held: shake both controllers hard (Options, Hands and weapons), or press buttons fast.
+
+RELOAD (Manual reload, on)
+Drop the magazine: right stick down. A new one: left hand to the ammo pouch at the front of your belt, grip; push it
+up into the bottom of the grip until it seats. Shotgun: shells one at a time from the pouch into the port under the gun.
+Then, if the gun was empty: pull the handgun's slide (or the submachine gun's knob, on top at the back) all the way
+back and let go; pump the shotgun back and forward. Manual reload off: the game reloads by itself.
+
+MENUS, MAP, MEMOS, PUZZLES
+Point with either controller (the last trigger pulled) and pull the trigger to choose; or the left stick and A.
+Back: B. Map zoom: right grip.
+VR menu (every VR option): pause, then hold the left menu button. In it: point and pull the trigger (left half of a
+value steps down, right half up), or the left stick and A. Close: B, Y or the left menu button.
+
+Left-handed (Options, Hands and weapons) swaps the hands: weapons, triggers and grips.

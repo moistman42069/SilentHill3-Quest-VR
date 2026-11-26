@@ -1,0 +1,31 @@
+# SH3 Quest VR, the PC rig: Heather's arms reaching the controllers (LIST 19), about 2.5 minutes. Same set-up as
+# opening.txt (play starts about frame 7315). Seen as the player sees them, from her eyes: (view_free cannot look at
+# her from outside: the game draws from the head, the eyes only re-aim that picture.) Run with SH3_VSC_DUMP=7760 to log
+# each arm's solve at the reach, QUEST_SIM_GRIP_TILT=50 for the grip a real controller has; head_y -0.15 puts the
+# eyes at a 165 cm player's (1.55 m).
+7500 head_y -0.15
+7600 head_pitch -50
+7660 shot a07660-look-down
+7700 head_pitch -20
+7700 rh_z -0.25
+7700 rh_y 0.15
+7760 shot a07760-reach
+7800 head_pitch -35
+7800 rh_x 0.25
+7800 rh_z 0
+7800 rh_y 0
+7800 lh_x -0.15
+7800 lh_y 0.15
+7800 lh_z -0.2
+7860 shot a07860-apart
+7900 head_pitch 10
+7900 rh_x 0
+7900 rh_y 0.5
+7900 lh_x 0
+7900 lh_y 0
+7900 lh_z 0
+7960 shot a07960-raised
+8000 head_pitch 0
+8000 rh_y 0
+8060 shot a08060-rest
+8100 quit 0

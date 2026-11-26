@@ -1,0 +1,15 @@
+# SH3 Quest VR, the PC rig (session 14, build 174), about 3 minutes: the beam saber's beam (owner 61), its draw found.
+# vr202: the trigger pulled 12 frames after the saber came out gave the game's action 37 (decision 5) and no beam; vr199
+# lit it pulled ~30 frames after (action 7, flag 0x712C66B = 1). Here pulled 60 frames after (drawn at about 7318).
+# Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0" SH3_EQUIP="4,9"
+# SH3_EQUIP_EVERY=40 SH3_BEAM_LOG=10 SH3_ROUTE_DUMP=7430 SH3_VSC_DUMP=7430
+7318 rh_y 0.1
+7318 rh_z 0.1
+7318 head_pitch -15
+7318 head_yaw -10
+7385 right_trigger 1
+7425 shot w07425-beam-on
+7442 shot w07442-beam-on-2
+7446 right_trigger 0
+7470 quit 0

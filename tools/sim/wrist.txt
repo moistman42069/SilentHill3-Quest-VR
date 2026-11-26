@@ -1,0 +1,25 @@
+# SH3 Quest VR, the PC rig (session 9): the health bar on her left wrist alone (LIST 49), about 2.7 minutes with the
+# load. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" (the title menu's presses: without them the game waits
+# at the title) SH3_HP=40 (her health held at 40%: the bar amber, pulsing once each 2 s).
+# The left wrist turned up (its back to the eyes) and raised before the face, the eyes on it: the bar over her watch;
+# then the wrist turned away: the bar fades; then back, at 15% health it would be red (SH3_HP sets one level a run);
+# then turned 25 degrees less and more (o07430, o07450): the bar stays on the watch's face as her forearm twists.
+7318 head_pitch -40
+7318 head_yaw 10
+7318 hand_roll -90
+7318 hand_pitch 30
+7318 lh_x 0.12
+7318 lh_y 0.12
+7318 lh_z 0
+7345 shot o07345-wrist
+7370 shot o07370-wrist-pulse
+7373 hand_roll 0
+7390 shot o07390-wrist-away
+7393 hand_roll -90
+7410 shot o07410-wrist-back
+7413 hand_roll -65
+7430 shot o07430-wrist-less
+7433 hand_roll -115
+7450 shot o07450-wrist-more
+7452 quit 0

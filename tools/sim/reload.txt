@@ -1,0 +1,140 @@
+# SH3 Quest VR, the PC rig: manual reload by hand and the cocking visual (LIST 46), about 3 minutes. Run with
+# SH3_GIVE="10:0,15:20,11:0,16:12,12:0,17:60,9:0,14:3" SH3_EQUIP="1,2,3,8" SH3_EQUIP_EVERY=640 QUEST_SIM_GRIP_TILT=50
+# (every gun empty with a reserve: the handgun, then the shotgun, the submachine gun and the stun gun, 640 frames of play
+# each). The hands rest at (+-0.2, -0.35, -0.3) from the eyes; with lh_x 0.4 the left grip is at the right grip plus
+# (0, lh_y, lh_z). The left grip carries a part's top 4.5 cm (a shell's 3 cm) out of the fist along the grip's -Z,
+# tilted up 50 degrees: (0, +0.0345, -0.0289) (a shell's (0, +0.023, -0.0193)). Places, from the right grip
+# (sh3vr_reload.cpp kGuns): the handgun's well (0, -0.065, 0.010), the stun gun's (0, -0.075, 0.010) and the submachine
+# gun's (0, -0.085, 0.010), each pushed in up the grip's line; the shotgun's port (0, -0.050, -0.120); the handgun's
+# slide (0, 0.075, 0.020); the submachine gun's cocking knob (0, 0.120, 0.080); the shotgun's foregrip 36 cm ahead. The
+# ammo pouch (-0.10, -0.627, -0.06) from the eyes (lh 0.10, -0.277, 0.24). Each part is held 5 cm short of home (lined
+# up), then pushed home. Trigger pulls are held 60 frames (Heather raises the gun first).
+#
+# The handgun: empty (the slide locked back: picture), the trigger (the game's own empty click, the count stays 0), the
+# release, a magazine from the pouch, lined up under the grip (picture) and pushed home, the slide pulled back (picture)
+# and let go (picture: forward), shots (the slide cycles); then the left controller lost (the slide at rest, the game's
+# own firing).
+7400 shot k07400-handgun-empty-slide-back
+7410 right_trigger 1
+7470 right_trigger 0
+7480 right_y -1
+7490 right_y 0
+7500 lh_x 0.10
+7500 lh_y -0.277
+7500 lh_z 0.24
+7510 left_grip 1
+7530 lh_x 0.4
+7530 lh_y -0.147
+7530 lh_z 0.0544
+7540 shot k07540-magazine-lined-up
+7550 lh_y -0.0995
+7550 lh_z 0.0389
+7570 left_grip 0
+7580 lh_y 0.075
+7580 lh_z 0.020
+7590 left_grip 1
+7600 lh_z 0.065
+7610 shot k07610-slide-pulled
+7620 left_grip 0
+7625 shot k07625-slide-forward
+7630 lh_x 0
+7630 lh_y 0
+7630 lh_z 0
+7640 right_trigger 1
+7700 right_trigger 0
+7720 left_gone 1
+7730 right_trigger 1
+7830 right_trigger 0
+7890 left_gone 0
+# The shotgun (from about 7910): the trigger empty, two shells pushed into the port, the pump pulled back (picture) and
+# pushed forward, a shot; then the game's own reload with the left controller lost.
+7940 shot k07940-shotgun-empty
+7945 right_trigger 1
+8000 right_trigger 0
+8010 lh_x 0.10
+8010 lh_y -0.277
+8010 lh_z 0.24
+8020 left_grip 1
+8040 lh_x 0.4
+8040 lh_y -0.091
+8040 lh_z -0.065
+8050 lh_y -0.073
+8050 lh_z -0.1007
+8060 left_grip 0
+8070 lh_x 0.10
+8070 lh_y -0.277
+8070 lh_z 0.24
+8080 left_grip 1
+8095 lh_x 0.4
+8095 lh_y -0.091
+8095 lh_z -0.065
+8105 lh_y -0.073
+8105 lh_z -0.1007
+8115 left_grip 0
+8120 lh_x 0.4
+8120 lh_y 0
+8120 lh_z -0.36
+8130 left_grip 1
+8140 lh_z -0.29
+8150 shot k08150-pump-back
+8160 lh_z -0.35
+8175 left_grip 0
+8180 lh_x 0
+8180 lh_y 0
+8180 lh_z 0
+8190 right_trigger 1
+8250 right_trigger 0
+8270 left_gone 1
+8280 right_trigger 1
+8500 right_trigger 0
+8520 left_gone 0
+# The submachine gun (from about 8550): empty (picture), the release, a magazine up into the grip, the cocking knob
+# pulled back (picture) and let go, a burst (picture).
+8560 shot k08560-smg-empty
+8580 right_y -1
+8590 right_y 0
+8600 lh_x 0.10
+8600 lh_y -0.277
+8600 lh_z 0.24
+8610 left_grip 1
+8630 lh_x 0.4
+8630 lh_y -0.168
+8630 lh_z 0.0509
+8640 lh_y -0.1195
+8640 lh_z 0.0389
+8650 left_grip 0
+8660 lh_y 0.12
+8660 lh_z 0.08
+8670 left_grip 1
+8680 lh_z 0.13
+8690 shot k08690-smg-knob-back
+8700 left_grip 0
+8710 lh_x 0
+8710 lh_y 0
+8710 lh_z 0
+8720 right_trigger 1
+8790 right_trigger 0
+8800 shot k08800-smg-fired
+# The stun gun (from about 9190): the trigger with an empty battery (nothing), the release, a battery under the grip,
+# one use.
+9210 right_trigger 1
+9260 right_trigger 0
+9270 right_y -1
+9280 right_y 0
+9290 lh_x 0.10
+9290 lh_y -0.277
+9290 lh_z 0.24
+9300 left_grip 1
+9320 lh_x 0.4
+9320 lh_y -0.157
+9320 lh_z 0.0544
+9330 lh_y -0.1095
+9330 lh_z 0.0389
+9340 left_grip 0
+9350 lh_x 0
+9350 lh_y 0
+9350 lh_z 0
+9360 right_trigger 1
+9420 right_trigger 0
+9440 shot k09440-stun-gun
+9460 quit 0

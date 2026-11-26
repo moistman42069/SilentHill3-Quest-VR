@@ -1,0 +1,13 @@
+# SH3 Quest VR, the PC rig (session 10): the events round her at the start of play (LIST 45, "Take items with your
+# hand"), about 2 minutes. Run with SH3_EVENT_SCAN=7330 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return". The log's "event scan:" lines: every event within 2.5 m
+# and where (the action check, A, runs at 7330); then the right hand reaching ahead closes (7350): "the right hand
+# used event N" if one is there.
+7330 a 1
+7334 a 0
+7345 rh_z -0.45
+7345 rh_y 0.0
+7350 right_grip 1
+7360 shot v07360-grip
+7362 right_grip 0
+7400 quit 0

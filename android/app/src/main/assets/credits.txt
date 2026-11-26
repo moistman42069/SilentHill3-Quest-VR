@@ -1,0 +1,17 @@
+SH3 Quest VR is built directly on other people's work.
+
+cutarev: sh3-nx (and sh2-nx), the port underneath: the recompiled game and its runtime.
+NotGodlikeUwU: the Silent Hill 3 VR mod for PC, whose findings (weapons in the hand, their calibration, physical
+melee through the game's own hit volumes, aiming, movement, world scale) are taken and refined here.
+heathercherymason-beep: SH3AndroidEvolved, sh3-nx on Android.
+sp00nznet: xboxrecomp, the recompiler (MIT).
+ThirteenAG: WidescreenFixesPack (MIT).
+zealottormunds: sh3cammod, the first-person camera idea.
+Steam006: the Silent Hill 3 PC Fix.
+The Khronos Group: OpenXR and OpenGL ES.
+SDL: SDL2.
+Dominic Szablewski: pl_mpeg, the movies' decoder (MIT).
+Our Ratchet & Clank and Jak and Daxter Quest VR ports: the headset layer and this launcher.
+
+Silent Hill 3 is (c) Konami. Unofficial fan project: no game files are included; it runs your own copy of the PC game.
+The full notices are in the app's third_party_notices.txt and the project's NOTICE file.

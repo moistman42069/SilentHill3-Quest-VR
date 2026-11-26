@@ -1,0 +1,7 @@
+# SH3 Quest VR, the PC rig (session 10): the opening's bridge shot (frame 2880) from the game's camera, to tell what the
+# near poles in her eyes there are (vr146, vr160). Run with a sh3vr.ini of "dynamic_cutscenes = 0" in the game folder
+# (removed after) and SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return", no ALIGN. About 1 minute.
+2870 shot c02870-camera
+2880 shot c02880-camera
+2900 shot c02900-camera
+2910 quit 0

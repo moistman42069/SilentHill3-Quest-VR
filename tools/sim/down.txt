@@ -1,0 +1,21 @@
+# SH3 Quest VR, the PC rig (session 7): her body from the eyes looking down, with the defaults (the body's fades on),
+# about 2 minutes. Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0. Looking ahead, then
+# down 30, 55, 65 (twice, her idle's breath apart), 75 and 65 turned 40 degrees left and right.
+7318 right_grip 1
+7318 right_thumb_touch 1
+7340 shot n07340-ahead
+7345 head_pitch -30
+7365 shot n07365-down30
+7370 head_pitch -55
+7390 shot n07390-down55
+7395 head_pitch -65
+7415 shot n07415-down65
+7440 shot n07440-down65-later
+7445 head_pitch -75
+7465 shot n07465-down75
+7470 head_pitch -65
+7470 head_yaw 40
+7490 shot n07490-down65-left
+7495 head_yaw -40
+7515 shot n07515-down65-right
+7520 quit 0

@@ -1,0 +1,94 @@
+# SH3 Quest VR, the PC rig (session 12): shadow.txt (LIST 56, her shadow: session 12 puts her IK body, her weapon and a
+# part held into the game's own stencil shadows, owner messages 49-50; run it with SH3_VSC_DUMP=7385 for the stencil
+# log and "Heather's shadow" counts of the hand-in-beam frame) and then LIST 12, the pointer on the inventory's top row:
+# Maps, Memos, Options, each pulled twice (vr179, vr183: the game's mouse takes the first pull as moving its selection
+# there and the second as choosing it; B in the inventory itself closes it, vr183). About 3 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0 SH3_HP=40
+# SH3_VSC_DUMP=7385 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return".
+# The top row's places on the screen (vr179): Maps 0.40, Memos 0.62, Options 0.84 across, 0.05 down; the sim's hand
+# yaw 16 pitch 32 pointed at Maps (vr183 confirmed), about 0.052 degrees a pixel of 1024: Memos yaw 4, Options yaw -8.
+7318 shot o07318-start
+7318 right_grip 1
+7318 right_thumb_touch 1
+7348 rh_x -0.2
+7348 rh_y 0.06
+7348 rh_z -0.15
+7348 hand_pitch 20
+7365 shot o07365-shadow-point
+7370 right_first_touch 1
+7370 right_thumb_touch 0
+7385 shot o07385-shadow-thumbs-up
+7390 right_trigger 1
+7390 right_grip 0.45
+7390 right_thumb_touch 1
+7410 shot o07410-shadow-middle
+7415 right_trigger 0
+7415 right_grip 0
+7415 right_first_touch 0
+7415 right_thumb_touch 0
+7430 shot o07430-shadow-open
+7432 rh_x -0.17
+7432 rh_y 0.18
+7432 rh_z -0.02
+7435 head_pitch -40
+7455 shot o07455-shadow-floor
+7460 head_pitch -65
+7460 head_yaw 35
+7480 shot o07480-shadow-floor-turned
+7485 head_yaw -35
+7505 shot o07505-shadow-floor-other-side
+7508 head_pitch -40
+7508 head_yaw 10
+7508 hand_roll -90
+7508 hand_pitch 30
+7508 lh_x 0.12
+7508 lh_y 0.12
+7508 lh_z 0
+7508 rh_x 0
+7508 rh_y 0
+7508 rh_z 0
+7530 shot o07530-wrist
+7533 hand_roll 0
+7550 shot o07550-wrist-away
+7555 hand_roll 0
+7555 hand_pitch 0
+7555 head_pitch 0
+7555 head_yaw 0
+7555 lh_x 0
+7555 lh_y 0
+7555 lh_z 0
+7555 right_grip 0
+7565 y 1
+7571 y 0
+7600 hand_yaw 16
+7600 hand_pitch 32
+7625 shot s07625-on-maps
+7630 right_trigger 1
+7636 right_trigger 0
+7660 shot s07660-maps-once
+7665 right_trigger 1
+7671 right_trigger 0
+7710 shot s07710-maps-twice
+7715 hand_yaw 4
+7730 shot s07730-on-memos
+7735 right_trigger 1
+7741 right_trigger 0
+7760 shot s07760-memos-once
+7765 right_trigger 1
+7771 right_trigger 0
+7820 shot s07820-memos-twice
+7860 shot s07860-memos-later
+7910 shot s07910-memos-none
+7915 hand_yaw -8
+7930 shot s07930-on-options
+7935 right_trigger 1
+7941 right_trigger 0
+7960 shot s07960-options-once
+7965 right_trigger 1
+7971 right_trigger 0
+8020 shot s08020-options-twice
+8060 shot s08060-options-later
+8070 b 1
+8076 b 0
+8110 shot s08110-options-back
+8120 quit 0

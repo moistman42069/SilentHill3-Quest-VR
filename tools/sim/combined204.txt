@@ -1,0 +1,215 @@
+# SH3 Quest VR, the PC rig (session 14, build 175), about 4.5 minutes: the one combined check of the batch. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="3,9,4" SH3_EQUIP_EVERY=200 SH3_ARM_LOG=6 SH3_BEAM_LOG=10 SH3_STEER_TO="-17386,21386"
+# 1. smg, smg-far (owner 60): the wrists in both hands, the left hand's twist kept about the game's own (vr199: -270).
+# 2. beam saber (owner 61, equipped at about 7480): the trigger the game's ready alone (the beam lit), the beam moved
+#    to the VR hilt with the saber (the game's screen-space draw by its animated hand), a swing with it lit.
+# 3. knife and fists (owner 65): swings send their sweeps each fast frame (no one to hit here: "met no one").
+# 4. the door (owner 66, event 8): walked there, the free left hand out all round: the game's 1.02 m toward the hand
+#    when the hand's own ray meets nothing ("can use event 8", then "used event 8" and the game's own message).
+# --- smg (segment at script 7320; vr197 7480)
+7320 rh_x -0.08
+7320 rh_y 0.12
+7320 head_pitch -25
+7320 head_yaw -10
+7322 lh_at_second 1
+7322 lh_x -0.09
+7338 left_grip 1
+7340 shot b07340-smg-take-2
+7352 lh_x -0.06
+7354 lh_x -0.03
+7356 lh_x 0
+7364 shot b07364-smg-held
+7366 lh_x -0.03
+7368 lh_x -0.06
+7370 lh_x -0.09
+7374 left_grip 0
+7377 shot b07377-smg-letgo-3
+7384 lh_at_second 0
+7384 lh_x 0
+7384 lh_y 0
+7384 lh_z 0
+7384 rh_x 0
+7384 rh_y 0
+7384 rh_z 0
+7384 head_pitch 0
+7384 head_yaw 0
+# --- smg-far (segment at script 7400; vr197 7560)
+7400 rh_x 0.15
+7400 rh_z -0.1
+7400 head_pitch -25
+7400 head_yaw -15
+7402 lh_at_second 1
+7402 lh_x -0.09
+7418 left_grip 1
+7420 shot b07420-smg-far-take-2
+7432 lh_x -0.06
+7434 lh_x -0.03
+7436 lh_x 0
+7444 shot b07444-smg-far-held
+7446 lh_x -0.03
+7448 lh_x -0.06
+7450 lh_x -0.09
+7454 left_grip 0
+7457 shot b07457-smg-far-letgo-3
+7464 lh_at_second 0
+7464 lh_x 0
+7464 lh_y 0
+7464 lh_z 0
+7464 rh_x 0
+7464 rh_y 0
+7464 rh_z 0
+7464 head_pitch 0
+7464 head_yaw 0
+# --- beam saber (segment at script 7520; drawn at about 7480)
+7520 rh_y 0.1
+7520 rh_z -0.1
+7520 head_pitch -15
+7520 head_yaw -10
+7530 shot w07530-beam-held
+7540 right_trigger 1
+7570 shot w07570-beam-ready
+7590 shot w07590-beam-ready-2
+7600 rh_x 0.3
+7600 rh_z -0.05
+7610 rh_x -0.2
+7610 rh_z -0.4
+7612 shot w07612-beam-swing
+7625 shot w07625-beam-after-swing
+7640 right_trigger 0
+7650 rh_x 0
+7650 rh_y 0
+7650 rh_z 0
+7650 head_pitch 0
+7650 head_yaw 0
+# --- knife and fists (segment at script 7700; the knife drawn at about 7680)
+7700 rh_y 0.1
+7700 head_pitch -10
+7710 rh_x 0.35
+7710 rh_z -0.05
+7718 rh_x -0.25
+7718 rh_z -0.45
+7720 shot k07720-knife-swing
+7730 rh_x 0
+7730 rh_z 0
+7745 rh_x 0.35
+7745 rh_y 0.3
+7752 rh_x -0.2
+7752 rh_y -0.2
+7752 rh_z -0.4
+7760 rh_x 0
+7760 rh_y 0.1
+7760 rh_z 0
+7770 lh_z 0.05
+7776 lh_z -0.45
+7776 lh_y 0.1
+7778 shot k07778-left-punch
+7786 lh_z 0
+7786 lh_y 0
+7795 lh_z 0.05
+7801 lh_z -0.45
+7810 lh_z 0
+7820 rh_y 0
+7820 head_pitch 0
+# --- the door (event 8): walk there, then the left hand out all round her
+7850 right_x -1
+7854 right_x 0
+7858 right_x -1
+7862 right_x 0
+7866 right_x -1
+7870 right_x 0
+7880 left_y 1
+8200 left_y 0
+8205 shot i08205-at-event-8
+# ahead
+8212 lh_x 0.200
+8212 lh_y 0.100
+8212 lh_z -0.500
+8218 left_grip 1
+8222 left_grip 0
+# right-ahead
+8225 lh_x 0.766
+8225 lh_y 0.100
+8225 lh_z -0.266
+8231 left_grip 1
+8235 left_grip 0
+# right
+8238 lh_x 1.000
+8238 lh_y 0.100
+8238 lh_z 0.300
+8244 left_grip 1
+8248 left_grip 0
+# right-behind
+8251 lh_x 0.766
+8251 lh_y 0.100
+8251 lh_z 0.866
+8257 left_grip 1
+8261 left_grip 0
+# behind
+8264 lh_x 0.200
+8264 lh_y 0.100
+8264 lh_z 1.100
+8270 left_grip 1
+8274 left_grip 0
+# left-behind
+8277 lh_x -0.366
+8277 lh_y 0.100
+8277 lh_z 0.866
+8283 left_grip 1
+8287 left_grip 0
+# left
+8290 lh_x -0.600
+8290 lh_y 0.100
+8290 lh_z 0.300
+8296 left_grip 1
+8300 left_grip 0
+# left-ahead
+8303 lh_x -0.366
+8303 lh_y 0.100
+8303 lh_z -0.266
+8309 left_grip 1
+8313 left_grip 0
+# low-ahead
+8316 lh_x 0.200
+8316 lh_y -0.650
+8316 lh_z -0.300
+8322 left_grip 1
+8326 left_grip 0
+# low-right
+8329 lh_x 0.700
+8329 lh_y -0.650
+8329 lh_z 0.000
+8335 left_grip 1
+8339 left_grip 0
+# low-left
+8342 lh_x -0.300
+8342 lh_y -0.650
+8342 lh_z 0.000
+8348 left_grip 1
+8352 left_grip 0
+# near-ahead
+8355 lh_x 0.200
+8355 lh_y 0.100
+8355 lh_z -0.200
+8361 left_grip 1
+8365 left_grip 0
+# near-left
+8368 lh_x -0.154
+8368 lh_y 0.100
+8368 lh_z -0.054
+8374 left_grip 1
+8378 left_grip 0
+# near-right
+8381 lh_x 0.554
+8381 lh_y 0.100
+8381 lh_z -0.054
+8387 left_grip 1
+8391 left_grip 0
+8394 shot i08394-after-sweep
+8399 b 1
+8405 b 0
+8406 lh_x 0
+8406 lh_y 0
+8406 lh_z 0
+8424 quit 0

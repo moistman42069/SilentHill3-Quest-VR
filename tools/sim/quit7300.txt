@@ -1,0 +1,2 @@
+# shader dump only (session 15): the game loads its shaders with the level
+7300 quit 0

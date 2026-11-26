@@ -1,0 +1,66 @@
+# SH3 Quest VR, the PC rig (session 7): the flashlight, about 2.5 minutes. Run with QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0. The save has the light on (0x712CABC state 1). On her chest the beam
+# goes where the eyes look (ahead, left, down); the right hand (no weapon) at the chest pocket switches it there with its
+# trigger, as Into the Radius's chest lamp; the left hand takes it off the pocket and holds it from the side (the place
+# sh3vr_body.cpp searched, logged), points it right, left and down (the beam and the model follow), its trigger turns
+# it off and on, and letting go puts it back. Last, the right hand closes on the floor (the fingers stop on it, the
+# thumb too). Film grain is off (the default): the pictures have none. Session 8: before letting go the left hand turns
+# the lamp back towards her eyes (f07580): its lens face, the fingers over its lower part, the beam and its glare from
+# the clear upper part.
+7318 right_grip 0
+7330 shot f07330-chest-ahead
+7332 head_yaw 35
+7350 shot f07350-chest-look-left
+7352 head_yaw 0
+7352 head_pitch -30
+7370 shot f07370-chest-look-down
+7372 head_pitch 0
+7374 rh_x -0.2
+7374 rh_y -0.05
+7374 rh_z 0.18
+7382 right_trigger 1
+7386 right_trigger 0
+7400 shot f07400-chest-switched-off
+7402 right_trigger 1
+7406 right_trigger 0
+7420 shot f07420-chest-switched-on
+7422 rh_x 0
+7422 rh_y 0
+7422 rh_z 0
+7425 lh_x 0.2
+7425 lh_y -0.05
+7425 lh_z 0.18
+7435 left_grip 1
+7442 lh_x 0.12
+7442 lh_y 0.12
+7442 lh_z -0.05
+7442 hand_yaw -25
+7460 shot f07460-hand-right
+7462 hand_yaw 25
+7480 shot f07480-hand-left
+7482 hand_yaw 0
+7482 hand_pitch -25
+7500 shot f07500-hand-down
+7502 hand_pitch 0
+7505 left_trigger 1
+7512 left_trigger 0
+7530 shot f07530-hand-off
+7532 left_trigger 1
+7539 left_trigger 0
+7560 shot f07560-hand-on-again
+7562 lh_z 0.02
+7562 lh_y 0.18
+7562 hand_yaw 150
+7580 shot f07580-hand-lens-to-eyes
+7582 hand_yaw 0
+7582 lh_z -0.05
+7582 lh_y 0.12
+7584 left_grip 0
+7584 head_pitch -55
+7602 shot f07602-back-on-chest
+7604 rh_y -1.15
+7604 rh_z -0.1
+7604 hand_pitch -60
+7618 right_grip 1
+7634 shot f07634-hand-on-floor
+7636 quit 0

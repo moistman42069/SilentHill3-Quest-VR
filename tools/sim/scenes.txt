@@ -1,0 +1,15 @@
+# SH3 Quest VR, the PC rig (session 9): dynamic cutscenes in the opening's real-time scene (LIST 48), about 1.5 minutes.
+# Run with SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" (the title menu's presses), no QUEST_SIM_ALIGN
+# (the scene runs before play: frames are the headset's from the start). The log's "dynamic cutscenes see: ..." lines
+# (every 2 s of a scene) say where her head is in the game's camera and which view that asks for; "dynamic cutscenes:"
+# lines mark each change. vr139 (build 115) never left the game's camera in this scene: the first run of this script
+# says why. vr144 (build 120) saw her at 14-15 m in frame at 2899-3379 (past the old 8 m): s03100 and s03350 are
+# those wide shots, at her eyes from build 121 (1.5-20 m).
+2880 shot s02880-bridge
+3100 shot s03100-wide
+3350 shot s03350-wide
+3600 shot s03600
+4200 shot s04200
+4800 shot s04800
+5280 shot s05280-heather
+5400 quit 0

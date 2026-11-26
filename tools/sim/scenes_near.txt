@@ -1,0 +1,8 @@
+# SH3 Quest VR, the PC rig (session 10, build 136): dynamic cutscenes and the world right before her eyes. The
+# opening's bridge walk (from 2315 in her eyes, vr160) stood her eyes behind two fence posts 14 cm off: now the game's
+# camera there ("the world N cm before her eyes"); the park scene from 4193 must still go to her eyes. Run with
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return", no ALIGN. About 1.3 minutes.
+2400 shot n02400-bridge
+2880 shot n02880-bridge
+4300 shot n04300-park
+4310 quit 0

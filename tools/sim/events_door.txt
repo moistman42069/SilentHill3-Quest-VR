@@ -1,0 +1,93 @@
+# SH3 Quest VR, the PC rig (session 12), about 2.7 minutes. Run with SH3_EVENT_SCAN=7300 SH3_EVENT_SCAN_EVERY=40
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_EQUIP="2,4" SH3_EQUIP_EVERY=150
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0"
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" (the scan's lines give her place every 40 frames).
+# 1. LIST 52: the shotgun held in both hands, its stock at the shoulder and the left hand swept along the barrel to
+#    the pump (weapons.txt's way), the eyes turned 25 degrees right so the gun and the pump hand are in the middle of
+#    the picture (vr188's w07656 had them at the edge).
+# 2. The knife (equipped about script frame 7440): its stance put a U-shaped shade in the beam's middle in vr188 (her
+#    trunk ahead of the chest lamp); build 159 carries the lamp on her chest as drawn and leaves her trunk out for a
+#    chest lamp: the look-down picture at 7622 checks it (and sh3.log's "her shadow's caster nearest the chest lamp").
+# 3. LIST 45: the start room's event 20, 5 m along -z from her start (vr171's scan: reached standing at -16000 17550
+#    facing 225, 135 degrees right of her start facing +x; events 17-20 share one kind, words 00BA0618 ... 000009C0,
+#    events 8-11 another): walked to, the LEFT hand (the right holds the knife) out to it, felt ("the left hand can
+#    use event N"), closed ("the left hand used event N" and what the game does: a message, a door's sound, a room
+#    change), pictures before, reaching, closed and after (vr172 walked about 10 units a frame).
+# --- 1. the shotgun in both hands
+7316 rh_y 0.1
+7316 rh_z 0.25
+7316 head_pitch -35
+7316 head_yaw 25
+7318 lh_x 0.4
+7318 lh_y 0.13
+7318 lh_z 0.15
+7318 left_grip 1
+7320 lh_z 0.10
+7322 lh_z 0.05
+7324 lh_z 0.0
+7326 lh_z -0.05
+7328 lh_z -0.10
+7330 lh_z -0.15
+7332 lh_z -0.20
+7334 lh_z -0.25
+7336 lh_z -0.30
+7338 lh_z -0.35
+7342 lh_z -0.18
+7356 shot v07356-shotgun-two-hands
+7360 left_grip 0
+7362 lh_x 0
+7362 lh_y 0
+7362 lh_z 0
+7362 rh_y 0
+7362 rh_z 0
+7362 head_yaw 0
+7362 head_pitch 0
+# --- 3. facing 90 (+x) -> 180 (-z): two snap turns right
+7370 right_x 1
+7378 right_x 0
+7386 right_x 1
+7394 right_x 0
+# walk about 2150 units along -z (from about 19700 to about 17550)
+7400 left_y 1
+7610 left_y 0
+# --- 2. the knife's stance, looking down
+7612 head_pitch -30
+7622 shot v07622-knife-look-down
+7624 head_pitch 0
+# 180 -> 225: one snap turn right
+7630 right_x 1
+7638 right_x 0
+7660 shot v07660-door-before
+# the left hand out ahead at chest height
+7670 lh_z -0.45
+7670 lh_y 0.1
+7690 shot v07690-door-reach
+7700 left_grip 1
+7715 shot v07715-door-grip
+7720 left_grip 0
+7740 shot v07740-door-after
+7790 shot v07790-door-later
+7850 shot v07850-door-later2
+# --- 4. LIST 12: the Options tab (vr188 pulled before the inventory had opened): the inventory opened with Y and
+# given 90 frames, the right hand 8 degrees left and 32 down (Options), three pulls 40 frames apart (select, open,
+# and one more in case the tab needs it), pictures after each, then B.
+7860 y 1
+7866 y 0
+7900 hand_yaw -8
+7900 hand_pitch 32
+7950 shot v07950-on-options
+7956 right_trigger 1
+7962 right_trigger 0
+7990 shot v07990-options-1
+7996 right_trigger 1
+8002 right_trigger 0
+8030 shot v08030-options-2
+8070 shot v08070-options-2-later
+8076 right_trigger 1
+8082 right_trigger 0
+8110 shot v08110-options-3
+8150 shot v08150-options-3-later
+8160 b 1
+8166 b 0
+8200 shot v08200-options-back
+8220 quit 0

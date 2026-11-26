@@ -13,7 +13,7 @@ SH3 Quest VR is built directly on other people's work. Every one of them made th
 | **Steam006** | Silent Hill 3 PC Fix | The PC fixes the PC VR mod is set up with. |
 | **The Khronos Group** | OpenXR loader and headers (Apache-2.0), OpenGL ES headers | VR on the Quest. |
 | **SDL** (Sam Lantinga and contributors) | SDL2 (zlib) | Window, input, sound and the Android activity. |
-| **FFmpeg** | FFmpeg (LGPL) | The movies (LIST 5: not yet in this build). |
+| **Dominic Szablewski** | [pl_mpeg](https://github.com/phoboslab/pl_mpeg) (MIT) | The movies: the MPEG-1 video, the Layer II sound and the program stream, decoded once the port has unscrambled the game's .000 files. |
 | Our Ratchet & Clank and Jak and Daxter Quest VR ports | The headset layer (OpenXR, the pointer, the rig, haptics) and the launcher | Reused and adapted here. |
 
 Silent Hill 3 is © Konami. This is an unofficial fan project; it includes no game files: it runs your own copy of

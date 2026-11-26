@@ -1,0 +1,18 @@
+# SH3 Quest VR, the PC rig: the opening with VR on, through the simulated headset (src/vr/xr_sim.cpp).
+# Run from the game folder with no sh3vr.ini (every VR feature on), and the scripted New Game:
+#   SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" QUEST_SIM_SCRIPT=<this file>
+#   QUEST_SIM_OUT=<folder> QUEST_SIM_HEADSET=1 build/pc/sh3.exe <game folder>
+# Frames are the headset's (the game's 60 a second when it keeps up). Shots: the eyes and the panel as PNGs.
+1300 shot title
+2880 shot bridge
+5280 shot heather
+5400 head_yaw 35
+5460 shot look-left
+5520 head_yaw 0
+5520 head_pitch -25
+5580 shot look-down
+5640 head_pitch 0
+5640 right_trigger 1
+5650 right_trigger 0
+6600 shot later
+7000 quit 0

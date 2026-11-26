@@ -1,0 +1,18 @@
+# SH3 Quest VR, the PC rig (session 11, LIST 5: the movies): New Game plays the opening movie (op.000, 2.6 minutes)
+# on the cinema screen with its sound; pictures while it plays, then B skips it (the game's own skip) and the opening
+# goes on. Run with SH3_MOVIES=1 (scripted runs skip the movies otherwise) and the usual QUEST_SIM_HEADSET=1
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return", no QUEST_SIM_ALIGN (frames count from the start).
+# The log's "movie:" lines give the pictures and seconds of sound decoded; about 2 minutes.
+1200 shot m01200
+1500 shot m01500
+1800 shot m01800
+# the head turned 30 degrees: the screen stays where it is
+2000 head_yaw 30
+2060 shot m02060-turned
+2100 head_yaw 0
+2400 shot m02400
+2700 b 1
+2706 b 0
+2760 shot m02760-skipped
+3000 shot m03000-after
+3100 quit 0

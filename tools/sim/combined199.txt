@@ -1,0 +1,140 @@
+# SH3 Quest VR, the PC rig (session 14, build 174), about 3 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="3,9" SH3_EQUIP_EVERY=270 SH3_ARM_LOG=6 SH3_BEAM_LOG=10
+# Owners 60-64 (build 174): her wrists in the two-hand holds (the forearm from her rest pose, the upper arm on its
+# hinge, the twist spread along the forearm, the elbow swung for what a forearm cannot), her shadow from her own mesh
+# (z-fail, whole body), the beam saber.
+# 1. smg: the submachine gun in both hands before her chest (vr198's segment): the wrists.
+# 2. smg-far: at full stretch.
+# 3. shadow: the gun in both hands in the chest lamp's beam, the eyes down at the floor, ahead at the wall, then down
+#    and turned: her arms', hands' and the gun's shadow.
+# 4. beam saber (equipped at about 7580): held, the trigger held (the game's ready and attack), let go, a swing by
+#    hand; then both hands on it, the eyes down (its two-hand wrists).
+# --- smg (segment at script 7320; vr197 7480)
+7320 rh_x -0.08
+7320 rh_y 0.12
+7320 head_pitch -25
+7320 head_yaw -10
+7322 lh_at_second 1
+7322 lh_x -0.09
+7338 left_grip 1
+7340 shot b07340-smg-take-2
+7352 lh_x -0.06
+7354 lh_x -0.03
+7356 lh_x 0
+7364 shot b07364-smg-held
+7366 lh_x -0.03
+7368 lh_x -0.06
+7370 lh_x -0.09
+7374 left_grip 0
+7377 shot b07377-smg-letgo-3
+7384 lh_at_second 0
+7384 lh_x 0
+7384 lh_y 0
+7384 lh_z 0
+7384 rh_x 0
+7384 rh_y 0
+7384 rh_z 0
+7384 head_pitch 0
+7384 head_yaw 0
+# --- smg-far (segment at script 7400; vr197 7560)
+7400 rh_x 0.15
+7400 rh_z -0.1
+7400 head_pitch -25
+7400 head_yaw -15
+7402 lh_at_second 1
+7402 lh_x -0.09
+7418 left_grip 1
+7420 shot b07420-smg-far-take-2
+7432 lh_x -0.06
+7434 lh_x -0.03
+7436 lh_x 0
+7444 shot b07444-smg-far-held
+7446 lh_x -0.03
+7448 lh_x -0.06
+7450 lh_x -0.09
+7454 left_grip 0
+7457 shot b07457-smg-far-letgo-3
+7464 lh_at_second 0
+7464 lh_x 0
+7464 lh_y 0
+7464 lh_z 0
+7464 rh_x 0
+7464 rh_y 0
+7464 rh_z 0
+7464 head_pitch 0
+7464 head_yaw 0
+# --- shadow (segment at script 7480)
+7480 rh_x -0.08
+7480 rh_y 0.12
+7480 head_pitch -50
+7480 head_yaw -10
+7482 lh_at_second 1
+7482 lh_x -0.09
+7498 left_grip 1
+7510 lh_x -0.06
+7512 lh_x -0.03
+7514 lh_x 0
+7525 shot s07525-shadow-floor-smg
+7528 head_pitch -5
+7528 head_yaw 0
+7540 shot s07540-shadow-wall-smg
+7542 head_pitch -55
+7542 head_yaw 35
+7555 shot s07555-shadow-floor-turned
+7558 lh_x -0.09
+7560 left_grip 0
+7564 lh_at_second 0
+7564 lh_x 0
+7564 lh_y 0
+7564 lh_z 0
+7564 rh_x 0
+7564 rh_y 0
+7564 rh_z 0
+7564 head_pitch 0
+7564 head_yaw 0
+# --- beam-saber (segment at script 7600)
+7600 rh_y 0.1
+7600 rh_z -0.1
+7600 head_pitch -15
+7600 head_yaw -10
+7615 shot w07615-beam-held
+7618 right_trigger 1
+7632 shot w07632-beam-ready
+7645 shot w07645-beam-ready-2
+7660 shot w07660-beam-ready-3
+7662 right_trigger 0
+7675 shot w07675-beam-letgo
+7678 rh_x 0.3
+7678 rh_z -0.05
+7688 rh_x -0.2
+7688 rh_z -0.4
+7690 shot w07690-beam-hand-swing
+7703 shot w07703-beam-after-swing
+7706 rh_x 0
+7706 rh_y 0.1
+7706 rh_z 0
+7706 head_pitch -40
+7706 head_yaw -20
+7708 lh_at_second 1
+7708 lh_x -0.09
+7724 left_grip 1
+7738 lh_x -0.06
+7740 lh_x -0.03
+7742 lh_x 0
+7750 shot w07750-beam-two-hand
+7752 lh_x -0.03
+7754 lh_x -0.06
+7756 lh_x -0.09
+7760 left_grip 0
+7770 lh_at_second 0
+7770 lh_x 0
+7770 lh_y 0
+7770 lh_z 0
+7770 rh_x 0
+7770 rh_y 0
+7770 rh_z 0
+7770 head_pitch 0
+7770 head_yaw 0
+7780 quit 0

@@ -1,0 +1,13 @@
+# SH3 Quest VR, the PC rig: the first moments of play with VR on (the opening's amusement park, the knife drawn
+# about frame 4000 with the scripted New Game of opening.txt). Same set-up as opening.txt.
+4300 shot play
+4320 head_pitch -35
+4380 shot play-down
+4400 head_pitch 0
+4400 right_trigger 1
+4420 right_trigger 0
+4440 shot play-attack
+4460 left_y 1
+4560 left_y 0
+4580 shot play-walked
+4640 quit 0

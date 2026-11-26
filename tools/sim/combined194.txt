@@ -1,0 +1,176 @@
+# SH3 Quest VR, the PC rig (session 13, build 167), about 3.4 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="2,3,1,17,13,9,10,14,5,7" SH3_EQUIP_EVERY=200 SH3_MEM_SNAP="8110,8130,8160,8190" SH3_MESH_DUMP=W
+# SH3_WEAPON_BONES=1 SH3_STEER_TO="-17386,21386"
+# (vr193: the script ran about 12 frames ahead of the game through the menu; the unlimited submachine gun came at
+# script ~7884, before Y; the inventory holds the equip count, so the extras come about 200 frames of play apart after
+# the menu closes, then the steel pipe and the maul.)
+# 1. LIST 52, build 167: the shotgun's and submachine gun's second hand. vr193's pictures had the game's own left hand
+#    where the game holds it, not on the grip (the shotgun's on the receiver's front, 15.8 cm behind the pump; the
+#    submachine gun's open past its muzzle, 12.5 cm off): "VR native grip: ... not taken, her finger hand on the grip",
+#    and the pictures: her finger hand round the pump, cupping the submachine gun's receiver front.
+# 2. The handgun as vr193 (its slide seen opening at script 7780-7784): only one picture now.
+# 3. LIST 12: Y, Options by two pulls (vr193: OPTIONS up by game ~8090), then the snapshots after it is up (vr193's A at
+#    game 8070 was mid-opening, so the row's first value counted as noise): A 8110, B 8130, down presses at script
+#    8150 and 8180 (game ~8138, ~8168), C 8160, D 8190: the highlighted row's variable (0, 1, 2: Button Config,
+#    Language, Subtitles). No pull on a row (vr193's off-panel pull was the game's A: it toggled Subtitles), so B
+#    leaves OPTIONS without "Change the settings?", B closes the inventory (a third B in play does nothing).
+# 4. LIST 24: the unlimited submachine gun in both hands (now held as the submachine gun).
+# 5. LIST 45: event 8 with the free left hand (as vr193 meant; the menu stayed open there).
+# 6. The extras' own draws dumped as each comes (13 gold pipe, 9 beam saber, 10 flamethrower, 14 silver pipe).
+# 7. LIST 52: the steel pipe's and the maul's second grip: the left hand swept down to just under the right fist with
+#    the grip held ("took steel pipe's second grip (x m from it)"), a picture of both hands on the shaft.
+# --- 1. the shotgun
+7420 rh_y 0.1
+7420 rh_z 0.25
+7420 head_pitch -15
+7420 head_yaw -20
+7422 lh_x 0.4
+7422 lh_y 0.13
+7422 lh_z 0.15
+7422 left_grip 1
+7426 lh_z 0.10
+7430 lh_z 0.05
+7434 lh_z 0.02
+7450 shot c07450-shotgun-pump
+7462 left_grip 0
+7464 lh_x 0
+7464 lh_y 0
+7464 lh_z 0
+7464 rh_y 0
+7464 rh_z 0
+7464 head_yaw 0
+7464 head_pitch 0
+# --- 2. the submachine gun (about script 7515)
+7600 rh_x 0.15
+7600 rh_z -0.1
+7600 head_pitch -25
+7600 head_yaw -15
+7602 lh_x 0.55
+7602 lh_y 0.0265
+7602 lh_z -0.15
+7610 left_grip 1
+7616 lh_z -0.19
+7620 lh_z -0.205
+7632 shot c07632-smg-two-hands
+7640 left_grip 0
+7642 lh_x 0
+7642 lh_y 0
+7642 lh_z 0
+7642 rh_x 0
+7642 rh_z 0
+7642 head_yaw 0
+7642 head_pitch 0
+# --- 3. the handgun (about script 7715): one shot
+7740 head_pitch -20
+7740 head_yaw -10
+7760 right_trigger 1
+7782 shot c07782-handgun-fire
+7790 right_trigger 0
+7790 head_pitch 0
+7790 head_yaw 0
+# --- 4. the inventory, Options, the snapshots, out
+7900 y 1
+7906 y 0
+7930 shot c07930-inventory
+7940 hand_yaw -8
+7940 hand_pitch 32
+7990 right_trigger 1
+7996 right_trigger 0
+8030 right_trigger 1
+8036 right_trigger 0
+8100 shot c08100-options-up
+8105 hand_yaw 0
+8105 hand_pitch 0
+8150 left_y -1
+8156 left_y 0
+8170 shot c08170-options-down-1
+8180 left_y -1
+8186 left_y 0
+8200 shot c08200-options-down-2
+8215 b 1
+8221 b 0
+8240 shot c08240-after-b-1
+8250 b 1
+8256 b 0
+8275 shot c08275-after-b-2
+8285 b 1
+8291 b 0
+# --- 5. the unlimited submachine gun in both hands
+8310 rh_x 0.15
+8310 rh_z -0.1
+8310 head_pitch -25
+8310 head_yaw -15
+8312 lh_x 0.55
+8312 lh_y 0.0265
+8312 lh_z -0.15
+8320 left_grip 1
+8326 lh_z -0.19
+8330 lh_z -0.205
+8340 shot c08340-unlimited-smg-two-hands
+8346 left_grip 0
+8348 lh_x 0
+8348 lh_y 0
+8348 lh_z 0
+8348 rh_x 0
+8348 rh_z 0
+8348 head_yaw 0
+8348 head_pitch 0
+# --- 6. event 8 by the left hand
+8360 right_x -1
+8368 right_x 0
+8376 right_x -1
+8384 right_x 0
+8392 right_x -1
+8400 right_x 0
+8410 shot d08410-facing-315
+8420 left_y 1
+8740 left_y 0
+8745 shot d08745-at-event-8
+8750 lh_x 0.15
+8750 lh_y 0.2
+8750 lh_z -0.35
+8770 shot d08770-reach
+8775 left_grip 1
+8795 shot d08795-grip
+8800 left_grip 0
+8810 lh_z -0.5
+8830 shot d08830-reach-far
+8835 left_grip 1
+8855 shot d08855-grip-far
+8860 left_grip 0
+8890 shot d08890-after
+8900 b 1
+8906 b 0
+8920 shot d08920-after-b
+8925 lh_x 0
+8925 lh_y 0
+8925 lh_z 0
+# --- 7. the steel pipe (about script 9290) and the maul (about 9490): the left hand onto the shaft under the right
+9320 head_pitch -30
+9320 head_yaw -10
+9322 lh_x 0.4
+9322 lh_y 0.05
+9322 lh_z 0.05
+9322 left_grip 1
+9326 lh_y 0.0
+9330 lh_y -0.05
+9334 lh_y -0.10
+9338 lh_y -0.15
+9350 shot e09350-pipe-two-hands
+9356 left_grip 0
+9358 lh_x 0
+9358 lh_y 0
+9358 lh_z 0
+9520 lh_x 0.4
+9520 lh_y 0.05
+9520 lh_z 0.05
+9520 left_grip 1
+9524 lh_y 0.0
+9528 lh_y -0.05
+9532 lh_y -0.10
+9536 lh_y -0.15
+9550 shot e09550-maul-two-hands
+9556 left_grip 0
+9560 quit 0

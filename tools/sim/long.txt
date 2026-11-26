@@ -1,0 +1,24 @@
+# SH3 Quest VR, the PC rig: the whole opening into play with VR on (about 4 minutes). Same set-up as opening.txt.
+# A shot every 1000 frames; a short walk forward and a look round now and then, to see play when it comes.
+3980 shot f03980
+4040 shot f04040
+5000 shot f05000
+6000 shot f06000
+7000 shot f07000
+8000 shot f08000
+9000 shot f09000
+9000 left_y 1
+9120 left_y 0
+9140 shot f09140-walked
+10000 shot f10000
+11000 shot f11000
+12000 shot f12000
+12000 head_yaw 60
+12060 shot f12060-look-left
+12100 head_yaw 0
+13000 shot f13000
+13000 left_y 1
+13120 left_y 0
+13140 shot f13140-walked
+14000 shot f14000
+14100 quit 0

@@ -1,0 +1,42 @@
+# SH3 Quest VR, the PC rig (session 10): owner messages 39-40 (no bars at the top left while the wrist has them; "when
+# they switch to third person, all hud features should switch to normal ... if they switch back to 1st person ... it
+# would go back to wrist"), about 2.3 minutes with the load. "Health bar on your wrist" on (the default, no sh3vr.ini),
+# the game's Life Gauge and Life Display forced on (SH3_LIFE_BARS=1 SH3_LIFE_DISPLAY=1, health 40%: the cross shows).
+# Run with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0 SH3_LIFE_BARS=1 SH3_LIFE_DISPLAY=1
+# SH3_HP=40 SH3_STAMINA=60 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return". Script frames run 12 behind
+# the game's; keep the lines in order.
+# t07330 first person ahead: no bars at the top left, no cross; t07370 the wrist raised (lifebars.txt's pose): the
+# watch's bars (health 40% yellow, stamina 60% green); t07520 third person (the left menu button held 1.25 s): the
+# game's normal HUD, its bars at the top left and the cross on the panel; t07560 the wrist raised in third person: no
+# watch, the top left's bars still; t07700 first person again: no bars at the top left; t07740 the wrist: the watch.
+7318 head_pitch -10
+7330 shot t07330-first-ahead
+7340 head_pitch -40
+7340 head_yaw 10
+7340 hand_roll -90
+7340 hand_pitch 30
+7340 lh_x 0.12
+7340 lh_y 0.12
+7340 lh_z 0
+7370 shot t07370-first-wrist
+7375 head_pitch -10
+7375 head_yaw 0
+7375 hand_roll 0
+7380 menu 1
+7470 menu 0
+7520 shot t07520-third-ahead
+7525 head_pitch -40
+7525 head_yaw 10
+7525 hand_roll -90
+7560 shot t07560-third-wrist
+7565 head_pitch -10
+7565 head_yaw 0
+7565 hand_roll 0
+7570 menu 1
+7660 menu 0
+7700 shot t07700-first-again-ahead
+7705 head_pitch -40
+7705 head_yaw 10
+7705 hand_roll -90
+7740 shot t07740-first-again-wrist
+7745 quit 0

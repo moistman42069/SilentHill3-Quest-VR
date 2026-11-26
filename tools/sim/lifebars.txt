@@ -1,0 +1,20 @@
+# SH3 Quest VR, the PC rig (session 10): the game's own health and stamina bars beside the wrist's (owner message 37:
+# "silent hill 3 has a health and stamina bar"), about 2.5 minutes with the load. The game's bar drawing 0x5A5E40
+# (her HP +0x180 over +0x184, the stamina 0x712C624 less 0x712C620) runs while byte 0x70E6724 is 1 and bit 6 of
+# 0x70E66A0 is clear and bit 2 set (0x58F0E2); SH3_LIFE_BARS=1 holds the byte at 1. Run with QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0 SH3_LIFE_BARS=1 SH3_HP=40 SH3_STAMINA=60
+# SH3_PEEK=70E66A0,70E6724,712C620,712C624 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return".
+# 1. Looking ahead (the game's 2D where it draws it); 2. the left wrist raised to the eyes as wrist.txt does (the wrist's
+# bars: health amber-yellow at 40%, stamina green at 60%).
+7318 head_pitch -10
+7330 shot b07330-ahead
+7340 head_pitch -40
+7340 head_yaw 10
+7340 hand_roll -90
+7340 hand_pitch 30
+7340 lh_x 0.12
+7340 lh_y 0.12
+7340 lh_z 0
+7370 shot b07370-wrist
+7390 shot b07390-wrist-pulse
+7395 quit 0

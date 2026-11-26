@@ -1,0 +1,6 @@
+# SH3 Quest VR, the PC rig: into play (frame 7315 on the opening's timeline, long.txt) for a capture, with
+# SH3_VSC_DUMP=8000 (every shader draw's constants and each bone palette upload's caller and buffer in sh3.log).
+# Same set-up as opening.txt. Third person for the capture frame, so Heather is drawn whole.
+7900 shot cap-before
+8100 shot cap-after
+8200 quit 0

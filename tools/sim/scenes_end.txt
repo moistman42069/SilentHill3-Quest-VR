@@ -1,0 +1,12 @@
+# SH3 Quest VR, the PC rig (session 10, build 137): the opening's scenes from the park to the end and into play,
+# with the near-world check (dynamic cutscenes). About 2.2 minutes. Run with
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return", no ALIGN. Each picture whole in both eyes; the log's
+# "dynamic cutscenes" lines (her eyes 4195-6709 in vr156, her face up close at 6709: the camera) and "first person
+# from a scene into play".
+5800 shot e05800
+6400 shot e06400
+6800 shot e06800
+7100 shot e07100
+7250 shot e07250-play
+7400 shot e07400-play
+7410 quit 0

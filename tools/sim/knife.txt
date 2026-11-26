@@ -1,0 +1,37 @@
+# SH3 Quest VR, the PC rig (session 7): the knife's swing as the game plays it (the trigger), about 1.5 minutes. Run
+# with QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_GIVE="4:0" SH3_EQUIP=4 SH3_BODY_LOG=2. Run vr78 (build 76): in
+# the game's swing her body stood 40 cm ahead of the eyes and her head and hair came into view. Pictures from the eyes
+# through the swing (looking ahead, then down 30 degrees), the hand held out ahead; then a swing looking down 60 degrees
+# (her body and her shadow), and one swung with the hand (the knife's own hit, no trigger).
+7318 head_pitch -10
+7318 rh_y 0.25
+7318 rh_z -0.25
+7330 shot k07330-before
+7335 right_trigger 1
+7339 right_trigger 0
+7342 shot k07342-swing-a
+7348 shot k07348-swing-b
+7354 shot k07354-swing-c
+7362 shot k07362-swing-d
+7375 shot k07375-after
+7380 head_pitch -30
+7390 right_trigger 1
+7394 right_trigger 0
+7398 shot k07398-down30-a
+7404 shot k07404-down30-b
+7410 shot k07410-down30-c
+7425 head_pitch -60
+7440 right_trigger 1
+7444 right_trigger 0
+7448 shot k07448-down60-a
+7456 shot k07456-down60-b
+7470 head_pitch -20
+7470 rh_y 0.35
+7470 rh_z -0.05
+7470 rh_x 0.25
+7480 rh_x -0.15
+7480 rh_z -0.45
+7480 rh_y 0.05
+7482 shot k07482-hand-swing
+7495 shot k07495-after-hand
+7500 quit 0

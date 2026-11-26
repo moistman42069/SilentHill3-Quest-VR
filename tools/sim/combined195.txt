@@ -1,0 +1,287 @@
+# SH3 Quest VR, the PC rig (session 13, build 169), about 3.5 minutes. Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="2,3,1,17,5,6,7,13,9,10,14" SH3_EQUIP_EVERY=170 SH3_MESH_DUMP=W SH3_WEAPON_BONES=1
+# SH3_STEER_TO="-17386,21386"
+# (vr194: play from game 7292, the second weapon drawn at 7478 with 200 frames apart, so 7448 with 170, then every
+# 170: 3 at 7448, 1 at 7618, 17 at 7788, 5 at 7958, 6 at 8128, 7 at 8298, 13 at 8468, 9 at 8638, 10 at 8808, 14 at
+# 8978; the script about 15 frames ahead of the game.)
+# 1. The owner (session 13): "be sure two hand grip works/looks smoothly on all guns/weapons". Build 168 eases the
+#    other hand onto the second grip (about 0.1 s) and off it (about 0.15 s), the gun's line with it; the SMG's open
+#    palm refused (4 cm rule). Each weapon the same way: the left controller 9 cm left of its second grip
+#    ("lh_at_second 1", build 169), the grip pressed: pictures 2 and 5 frames on (the hand partway, then nearly on),
+#    the controller onto the grip (held), 9 cm out again, let go: 3 and 8 frames on. sh3.log: "X's second grip ... m
+#    from the right controller", "took X's second grip", "let go of".
+# 2. The extras as each comes (13 gold pipe, 9 beam saber, 10 flamethrower, 14 silver pipe): their own draws dumped
+#    (mesh_N_P_wW.txt), a picture of each held.
+# 3. LIST 45: event 8 by the free left hand (the walk while the extras come).
+# 4. LIST 12 last: Y, Options by two pulls, then the pointer down the rows (hand_yaw 10.3, pitch 27.5 Button Config
+#    .. 6.6 Exit: the panel 1.4 m ahead, 1.2 m wide, its centre 6 cm under the eyes): sh3.log "OPTIONS: the pointer
+#    onto row N"; one pull on Exit; then A, B. (savedata/data.sys backed up before the run.)
+# --- shotgun (segment at script 7320)
+7320 rh_y 0.1
+7320 rh_z 0.25
+7320 head_pitch -15
+7320 head_yaw -20
+7322 lh_at_second 1
+7322 lh_x -0.09
+7338 left_grip 1
+7340 shot a07340-shotgun-take-2
+7343 shot a07343-shotgun-take-5
+7352 lh_x -0.06
+7354 lh_x -0.03
+7356 lh_x 0
+7364 shot a07364-shotgun-held
+7366 lh_x -0.03
+7368 lh_x -0.06
+7370 lh_x -0.09
+7374 left_grip 0
+7377 shot a07377-shotgun-letgo-3
+7382 shot a07382-shotgun-letgo-8
+7384 lh_at_second 0
+7384 lh_x 0
+7384 lh_y 0
+7384 lh_z 0
+7384 rh_x 0
+7384 rh_y 0
+7384 rh_z 0
+7384 head_pitch 0
+7384 head_yaw 0
+# --- smg (segment at script 7480)
+7480 rh_x 0.15
+7480 rh_z -0.1
+7480 head_pitch -25
+7480 head_yaw -15
+7482 lh_at_second 1
+7482 lh_x -0.09
+7498 left_grip 1
+7500 shot b07500-smg-take-2
+7503 shot b07503-smg-take-5
+7512 lh_x -0.06
+7514 lh_x -0.03
+7516 lh_x 0
+7524 shot b07524-smg-held
+7526 lh_x -0.03
+7528 lh_x -0.06
+7530 lh_x -0.09
+7534 left_grip 0
+7537 shot b07537-smg-letgo-3
+7542 shot b07542-smg-letgo-8
+7544 lh_at_second 0
+7544 lh_x 0
+7544 lh_y 0
+7544 lh_z 0
+7544 rh_x 0
+7544 rh_y 0
+7544 rh_z 0
+7544 head_pitch 0
+7544 head_yaw 0
+# --- handgun (segment at script 7650)
+7650 rh_y 0.15
+7650 rh_z -0.05
+7650 head_pitch -25
+7650 head_yaw -20
+7652 lh_at_second 1
+7652 lh_x -0.09
+7668 left_grip 1
+7670 shot c07670-handgun-take-2
+7673 shot c07673-handgun-take-5
+7682 lh_x -0.06
+7684 lh_x -0.03
+7686 lh_x 0
+7694 shot c07694-handgun-held
+7696 lh_x -0.03
+7698 lh_x -0.06
+7700 lh_x -0.09
+7704 left_grip 0
+7707 shot c07707-handgun-letgo-3
+7712 shot c07712-handgun-letgo-8
+7714 lh_at_second 0
+7714 lh_x 0
+7714 lh_y 0
+7714 lh_z 0
+7714 rh_x 0
+7714 rh_y 0
+7714 rh_z 0
+7714 head_pitch 0
+7714 head_yaw 0
+# --- unlimited-smg (segment at script 7820)
+7820 rh_x 0.15
+7820 rh_z -0.1
+7820 head_pitch -25
+7820 head_yaw -15
+7822 lh_at_second 1
+7822 lh_x -0.09
+7838 left_grip 1
+7840 shot d07840-unlimited-smg-take-2
+7843 shot d07843-unlimited-smg-take-5
+7852 lh_x -0.06
+7854 lh_x -0.03
+7856 lh_x 0
+7864 shot d07864-unlimited-smg-held
+7866 lh_x -0.03
+7868 lh_x -0.06
+7870 lh_x -0.09
+7874 left_grip 0
+7877 shot d07877-unlimited-smg-letgo-3
+7882 shot d07882-unlimited-smg-letgo-8
+7884 lh_at_second 0
+7884 lh_x 0
+7884 lh_y 0
+7884 lh_z 0
+7884 rh_x 0
+7884 rh_y 0
+7884 rh_z 0
+7884 head_pitch 0
+7884 head_yaw 0
+# --- steel-pipe (segment at script 7990)
+7990 rh_y 0.1
+7990 head_pitch -40
+7990 head_yaw -20
+7992 lh_at_second 1
+7992 lh_x -0.09
+8008 left_grip 1
+8010 shot e08010-steel-pipe-take-2
+8013 shot e08013-steel-pipe-take-5
+8022 lh_x -0.06
+8024 lh_x -0.03
+8026 lh_x 0
+8034 shot e08034-steel-pipe-held
+8036 lh_x -0.03
+8038 lh_x -0.06
+8040 lh_x -0.09
+8044 left_grip 0
+8047 shot e08047-steel-pipe-letgo-3
+8052 shot e08052-steel-pipe-letgo-8
+8054 lh_at_second 0
+8054 lh_x 0
+8054 lh_y 0
+8054 lh_z 0
+8054 rh_x 0
+8054 rh_y 0
+8054 rh_z 0
+8054 head_pitch 0
+8054 head_yaw 0
+# --- katana (segment at script 8160)
+8160 rh_y 0.1
+8160 head_pitch -40
+8160 head_yaw -20
+8162 lh_at_second 1
+8162 lh_x -0.09
+8178 left_grip 1
+8180 shot f08180-katana-take-2
+8183 shot f08183-katana-take-5
+8192 lh_x -0.06
+8194 lh_x -0.03
+8196 lh_x 0
+8204 shot f08204-katana-held
+8206 lh_x -0.03
+8208 lh_x -0.06
+8210 lh_x -0.09
+8214 left_grip 0
+8217 shot f08217-katana-letgo-3
+8222 shot f08222-katana-letgo-8
+8224 lh_at_second 0
+8224 lh_x 0
+8224 lh_y 0
+8224 lh_z 0
+8224 rh_x 0
+8224 rh_y 0
+8224 rh_z 0
+8224 head_pitch 0
+8224 head_yaw 0
+# --- maul (segment at script 8330)
+8330 rh_y 0.1
+8330 head_pitch -40
+8330 head_yaw -20
+8332 lh_at_second 1
+8332 lh_x -0.09
+8348 left_grip 1
+8350 shot g08350-maul-take-2
+8353 shot g08353-maul-take-5
+8362 lh_x -0.06
+8364 lh_x -0.03
+8366 lh_x 0
+8374 shot g08374-maul-held
+8376 lh_x -0.03
+8378 lh_x -0.06
+8380 lh_x -0.09
+8384 left_grip 0
+8387 shot g08387-maul-letgo-3
+8392 shot g08392-maul-letgo-8
+8394 lh_at_second 0
+8394 lh_x 0
+8394 lh_y 0
+8394 lh_z 0
+8394 rh_x 0
+8394 rh_y 0
+8394 rh_z 0
+8394 head_pitch 0
+8394 head_yaw 0
+# --- the door (event 8, the free left hand) while the extras come
+8410 right_x -1
+8418 right_x 0
+8426 right_x -1
+8434 right_x 0
+8442 right_x -1
+8450 right_x 0
+8458 shot i08458-facing-315
+8460 left_y 1
+8520 shot h08520-gold-pipe-held
+8690 shot h08690-beam-saber-held
+8780 left_y 0
+8785 shot i08785-at-event-8
+8790 lh_x 0.15
+8790 lh_y 0.2
+8790 lh_z -0.35
+8805 shot i08805-reach
+8808 left_grip 1
+8826 shot i08826-grip
+8830 left_grip 0
+8840 lh_z -0.5
+8858 shot h08858-flamethrower-held-reach-far
+8862 left_grip 1
+8882 shot i08882-grip-far
+8886 left_grip 0
+8910 shot i08910-after
+8920 b 1
+8926 b 0
+8945 shot i08945-after-b
+8950 lh_x 0
+8950 lh_y 0
+8950 lh_z 0
+9030 shot h09030-silver-pipe-held
+# --- OPTIONS last: the inventory, Options by two pulls, the pointer down the rows, one pull on Exit
+9050 y 1
+9056 y 0
+9080 shot j09080-inventory
+9090 hand_yaw -8
+9090 hand_pitch 32
+9140 right_trigger 1
+9146 right_trigger 0
+9180 right_trigger 1
+9186 right_trigger 0
+9250 shot j09250-options-up
+9258 hand_yaw 10.3
+9258 hand_pitch 27.5
+9268 hand_pitch 25.4
+9276 hand_pitch 23.3
+9282 shot j09282-subtitles-hovered
+9284 hand_pitch 21.0
+9292 hand_pitch 18.7
+9300 hand_pitch 16.4
+9308 hand_pitch 14.0
+9316 hand_pitch 11.5
+9324 hand_pitch 9.1
+9332 hand_pitch 6.6
+9342 shot j09342-exit-hovered
+9350 right_trigger 1
+9356 right_trigger 0
+9375 shot j09375-after-pull-on-exit
+9385 a 1
+9391 a 0
+9405 shot j09405-after-a
+9420 b 1
+9426 b 0
+9445 shot j09445-after-b
+9450 quit 0
