@@ -1,8 +1,8 @@
 # SH3 Quest VR: session 17 handoff (2026-11-25)
 
 Picked up from docs/HANDOFF-2026-11-25-SESSION16.md "Part 2" (the owner: "was working in another session. pick up
-from where it left off. miss/forget nothing. proceed with list"). Owner messages up to 82 are in
-C:/SH3Quest/notes/owner-messages-sessions1-7.txt; this session had no new one.
+from where it left off. miss/forget nothing. proceed with list"). Owner messages up to 83 (this pickup) are in
+C:/SH3Quest/notes/owner-messages-sessions1-7.txt; no other this session.
 
 PC builds 206-207 (build_pc_206.log, build_pc_207.log, BUILD OK); runs vr246-vr251.
 
@@ -41,9 +41,21 @@ PC builds 206-207 (build_pc_206.log, build_pc_207.log, BUILD OK); runs vr246-vr2
   HEADSET_CHECKLIST.md, LIST 14, LIST 45 (the far door by hand: DONE in vr242, event 48), LIST 50 (vr230/vr234: the
   circular hall's dog, whose kinds 120/121 GAME_FACTS' session-15 line had given to a Closer: marked corrected),
   credits.txt and CREDITS.md (the PC VR mod's fog layer and picture settings). The 0.1.0 and 0.1.1 release notes stay as they were (their versions).
-- **0.1.2 prepared**: versionCode 3, "0.1.2"; docs/RELEASE-NOTES-0.1.2.md (the file's size and digest filled in at
-  the build).
-- GitHub: no issues; downloads v0.1.1 4, v0.1.0 3.
+- **0.1.2 PUBLISHED** (2026-11-25, a new release as the owner said: "just new release going forward"):
+  - build_quest_7 (`tools/build_quest.py --release`, every native file compiled from this code, the same sources as
+    PC build 207 but for a comment) gave android/build/SH3QuestVR-0.1.2.apk: versionCode 3, "0.1.2", 9,208,862 bytes,
+    SHA-256 a480ee2d5c306a3e3afc3bd7d9370c489179cd0fe6a6f327f034c75e851def0b, the release key (certificate 38811d96...).
+  - Static checks against 0.1.1: the same 17 files; changed only AndroidManifest.xml (versionCode/versionName lines
+    alone), the four assets, classes.dex (the launcher's picture options) and libmain.so (29,744,528 bytes, the same
+    NEEDED, no text relocations, SDL_main exported); libSDL2 and the OpenXR loader byte-identical; both verify with
+    the same certificate. The one build warning (extractNativeLibs in the manifest) is 0.1.1's too.
+  - main 78780ee (the 0.1.2 commit), annotated tag v0.1.2 (b5e2ac0) on it, release "Silent Hill 3 Quest VR 0.1.2"
+    with docs/RELEASE-NOTES-0.1.2.md and the APK: not a draft, not a prerelease. releases/latest = v0.1.2, GitHub's
+    digest sha256:a480ee2d... matches; v0.1.0 and v0.1.1 untouched. The launcher's updater asks releases/latest for
+    "SH3QuestVR-" + the tag + ".apk" = SH3QuestVR-0.1.2.apk: the asset's name.
+  - Verified on this code before publishing (build 207): vr247 the fog and the flare, the VR menu hold; vr248 the
+    let-go; vr250 every gun's reload by hand; vr251 the death skip with no crash.
+- GitHub: no issues; downloads (before 0.1.2) v0.1.1 4, v0.1.0 3.
 
 ## The floor items by hand (LIST 45's last part), vr249 and vr251
 
@@ -71,7 +83,7 @@ restroom, which door228 has not got.
 3. LIST 45's floor items by hand: vr251 reached the mall (its restroom, 0 floor items); a route from there to
    the first floor items (door228.txt after the death), or the headset.
 
-## Files changed in session 17 (with part 2's, all uncommitted until the release)
+## Files changed in session 17 (with part 2's; all in the 0.1.2 commit 78780ee)
 
 - src/d3d8/d3d8.c (the halo dump, testing; the flare branch; no_ztest in apply_render_states and the shadow pass),
   src/d3d8/d3d8.h (no_ztest), src/vr/sh3vr.cpp and sh3vr.h (sh3vr_depth_layer_map), src/vr/sh3vr_body.cpp,
