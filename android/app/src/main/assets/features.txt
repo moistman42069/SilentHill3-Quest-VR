@@ -25,10 +25,12 @@ Smooth turning (or snap), seated play and your height are on the Options tab, Co
 turning if you want one.
 
 Picture and performance
-120 Hz (the game makes up to 60 frames a second: each shows twice, evenly), foveated rendering at Medium, and on a
-Quest 3 or 3S the top resolution, with Dynamic resolution drawing the 3D picture a little smaller for a moment if the
-headset starts falling behind (and back again if that does not help). Both eyes are drawn together in one pass:
-each of the game's draws goes to both eyes at once, so the work of a frame is done once.
+120 Hz with Smoother frames (AppSW): the game makes up to 60 frames a second and gives the headset how the world
+moved, and the headset makes the frame between each two itself, so walking and turning look smooth. Foveated
+rendering at Medium, and on a Quest 3 or 3S the top resolution, with Dynamic resolution drawing the 3D picture a
+little smaller for a moment if the headset starts falling behind (and back again if that does not help). Both
+eyes are drawn together in one pass: each of the game's draws goes to both eyes at once, so the work of a frame is
+done once.
 
 The picture
 No screen filters to start: no film grain (neither of the game's two), no drifting fog, no sharpening, no smoothing
@@ -38,3 +40,9 @@ are on the Options tab, View, or in the VR menu in the game.
 
 Every VR feature is on from the start, the screen filters off; each one can be changed on the Options tab or in
 the VR menu in the game (hold the left menu button for a second).
+
+Your copy of the game
+Any PC copy of Silent Hill 3 (2003) should work: North American, European or Asian, CD or DVD, the exe as the disc
+installed it (copy protection and all), a no-CD or no-DVD exe, or one changed by a fix such as the SH3 PC Fix. The
+port runs its own copy of the game's code and only reads the exe's data, the same in every copy we know of. Not the
+PS2 game or the PS3/Xbox 360 HD Collection. If the check is not sure, "Play in VR anyway" still tries it.

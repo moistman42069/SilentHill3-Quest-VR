@@ -235,12 +235,13 @@ and runs your own copy of the PC game.
 
 ## Files
 
-- **SH3QuestVR-0.1.2.apk** (versionCode 3): 9,208,862 bytes, SHA-256
-  `a480ee2d5c306a3e3afc3bd7d9370c489179cd0fe6a6f327f034c75e851def0b`,
-  signed with the same release key as 0.1.0 and 0.1.1, whose
+- **SH3QuestVR-0.1.3.apk** (versionCode 4): 9,214,086 bytes, SHA-256
+  `87e8d31550f5c1a150a991decba3ed776da5161f5c8d473ebeb7240e75b61c47`,
+  signed with the same release key as 0.1.0 to 0.1.2, whose
   certificate's SHA-256 is `38811d96c20802e5d592ea10e851defa5f6e1595c188d1942ef57057cd416e6a`.
-- The source: this repository at tag `v0.1.2`. The recompiled game code is not in it: `tools/regen.sh` makes it from
+- The source: this repository at tag `v0.1.3`. The recompiled game code is not in it: `tools/regen.sh` makes it from
   your own `sh3.exe` (see the README's "For developers").
-- 0.1.0 and 0.1.1 stay on their own release pages,
-  [v0.1.0](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.0) and
-  [v0.1.1](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.1).
+- 0.1.0 to 0.1.2 stay on their own release pages,
+  [v0.1.0](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.0),
+  [v0.1.1](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.1) and
+  [v0.1.2](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.2).

@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "host.h"
+#include "exe_ref.h"  /* 0.1.4: the 2003-09-03 build: its imports, code range and data CRCs (tools/exe_ref.py) */
 #ifdef __ANDROID__
 #include <android/log.h>
 #include <SDL2/SDL.h>  /* main is SDL_main there: SDL2's SDLActivity calls it */
@@ -455,8 +456,77 @@ static recomp_func_t find_bridge(const char *name) {
     return NULL;
 }
 
+/* SH3 Quest VR 0.1.4: how the loaded exe's data compares with the 2003-09-03 build's, page by page (exe_ref.h's
+ * CRC-32s, the import tables as zeros), for the log: the launcher has already checked it (ExeCheck.java). */
+static uint32_t crc32_update(uint32_t crc, uint8_t byte) {
+    static uint32_t table[256];
+    if (!table[1])
+        for (uint32_t i = 0; i < 256; i++) {
+            uint32_t c = i;
+            for (int k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+            table[i] = c;
+        }
+    return table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
+}
+
+static void exe_data_check(void) {
+    const unsigned n_pages = sizeof exe_ref_pages / sizeof *exe_ref_pages;
+    unsigned changed = 0;
+    uint32_t first = 0;
+    for (unsigned p = 0; p < n_pages; p++) {
+        uint32_t crc = 0xFFFFFFFFu, va = exe_ref_pages[p].va;
+        for (uint32_t a = va; a < va + exe_ref_pages[p].len; a++) {
+            uint8_t b = MEM8(a);
+            for (unsigned s = 0; s < sizeof exe_ref_skips / sizeof *exe_ref_skips; s++)
+                if (a >= exe_ref_skips[s].va && a < exe_ref_skips[s].va + exe_ref_skips[s].size) b = 0;
+            crc = crc32_update(crc, b);
+        }
+        if ((crc ^ 0xFFFFFFFFu) != exe_ref_pages[p].crc && !changed++) first = va;
+    }
+    if (!changed)
+        rt_log("sh3.exe: the 2003-09-03 build's data, all %u pages the same", n_pages);
+    else
+        rt_log("sh3.exe: %u of the 2003-09-03 build's %u data pages differ (the first at %08X): %s", changed, n_pages,
+               first, changed <= 16 ? "a patch to the game's data (a fix): it should still play"
+                                    : "another build, or one still encrypted by a disc's copy protection: the port's "
+                                      "code expects the 2003-09-03 build's data");
+}
+
+/* 0.1.4: the recompiled code still reads data from the code section: MSVC's switch tables (and their byte index
+ * tables), and the libraries' data linked into it (run vr260: DirectInput's joystick format, read through the pointer
+ * the game gives SetDataFormat). A disc's copy protection encrypts that section, so the build's data there
+ * (src/recomp/gen/exe_code_data.c, written by tools/exe_ref.py from the exe the code was recompiled from: every byte
+ * outside the functions found, not padding) is put in place whatever the file has. */
+extern const uint32_t exe_code_ranges[][3];  /* va, length, offset in exe_code_bytes */
+extern const unsigned exe_code_range_count;
+extern const uint8_t exe_code_bytes[];
+
+static void exe_code_tables(const char *path) {
+    unsigned differ = 0, bytes = 0;
+    uint32_t first = 0;
+    for (unsigned i = 0; i < exe_code_range_count; i++) {
+        uint32_t va = exe_code_ranges[i][0], len = exe_code_ranges[i][1];
+        const uint8_t *want = exe_code_bytes + exe_code_ranges[i][2];
+        bytes += len;
+        if (memcmp(GPTR(va), want, len)) {
+            if (!differ++) first = va;
+            memcpy(GPTR(va), want, len);
+        }
+    }
+    if (!differ)
+        rt_log("%s: the data in its code section (%u stretches, %u bytes: switch tables and the like) is the build's",
+               path, exe_code_range_count, bytes);
+    else
+        rt_log("%s: %u of the %u stretches of data in its code section differ from the build's (the first at %08X: code "
+               "encrypted by a disc's copy protection, or patched): the build's are used", path, differ,
+               exe_code_range_count, first);
+}
+
 static uint32_t load_exe(const char *path) {
-    FILE *f = fopen(path, "rb");
+    /* 0.1.4 (owner 93): its name as the folder spells it (SH3.EXE from some installs; the headset's storage minds case,
+     * the launcher's check does not), as every file the game opens (kernel32.c rt_path). */
+    char spelled[512];
+    FILE *f = fopen(rt_path(path, spelled, sizeof spelled), "rb");
     if (!f) rt_fatal("cannot open %s/%s", rt_game_dir, path);
     fseek(f, 0, SEEK_END);
     long n = ftell(f);
@@ -465,34 +535,94 @@ static uint32_t load_exe(const char *path) {
     if (fread(d, 1, n, f) != (size_t)n) rt_fatal("cannot read %s", path);
     fclose(f);
 
+    if (n < 0x400 || rd32(d + 0x3C) > (uint32_t)n - 0x200) rt_fatal("%s/%s is not a Windows program", rt_game_dir, path);
     const uint8_t *pe = d + rd32(d + 0x3C), *opt = pe + 24;
-    uint32_t base = rd32(opt + 28), entry = base + rd32(opt + 16);
+    uint32_t base = rd32(opt + 28), entry = base + rd32(opt + 16), stamp = rd32(pe + 8);
+    const int build = base == EXE_REF_BASE;  /* 0.1.4: the 2003-09-03 build's addresses (the launcher checks the rest) */
     image_lo = base;
     image_hi = base + rd32(opt + 56);  /* SizeOfImage */
+    if (build && image_hi < base + EXE_REF_SIZE_OF_IMAGE) image_hi = base + EXE_REF_SIZE_OF_IMAGE;
     host_arena_commit(base, image_hi - base);
-    memcpy(GPTR(base), d, 0x1000);  /* PE headers: the CRT checks its own MZ/PE signature */
+    memcpy(GPTR(base), d, n < 0x1000 ? (size_t)n : 0x1000);  /* PE headers: the CRT checks its own MZ/PE signature */
     unsigned nsec = pe[6] | pe[7] << 8;
     const uint8_t *sec = opt + (pe[20] | pe[21] << 8);
-    for (unsigned i = 0; i < nsec; i++, sec += 40) {
+    char names[160] = "";
+    for (unsigned i = 0; i < nsec && sec + 40 <= d + n; i++, sec += 40) {
         uint32_t vs = rd32(sec + 8), va = base + rd32(sec + 12), rs = rd32(sec + 16), ro = rd32(sec + 20);
-        memcpy(GPTR(va), d + ro, rs < vs ? rs : vs);
+        uint32_t len = rs < vs ? rs : vs;
+        if (ro > (uint32_t)n) len = 0;
+        else if (len > (uint32_t)n - ro) len = (uint32_t)n - ro;   /* a file cut short: the rest stays zero */
+        if (va < image_lo || va > image_hi || len > image_hi - va) len = 0;
+        if (len) memcpy(GPTR(va), d + ro, len);
         if (!memcmp(sec, ".text", 6)) { g_xbox_code_lo = va; g_xbox_code_hi = va + vs; }
+        snprintf(names + strlen(names), sizeof names - strlen(names), "%s%.8s", i ? " " : "", (const char *)sec);
     }
     free(d);
+    if (build) { g_xbox_code_lo = EXE_REF_CODE_VA; g_xbox_code_hi = EXE_REF_CODE_VA + EXE_REF_CODE_SIZE; }
+    rt_log("%s: %ld bytes, PE timestamp %08X (%s), sections %s", path, n, stamp,
+           stamp == EXE_REF_TIMESTAMP ? "the 2003-09-03 build's" : "not the 2003-09-03 build's: a protection or a patch "
+           "can change it", names);
+    if (build) {
+        exe_data_check();
+        exe_code_tables(path);
+    }
 
     /* Point every IAT slot at its bridge. */
     unsigned missing = 0;
-    for (uint32_t desc = base + MEM32(base + MEM32(base + 0x3C) + 24 + 104); MEM32(desc + 12); desc += 20) {
-        const char *dll = GSTR(base + MEM32(desc + 12));
-        uint32_t ilt = base + (MEM32(desc) ? MEM32(desc) : MEM32(desc + 16)), iat = base + MEM32(desc + 16);
-        for (; MEM32(ilt); ilt += 4, iat += 4) {
-            uint32_t e = MEM32(ilt);
-            char name[128];
-            if (e & 0x80000000u) snprintf(name, sizeof name, "%.*s#%u", (int)strcspn(dll, "."), dll, e & 0xFFFF);
-            else snprintf(name, sizeof name, "%s", GSTR(base + e + 2));
-            recomp_func_t fn = find_bridge(name);
-            if (!fn) { missing++; if (rt_trace) rt_log("no bridge for %s!%s", dll, name); }
-            MEM32(iat) = rt_host_fn(strdup(name), fn);
+    if (build) {
+        /* SH3 Quest VR 0.1.4 (owners 90-91: "it keeps saying they have the wrong version installed", "try to extend
+         * compatibility however you can"): the port runs its own recompiled code, so any sh3.exe of the 2003-09-03
+         * build will do whatever its code is (a disc's copy protection, a no-CD/no-DVD patch, a fix). Its import slots
+         * are filled from the build's own list (exe_ref.h), as a protection rewrites the file's import table; the
+         * file's own table is only read to say how it compares. */
+        unsigned own = 0, same = 0;
+        const unsigned n_ref = sizeof exe_ref_imports / sizeof *exe_ref_imports;
+        uint32_t desc = base + MEM32(base + MEM32(base + 0x3C) + 24 + 104);
+        for (int k = 0; k < 64 && desc >= image_lo && desc + 20 <= image_hi && MEM32(desc + 12); k++, desc += 20) {
+            uint32_t dll = base + MEM32(desc + 12);
+            uint32_t ilt = base + (MEM32(desc) ? MEM32(desc) : MEM32(desc + 16)), iat = base + MEM32(desc + 16);
+            if (dll < image_lo || dll >= image_hi - 64) break;
+            for (int j = 0; j < 1024 && ilt >= image_lo && ilt + 4 <= image_hi && MEM32(ilt); j++, ilt += 4, iat += 4) {
+                uint32_t e = MEM32(ilt);
+                char name[128];
+                if (e & 0x80000000u) {
+                    snprintf(name, sizeof name, "%.*s#%u", (int)strcspn(GSTR(dll), "."), GSTR(dll), e & 0xFFFF);
+                } else if (base + e + 2 >= image_lo && base + e + 2 < image_hi - 64) {
+                    snprintf(name, sizeof name, "%.100s", GSTR(base + e + 2));
+                } else {
+                    break;
+                }
+                own++;
+                for (unsigned r = 0; r < n_ref; r++)
+                    if (exe_ref_imports[r].slot == iat && !strcmp(exe_ref_imports[r].name, name)) { same++; break; }
+            }
+        }
+        for (unsigned r = 0; r < n_ref; r++) {
+            recomp_func_t fn = find_bridge(exe_ref_imports[r].name);
+            if (!fn) { missing++; if (rt_trace) rt_log("no bridge for %s", exe_ref_imports[r].name); }
+            MEM32(exe_ref_imports[r].slot) = rt_host_fn(exe_ref_imports[r].name, fn);
+        }
+        if (same == n_ref && own == n_ref)
+            rt_log("%s: its import table is the build's (%u functions)", path, n_ref);
+        else
+            rt_log("%s: its own import table has %u of the build's %u functions in their places (%u listed): a disc's "
+                   "copy protection or a rebuilt exe; the %u slots filled from the build's own list", path, same, n_ref,
+                   own, n_ref);
+    } else {
+        rt_log("%s: not the 2003-09-03 build's addresses (its base %08X, the build's %08X): the port's code expects that "
+               "build (the launcher's game check tells which copies work)", path, base, EXE_REF_BASE);
+        for (uint32_t desc = base + MEM32(base + MEM32(base + 0x3C) + 24 + 104); MEM32(desc + 12); desc += 20) {
+            const char *dll = GSTR(base + MEM32(desc + 12));
+            uint32_t ilt = base + (MEM32(desc) ? MEM32(desc) : MEM32(desc + 16)), iat = base + MEM32(desc + 16);
+            for (; MEM32(ilt); ilt += 4, iat += 4) {
+                uint32_t e = MEM32(ilt);
+                char name[128];
+                if (e & 0x80000000u) snprintf(name, sizeof name, "%.*s#%u", (int)strcspn(dll, "."), dll, e & 0xFFFF);
+                else snprintf(name, sizeof name, "%s", GSTR(base + e + 2));
+                recomp_func_t fn = find_bridge(name);
+                if (!fn) { missing++; if (rt_trace) rt_log("no bridge for %s!%s", dll, name); }
+                MEM32(iat) = rt_host_fn(strdup(name), fn);
+            }
         }
     }
     rt_log("loaded %s: entry %08X, %u imports without a bridge", path, entry, missing);

@@ -6,6 +6,12 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
 ## Start
 - [ ] Install, open: the launcher on a panel, What's new once. Game files: choose the "SILENT HILL 3" folder copied to
       Download: the copy runs with the panel closed; the check says all files are there and names the sh3.exe release.
+- [ ] 0.1.4 (owners 90, 91, 93: "wrong version", the European release): with another copy's sh3.exe (a European or
+      Asian one, the disc's protected exe, a no-CD exe, a PC Fix exe) the check passes, naming "the 2003-09-03 build
+      (its code changed ...)", and the game plays; sh3.log's first lines: "the 2003-09-03 build's data, all 163 pages
+      the same" (or "N of 163 data pages differ"), the code section's data and the import table as found. A game
+      folder one level too deep (game/SILENT HILL 3/...) is moved up ("moved up" on the check). An exe the check
+      is not sure of: "Try it anyway" plays it.
 - [ ] Right after the check: the Features popup, once (dynamic cutscenes first, the Cutscenes row's choices); the Features
       button beside What's new shows it again.
 - [ ] Play in VR: the game starts in the headset (no flat window), the title on the panel, the pointer works on it.
@@ -61,6 +67,13 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       start without it). Dynamic resolution (on): Show performance's "3D" share drops below 100% only while frames come
       late (a heavy room) and climbs back after 5 s of calm; the world a little softer meanwhile, text, menus and her
       hands as sharp as ever; no flicker or black frame at a change (sh3.log "dynamic resolution: the 3D pictures at").
+- [ ] 0.1.4, Smoother frames (AppSW, on by default; the task "make Smoother frames (AppSW) work"): sh3.log
+      "[openxr] smoother frames (Application SpaceWarp): on, motion W x H", then in play "smoother frames: motion
+      given" and "[vr-perf] ... smoother frames on N% of them" with N well above 0 in play (0 on the title before
+      the first play). Walk and turn smoothly in the alley and the mall: smooth, no wobble or smearing at the edges of walls,
+      doors or Heather's hands and weapon (they get no motion within 1 m); a camera cut or a snap turn shows no
+      smear. Show performance: steady. Turn it off (VR menu, Performance, next start): each frame shown twice
+      again, as 0.1.3. An options file from 0.1.3 gets it on once (sh3.log "sh3vr.ini from before 0.1.4").
 
 ## Hands and weapons
 - [ ] Hands at the controllers; fingers follow the triggers, grips and thumbs; they stop on a wall or a counter.

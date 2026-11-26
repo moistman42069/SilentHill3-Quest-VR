@@ -1,0 +1,22 @@
+# SH3 Quest VR, the PC rig (0.1.4: the task "make Smoother frames (AppSW) work", and owners 90-91's wider exe check in
+# the same run): the motion given to the headset standing, walking, turning smoothly and with only the head moving.
+# Run from a game folder whose sh3vr.ini has "space_warp = 1": C:/SH3Quest/gamedir_v2, whose sh3.exe is
+# v2_protected_like.exe (its code encrypted, a new section and entry point, its import table wiped: as a disc's copy
+# protection leaves it). Command line: QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" QUEST_SIM_SCRIPT=<this> QUEST_SIM_OUT=<shots folder>.
+# Expect in the log: the loader's "switch tables differ ... the build's are used" and "import table ... filled from the
+# build's own list"; "[sim] motion <shot>": still about 0; walking: spreading out from the middle (mean about 0, most of
+# the picture moving); turning right: mean across below 0 (the world goes left); the head alone: about 0 (the head's
+# own movement is the headset's to make, not the motion's).
+7320 shot a07320-still
+7340 left_y 1
+7400 shot a07400-walk
+7420 left_y 0
+7460 right_x 1
+7480 shot a07480-turn
+7500 right_x 0
+7540 head_yaw_rate 60
+7570 shot a07570-head
+7600 head_yaw_rate 0
+7640 shot a07640-still2
+7700 quit 0

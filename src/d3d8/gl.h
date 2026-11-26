@@ -29,6 +29,8 @@
     X(PFNGLGENTEXTURESPROC, glGenTextures) \
     X(PFNGLGETSTRINGPROC, glGetString) \
     X(PFNGLGETINTEGERVPROC, glGetIntegerv) \
+    X(PFNGLGETBOOLEANVPROC, glGetBooleanv) \
+    X(PFNGLISENABLEDPROC, glIsEnabled) \
     X(PFNGLGETERRORPROC, glGetError) \
     X(PFNGLGETSTRINGIPROC, glGetStringi) \
     X(PFNGLPIXELSTOREIPROC, glPixelStorei) \
@@ -134,6 +136,8 @@ GL_EXT_FUNCS(GL_DECLARE)
 #define glGenTextures p_glGenTextures
 #define glGetString p_glGetString
 #define glGetIntegerv p_glGetIntegerv
+#define glGetBooleanv p_glGetBooleanv  /* 0.1.4 smoother frames (sh3vr.cpp motion_draw), and glIsEnabled */
+#define glIsEnabled p_glIsEnabled
 #define glGetError p_glGetError
 #define glGetStringi p_glGetStringi
 #define glPixelStorei p_glPixelStorei

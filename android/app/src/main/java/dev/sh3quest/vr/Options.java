@@ -48,7 +48,9 @@ class Options {
      *  the game does the same in sh3vr.cpp load_options): these keys, the drifting fog, smooth turning and no screen
      *  filters (no sharpening, film grain, smooth edges or comfort vignette; the picture at the game's own). */
     static final String DEFAULTS_KEY = "defaults";
-    static final int DEFAULTS_VERSION = 3;
+    static final int DEFAULTS_VERSION = 4;  // 0.1.4: Smoother frames on (Config.newDefaults puts it in once)
+    /** 0.1.4: Smoother frames (AppSW) on to start, now that the motion is drawn (sh3vr_internal.h space_warp the same). */
+    static final boolean SPACE_WARP_ON = true;
     static final String[] DEFAULTS_0_1_3 = {"sharpen", "film_grain", "drifting_fog", "brightness", "contrast",
         "saturation", "dark_edges", "smooth_edges", "turn", "vignette"};
 
@@ -117,8 +119,12 @@ class Options {
         sw("boost", "CPU and GPU boost", PERFORMANCE, true, "Runs the headset's processors faster while the game plays."),
         choice("sharpen", "Sharpening", PERFORMANCE, new String[] {"Off", "Normal", "Strong"}, 0,
             "The headset's sharpening of the picture. Off: the picture as drawn, no shimmer on edges."),
-        // 0.1.3: "Smoother frames (AppSW)" left out: Silent Hill 3 never drew the motion the headset needs, so it did
-        // nothing (the owner's 0.1.2 log: "smoother frames on 0% of them"); back once it does (sh3vr_internal.h)
+        // 0.1.4: back, the motion drawn (sh3vr.cpp motion_frame; 0.1.3 left it out: the owner's 0.1.2 log said "smoother
+        // frames on 0% of them")
+        sw("space_warp", "Smoother frames (AppSW)", PERFORMANCE, SPACE_WARP_ON,
+            "The headset makes every other frame itself from the game's last picture and how the world moved, so the "
+            + "game draws half of them: smooth at 120 Hz with room for a sharper picture. Takes effect the next time "
+            + "the game starts."),
         sw("show_performance", "Show performance", PERFORMANCE, false, "Frame times in a corner of the screen."),
         // View
         sw("first_person", "First person", VIEW, true,

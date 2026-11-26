@@ -717,3 +717,21 @@ call 0x4B74B0 all round her every 120 frames, and none found a floor item in any
   and the lamp's glow (at the lamp's own depth: z 0.90321 for a lamp 936 units off, vr246). VR puts the streaks and
   rings at the record's depth (d3d8.c vr_route_pick, sh3vr_depth_layer_map: build 207; vr247: the flare's offset
   between the eyes 206-208 px against the wall's 204-206, where it had been 266).
+
+## The exe itself (session 19, 2026-11-26: 0.1.4, owners 90-93; tools/exe_ref.py, rt_core.c load_exe)
+
+- The build: PE timestamp 0x3F557C0C (2003-09-03), image base 0x400000, size of image 0x6D7C0A8; .text at 0x401000,
+  0x289000 bytes; .rdata 0x68A000 (0x25D54), .data 0x6B0000 (virtual 0x6AC9CA8, 0x7C000 in the file), .data1
+  0x717A000 (0x900). The import address table (242 functions; 19 of them without a bridge) starts at
+  0x68A000 (0x3F4 bytes) and the import directory at 0x6AE730 (0x1623 bytes): a disc's copy protection rewrites both.
+- The data the recompiled code still reads from .text: switch tables (jmp [table + reg*4]), byte index tables (movzx
+  from a table, bounded by the cmp before it), and two library objects in the gaps between functions: DirectInput's
+  c_dfDIJoystick and its object array at 0x6254B0 / 0x625520 (the pad's SetDataFormat; read as code by the
+  recompiler's function list, they call outside .text). 2977 stretches, 332,804 bytes in all
+  (src/recomp/gen/exe_code_data.c). With a protected-like test exe (code encrypted) they are what crashed (vr260: a
+  guest address read from the test exe's encrypted data in the dinput pad read); the loader now puts the build's in place.
+- The data sections (163 pages of 4 KB, the import tables left out) are the same in every copy of the build, protected
+  or not: they are what the launcher's check (ExeCheck.java, game_files.txt) and the loader (exe_data_check) compare.
+- No other PC build is known: the North American, European and Asian releases (2003) carry the same exe build; the
+  editions differ in their data files (languages). sh3-nx and SH3AndroidEvolved load any sh3.exe unchecked, from its
+  own import table.

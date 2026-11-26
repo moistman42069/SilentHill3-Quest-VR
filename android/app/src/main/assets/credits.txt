@@ -4,7 +4,7 @@ cutarev: sh3-nx (and sh2-nx), the port underneath: the recompiled game and its r
 NotGodlikeUwU: the Silent Hill 3 VR mod for PC, whose findings (weapons in the hand, their calibration, physical
 melee through the game's own hit volumes, aiming, movement, world scale, the drifting fog's far layer, the picture
 settings) are taken and refined here.
-heathercherymason-beep: SH3AndroidEvolved, sh3-nx on Android.
+heathercherymason-beep: SH3AndroidEvolved, sh3-nx on Android, taking any sh3.exe (0.1.4's wider exe check follows it).
 sp00nznet: xboxrecomp, the recompiler (MIT).
 ThirteenAG: WidescreenFixesPack (MIT).
 zealottormunds: sh3cammod, the first-person camera idea.

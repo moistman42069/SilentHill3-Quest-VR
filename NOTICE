@@ -13,7 +13,8 @@ Weapon mesh signatures, calibration format and defaults, melee thresholds, hit-v
 file; built on directly by the project owner's decision, with credit. Its NOTICE covers MinHook and the OpenXR SDK,
 neither of which this app uses from it.
 
-SH3AndroidEvolved (heathercherymason-beep) - reference only (Android GLES). No license file; credited.
+SH3AndroidEvolved (heathercherymason-beep) - reference only (Android GLES; taking any sh3.exe). No license
+file; credited.
 
 ------------------------------------------------------------------------------
 xboxrecomp (sp00nznet) - MIT License

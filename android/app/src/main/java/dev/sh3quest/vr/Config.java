@@ -66,7 +66,8 @@ final class Config extends Options {
         }
     }
 
-    /** 0.1.3 (Options.DEFAULTS_0_1_3): a sh3vr.ini from before 0.1.3 gets 0.1.3's changed defaults once, then says so. */
+    /** 0.1.3 (Options.DEFAULTS_0_1_3): a sh3vr.ini from before 0.1.3 gets 0.1.3's changed defaults once, then says so.
+     *  0.1.4: one from before 0.1.4 gets Smoother frames on once (0.1.2 saved it when it did nothing; now it works). */
     private void newDefaults() {
         if (vr.isEmpty()) {
             return;  // no file yet: it is written with the defaults and the version
@@ -81,7 +82,12 @@ final class Config extends Options {
         if (version >= DEFAULTS_VERSION) {
             return;
         }
-        for (String key : DEFAULTS_0_1_3) {
+        List<String> keys = new ArrayList<>();
+        if (version < 3) {
+            keys.addAll(Arrays.asList(DEFAULTS_0_1_3));
+        }
+        keys.add("space_warp");  // version 3 or older: 0.1.4's Smoother frames
+        for (String key : keys) {
             for (Option option : ALL) {
                 if (option.key.equals(key)) {
                     vr.put(key, option.fallback);

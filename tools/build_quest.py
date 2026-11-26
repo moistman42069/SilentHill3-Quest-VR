@@ -57,6 +57,8 @@ def check_sources() -> None:
                     "sub_004D44E0_gen", "sub_005A5E40_gen"):
         if wrapped not in gen.read_text(encoding="utf8", errors="replace"):
             sys.exit(f"src/recomp/gen lacks {wrapped}: run tools/regen.sh --recomp-only after changing sh3.c")
+    if not (ROOT / "src/recomp/gen/exe_code_data.c").is_file():  # 0.1.4: the code section's switch tables (rt_core.c)
+        sys.exit("src/recomp/gen lacks exe_code_data.c: run tools/exe_ref.py game/sh3.exe (tools/regen.sh does)")
 
 
 def build_native(openxr: Path) -> Path:

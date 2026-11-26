@@ -71,6 +71,7 @@ const OptionRow kRows[] = {
      "", true},
     NU(resolution, "Render resolution", "Performance", 0.6f, 1.5f, 0.05f, "x", true),
     SW(dynamic_resolution, "Dynamic resolution", "Performance", false),
+    SW(space_warp, "Smoother frames (AppSW)", "Performance", true),  // 0.1.4: the motion drawn (motion_frame)
     CH(foveation, "Foveated rendering", "Performance", kOffLowHigh, true),
     SW(boost, "CPU and GPU boost", "Performance", true),
     CH(sharpen, "Sharpening", "Performance", kSharpen, true),
@@ -251,8 +252,9 @@ void device_defaults() {
 #endif
 }
 
-// 0.1.3: the defaults' version sh3vr.ini is written with ("defaults = 3"; the launcher's Options.DEFAULTS_VERSION)
-constexpr int kDefaultsVersion = 3;
+// The defaults' version sh3vr.ini is written with (the launcher's Options.DEFAULTS_VERSION): 3 from 0.1.3, 4 from
+// 0.1.4 (Smoother frames on to start, now that the motion is drawn).
+constexpr int kDefaultsVersion = 4;
 
 void load_options() {
     device_defaults();
@@ -294,12 +296,12 @@ void load_options() {
     // "In the scene at the camera" keeps that look as "At the camera" (3). The key is not written again.
     const bool fold = dynamic_switch >= 0;
     if (dynamic_switch == 0 && opt.cutscenes == 0) opt.cutscenes = 3;
-    if (fold && defaults >= kDefaultsVersion) {
+    if (fold && defaults >= 3) {
         const bool saved = save_options();
         rt_log("VR: sh3vr.ini's \"dynamic_cutscenes = %d\" is now the Cutscenes row (%s)%s", dynamic_switch,
                kCutscenes[opt.cutscenes], saved ? "" : "; the file could not be saved");
     }
-    if (defaults < kDefaultsVersion) {
+    if (defaults < 3) {
         // 0.1.3 (owner 84: "drifting fog should be off by default. smooth turn should be on by default ... no screen
         // filters or ANYTHING like that shit on by default"): a file from before 0.1.3 kept 0.1.2's defaults (the VR
         // menu and the launcher write every option), so the options 0.1.3 changed take its defaults once and the file
@@ -322,6 +324,14 @@ void load_options() {
         if (fold)
             rt_log("VR: sh3vr.ini's \"dynamic_cutscenes = %d\" is now the Cutscenes row: %s", dynamic_switch,
                    kCutscenes[opt.cutscenes]);
+    }
+    if (defaults < 4) {
+        // 0.1.4 (the task "make Smoother frames (AppSW) work"): 0.1.2 saved it on, when it did nothing, and 0.1.3
+        // left it out; a player may have turned it off then. Now the motion is drawn (motion_frame), it is on once.
+        opt.space_warp = Options{}.space_warp;
+        const bool saved = save_options();
+        rt_log("VR: sh3vr.ini from before 0.1.4 (defaults %d): Smoother frames (AppSW) %s once, as 0.1.4 starts%s",
+               defaults, opt.space_warp ? "on" : "off", saved ? "" : "; the file could not be saved");
     }
 }
 
@@ -1253,6 +1263,262 @@ bool picture_pass(unsigned src, int layer, int w, int h, int tw, int th) {
     glBindVertexArray((GLuint)vao);
     glUseProgram((GLuint)prog);
     return true;
+}
+
+// ---------------------------------------------------------------- Smoother frames (AppSW), 0.1.4
+// The task "SH3 Quest VR: make Smoother frames (AppSW) work" (0.1.3 drew none: the owner's log, "smoother frames on 0%").
+// The headset (XR_FB_space_warp) makes every other frame from the last picture, its depth and how each pixel moved:
+// NDC, this frame's place less the last's, in images at the size it asks. The head's own movement it takes from the
+// eyes' poses (positional timewarp, Meta's guide), so the motion here is the world's against the room: Heather walking
+// and turning (the stick, smooth turn), the game's camera moving in third person, a scene's camera. Each pixel's depth
+// is taken back to a place by this frame's camera, then through the last frame's camera moved as the head has moved
+// since (the head's movement left out), and the difference in this eye's picture is its motion. Things moving on their
+// own (monsters, doors) get the world's motion only; her own body, arms and hands (within a metre of the eyes in first
+// person) none: they go with the player. A cut (a new room, a snap turn, the game's camera jumping) is marked to skip.
+
+struct MotionCamera {
+    bool valid = false;
+    M4 view;           // the frame camera's view (column-vector): the game's world to the head's camera space
+    Pose head;         // the head (tracking space) it was made from
+    long present = -1; // the present it was made for
+    ViewMode mode = ViewMode::kFirstPerson;
+};
+MotionCamera motion_now, motion_then;
+long presents = 0;          // presents so far (sh3vr_present)
+bool motion_given = false;  // motion has gone to the headset: frames without it keep the last, marked to skip
+GLuint motion_prog = 0, motion_vao = 0, motion_fbo = 0, motion_sampler = 0;
+GLint motion_u_layer = -1, motion_u_back = -1, motion_u_to_head = -1, motion_u_size = -1, motion_u_own = -1;
+bool motion_gl_failed = false;
+constexpr float kMotionJump = 2.0f;     // metres the world may move against the room in a frame before it is a cut
+constexpr float kMotionTurnCos = 0.906f; // and turn (25 degrees)
+constexpr float kMotionOwnBody = 1.0f;  // metres from the eyes: her body, arms and hands in first person
+
+const char* kMotionVs =
+    "#version 300 es\nprecision highp float;\n"
+    "void main() {\n"
+    "    vec2 k = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1));\n"
+    "    gl_Position = vec4(k * 2.0 - 1.0, 0.0, 1.0);\n"
+    "}\n";
+// uDepth: the eyes' depth (the game's: top row first, 0 near, 1 far); uBack: this eye's clip now to its clip of the
+// same place last frame; uToHead: its clip to the head's camera space (game units); uOwn: nearer than that is her own.
+// The headset's images are bottom row first; their depth 1 near and 0 far (the layer's nearZ > farZ says so).
+const char* kMotionFs =
+    "#version 300 es\nprecision highp float;\nprecision highp sampler2DArray;\n"
+    "uniform sampler2DArray uDepth;\nuniform float uLayer;\nuniform mat4 uBack;\nuniform mat4 uToHead;\n"
+    "uniform vec2 uSize;\nuniform float uOwn;\nlayout(location = 0) out vec4 oMotion;\n"
+    "void main() {\n"
+    "    vec2 s = gl_FragCoord.xy / uSize;\n"
+    "    float d = texture(uDepth, vec3(s.x, 1.0 - s.y, uLayer)).r;\n"
+    "    gl_FragDepth = 1.0 - d;\n"
+    "    vec4 now = vec4(s * 2.0 - 1.0, d, 1.0);\n"
+    "    if (uOwn > 0.0) {\n"
+    "        vec4 h = uToHead * now;\n"
+    "        if (abs(h.w) > 1e-6 && length(h.xyz / h.w) < uOwn) { oMotion = vec4(0.0); return; }\n"
+    "    }\n"
+    "    vec4 then = uBack * now;\n"
+    "    if (then.w <= 1e-6) { oMotion = vec4(0.0); return; }\n"
+    "    vec3 before = then.xyz / then.w;\n"
+    "    oMotion = vec4(now.xy - before.xy, 2.0 * (before.z - d), 0.0);\n"  // z as the layer's (1 - 2 depth)
+    "}\n";
+
+// Why a frame went without fresh motion, told once each.
+void motion_none(int why, const char* what) {
+    static bool told[8];
+    if (why < 0 || why >= 8 || told[why]) return;
+    told[why] = true;
+    rt_log("VR: frame %d: smoother frames: no motion this frame (%s)%s", rt_frame, what,
+           motion_given ? ": the last motion again, marked to skip" : "");
+}
+
+bool motion_gl() {
+    if (motion_prog) return true;
+    if (motion_gl_failed) return false;
+    motion_prog = gl_link_program(kMotionVs, kMotionFs, "smoother frames' motion");
+    if (!motion_prog) {
+        motion_gl_failed = true;
+        rt_log("VR: smoother frames: the motion shader failed: none given (the headset makes no frames between)");
+        return false;
+    }
+    motion_u_layer = glGetUniformLocation(motion_prog, "uLayer");
+    motion_u_back = glGetUniformLocation(motion_prog, "uBack");
+    motion_u_to_head = glGetUniformLocation(motion_prog, "uToHead");
+    motion_u_size = glGetUniformLocation(motion_prog, "uSize");
+    motion_u_own = glGetUniformLocation(motion_prog, "uOwn");
+    GLint prog = 0, vao = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+    glUseProgram(motion_prog);
+    glUniform1i(glGetUniformLocation(motion_prog, "uDepth"), 0);
+    glUseProgram((GLuint)prog);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vao);
+    glGenVertexArrays(1, &motion_vao);
+    glBindVertexArray((GLuint)vao);
+    glGenFramebuffers(1, &motion_fbo);
+    glGenSamplers(1, &motion_sampler);
+    glSamplerParameteri(motion_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glSamplerParameteri(motion_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(motion_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(motion_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(motion_sampler, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+    return true;
+}
+
+// One eye's motion and depth into the headset's images.
+bool motion_draw(unsigned depth_tex, int layer, const MotionTarget& t, const M4& back, const M4& to_head, float own) {
+    GLint prog = 0, vao = 0, tex = 0, active_tex = 0, sampler = 0, draw_fb = 0, viewport[4] = {}, depth_func = 0;
+    GLboolean depth_mask = GL_TRUE, color_mask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
+    const GLboolean depth_test = glIsEnabled(GL_DEPTH_TEST);
+    glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vao);
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &active_tex);
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fb);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_mask);
+    glGetBooleanv(GL_COLOR_WRITEMASK, color_mask);
+    glActiveTexture(GL_TEXTURE0);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D_ARRAY, &tex);
+    glGetIntegerv(GL_SAMPLER_BINDING, &sampler);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, motion_fbo);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.motion, 0);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, t.depth, 0);
+    const GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+    const bool ok = status == GL_FRAMEBUFFER_COMPLETE;
+    if (ok) {
+        glViewport(0, 0, t.width, t.height);
+        glDisable(GL_SCISSOR_TEST);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_STENCIL_TEST);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_ALWAYS);
+        glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glUseProgram(motion_prog);
+        glBindVertexArray(motion_vao);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, depth_tex);
+        glBindSampler(0, motion_sampler);
+        float m[16];
+        glUniform1f(motion_u_layer, (float)layer);
+        back.to_gl(m);
+        glUniformMatrix4fv(motion_u_back, 1, GL_FALSE, m);
+        to_head.to_gl(m);
+        glUniformMatrix4fv(motion_u_to_head, 1, GL_FALSE, m);
+        glUniform2f(motion_u_size, (float)t.width, (float)t.height);
+        glUniform1f(motion_u_own, own);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    } else {
+        static bool told = false;
+        if (!told) {
+            told = true;
+            rt_log("VR: smoother frames: the headset's motion images cannot be drawn into (framebuffer status %04X)",
+                   (unsigned)status);
+        }
+    }
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+    glBindSampler(0, (GLuint)sampler);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)tex);
+    glActiveTexture((GLenum)active_tex);
+    glBindVertexArray((GLuint)vao);
+    glUseProgram((GLuint)prog);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)draw_fb);
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    glDepthFunc((GLenum)depth_func);
+    glDepthMask(depth_mask);
+    glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
+    if (depth_test) glEnable(GL_DEPTH_TEST);
+    else glDisable(GL_DEPTH_TEST);
+    return ok;
+}
+
+// This frame's motion for both eyes (sh3vr_present, after the eyes' pictures), told to the headset.
+void motion_frame(unsigned depth_tex) {
+    if (!opt.space_warp || !hs->makes_frames()) return;
+    SpaceWarpFrame warp;
+    auto none = [&](int why, const char* what) {
+        motion_none(why, what);
+        if (motion_given) {
+            warp.kept = true;  // the last motion again, marked to skip: the headset stays at its half rate (no flicker)
+            hs->space_warp(warp);
+        }
+    };
+    const bool views = view_mode == ViewMode::kFirstPerson || view_mode == ViewMode::kCamera;
+    if (full_screen_frame || !world_drawn || !views || !depth_tex) {
+        none(0, "the world is not drawn for the eyes: a screen, a load, the title, a movie");
+        return;
+    }
+    if (!corr_valid || !p_main_valid || !motion_now.valid || motion_now.present != presents) {
+        none(1, "the game's camera was not made this frame");
+        return;
+    }
+    // The distances depth 0 and 1 stand for: the eyes' projection (depth = (a z + b) / z, D3D's 0 near, 1 far).
+    const float A = depth_abcd[0], B = depth_abcd[1];
+    const bool plain = std::fabs(depth_abcd[2] - 1.0f) < 1e-5f && std::fabs(depth_abcd[3]) < 1e-6f &&
+                       std::fabs(A) > 1e-9f && std::fabs(1.0f - A) > 1e-9f;
+    const float n = plain ? -B / A : 0.0f, f = plain ? B / (1.0f - A) : 0.0f;
+    if (!plain || !(n > 0.0f) || !(f > n) || !std::isfinite(f)) {
+        none(2, "the eyes' projection is not a plain one");
+        return;
+    }
+    if (!motion_gl()) {
+        none(3, "the motion shader failed");
+        return;
+    }
+    // This frame's camera space to the last frame's, the head as it is now: the world's movement against the room.
+    bool cut = !(motion_then.valid && motion_then.present == presents - 1 && motion_then.mode == motion_now.mode);
+    M4 X = M4::identity();
+    if (!cut) {
+        const Quat qc = conjugate(motion_now.head.orientation);
+        float r[3][3];
+        quat_matrix(to_game(qc * motion_then.head.orientation), r);
+        const Vec3 t = to_game(rotate(qc, motion_then.head.position - motion_now.head.position)) * kUnitsPerMetre;
+        M4 D = M4::identity();  // the last frame's head camera space to this frame's, by the tracked head
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++) D.m[i][j] = r[i][j];
+        D.m[0][3] = t.x, D.m[1][3] = t.y, D.m[2][3] = t.z;
+        M4 vinv;
+        if (!invert(motion_now.view, vinv)) cut = true;
+        else {
+            X = D * motion_then.view * vinv;
+            const float moved = std::sqrt(X.m[0][3] * X.m[0][3] + X.m[1][3] * X.m[1][3] + X.m[2][3] * X.m[2][3]) /
+                                kUnitsPerMetre;
+            const float turn_cos = (X.m[0][0] + X.m[1][1] + X.m[2][2] - 1.0f) * 0.5f;
+            if (!std::isfinite(moved) || moved > kMotionJump || turn_cos < kMotionTurnCos) cut = true;
+        }
+        if (cut) X = M4::identity();
+    }
+    const M4 pg = M4::from_d3d(p_main);
+    const float own = view_mode == ViewMode::kFirstPerson ? kMotionOwnBody * kUnitsPerMetre : 0.0f;
+    int motion_w = 0, motion_h = 0;
+    for (int e = 0; e < 2; e++) {
+        MotionTarget t;
+        if (!hs->motion_target(e, t) || t.width < 1 || t.height < 1) {
+            none(4, "the headset gave no motion image");
+            return;
+        }
+        motion_w = t.width, motion_h = t.height;
+        const M4 clip = eye_corr_m[e] * pg;  // the head's camera space to this eye's clip
+        M4 clip_inv;
+        if (!invert(clip, clip_inv)) {
+            none(5, "the eye's projection could not be turned round");
+            return;
+        }
+        if (!motion_draw(depth_tex, e, t, clip * X * clip_inv, clip_inv, own)) {
+            none(6, "the motion images could not be drawn into");
+            return;
+        }
+    }
+    warp.drawn[0] = warp.drawn[1] = true;
+    warp.depth_zero = f / kUnitsPerMetre;  // the layer's: depth 0 the far plane, 1 the near (motion_frame's 1 - depth)
+    warp.depth_one = n / kUnitsPerMetre;
+    warp.skip = cut;
+    hs->space_warp(warp);
+    if (!motion_given) {
+        rt_log("VR: frame %d: smoother frames: motion given (the world's against the room, %dx%d an eye; depth %.2f to "
+               "%.0f m): the headset makes every other frame", rt_frame, motion_w, motion_h, n / kUnitsPerMetre,
+               f / kUnitsPerMetre);
+    }
+    motion_given = true;
 }
 
 // Turned so its face (+z) looks at the eyes.
@@ -2382,6 +2648,7 @@ int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
                     if (!picture_pass(bb_tex, e, w, h, tw, th))
                         glBlitFramebuffer(0, 0, w, h, 0, th, tw, 0, GL_COLOR_BUFFER_BIT, GL_LINEAR);
                 }
+                motion_frame(depth_tex);  // 0.1.4: smoother frames' motion and depth, beside the eyes' pictures
             }
             ptarget = hs->acquire(kTargetPanel);
             if (ptarget) hs->target_size(kTargetPanel, pw, ph);
@@ -2433,6 +2700,10 @@ int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
         } else hs->show_performance("");
         hs->finish_frame(!screen && fi.should_render, false, panel);
     }
+    // 0.1.4 smoother frames: this frame's camera is the next one's last (none when the game made none this frame)
+    motion_then = motion_now.valid && motion_now.present == presents ? motion_now : MotionCamera{};
+    motion_now.valid = false;
+    presents++;
     begin_next_frame();
     // The desktop window shows the left eye (or the screen) on a PC.
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2857,6 +3128,12 @@ void sh3vr_camera_built(const float view[16], const float proj[16]) {
     M4 vinv, pinv;
     c2w_valid = invert(M4::from_d3d(view), vinv) && invert(M4::from_d3d(proj), pinv);
     if (c2w_valid) (vinv * pinv).to_gl(c2w_gl);
+    // 0.1.4 smoother frames (motion_frame): this frame's camera and the head it was made from
+    motion_now.valid = true;
+    motion_now.view = M4::from_d3d(view);
+    motion_now.head = fi.head;
+    motion_now.present = presents;
+    motion_now.mode = view_mode;
 }
 
 double sh3vr_proj_scale(int axis, double game_value) {

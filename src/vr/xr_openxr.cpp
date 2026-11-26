@@ -246,13 +246,17 @@ public:
         m_frame_begun = true;
         m_frame_time = state.predictedDisplayTime;
         // Displays this frame came too late for: more than the last frame's step since its display time (one period, two
-        // with smoother frames, finish_frame's m_frame_periods).
-        const XrDuration step = state.predictedDisplayPeriod * m_frame_periods;
-        if (m_last_display != 0 && state.predictedDisplayPeriod > 0
-            && state.predictedDisplayTime - m_last_display > step + state.predictedDisplayPeriod / 2) {
+        // with smoother frames, finish_frame's m_frame_periods). SH3 0.1.4: the period is the display's own (its refresh
+        // rate), as the Quest tells the app's halved period while smoother frames are on (Jak 0.1.6's Quest 3 logs);
+        // that period times two counted no display missed below four periods, so dynamic resolution never stepped down.
+        const XrDuration display_period = m_refresh_rate > 1.0f ? static_cast<XrDuration>(1e9 / m_refresh_rate + 0.5)
+                                                                : state.predictedDisplayPeriod;
+        m_display_period_seconds = static_cast<double>(display_period) * 1e-9;
+        const XrDuration step = display_period * m_frame_periods;
+        if (m_last_display != 0 && display_period > 0
+            && state.predictedDisplayTime - m_last_display > step + display_period / 2) {
             const long missed = static_cast<long>(
-                (state.predictedDisplayTime - m_last_display + state.predictedDisplayPeriod / 2) / state.predictedDisplayPeriod
-                - m_frame_periods);
+                (state.predictedDisplayTime - m_last_display + display_period / 2) / display_period - m_frame_periods);
             m_displays_missed += missed;
             m_missed_total += missed;
         }
@@ -582,7 +586,8 @@ public:
             const double work = now_seconds() - m_work_start;
             m_work_seconds += work;
             m_work_most = std::max(m_work_most, work);
-            m_work_over += work > m_period_seconds * m_frame_periods ? 1 : 0;
+            const double budget = m_display_period_seconds > 0 ? m_display_period_seconds : m_period_seconds;
+            m_work_over += work > budget * m_frame_periods ? 1 : 0;
             m_last_work = work;  // 0.1.3: dynamic resolution's "did a smaller picture help"
             m_work_start = 0.0;
         }
@@ -2905,6 +2910,7 @@ private:
     long m_displays_missed = 0;
     long m_missed_total = 0;  // SH3 LIST 51: the same count, never reset (dynamic resolution)
     int m_frame_periods = 1;  // the last frame's display periods: 2 with smoother frames (the headset's half rate)
+    double m_display_period_seconds = 0;  // SH3 0.1.4: the display's own period (begin_frame)
 
     // Foveated rendering (foveate): GL_QCOM_texture_foveated's call, once looked for; each eye's texture set up last
     // and the focal point it was given.

@@ -28,3 +28,6 @@ else cd "$X"; fi
     --exclude-manual "$ROOT/src/game/sh3.c" \
     --disasm-dir "$B/disasm" --func-id-dir "$B/func_id" --abi-dir "$B/abi" -o "$B/recomp" > "$B/recomp.log" 2>&1
 grep -E "functions \(|unresolved call targets" "$B/recomp.log"
+# SH3 Quest VR 0.1.4: the switch tables the recompiled code reads from the code section (src/recomp/gen/exe_code_data.c),
+# restored by the loader over a player's exe whose code a disc's copy protection encrypted; and src/runtime/exe_ref.h.
+"$PY" "$ROOT/tools/exe_ref.py" "$ROOT/game/sh3.exe"

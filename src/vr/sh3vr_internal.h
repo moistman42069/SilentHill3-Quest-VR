@@ -56,9 +56,11 @@ struct Options {
     bool boost = true;
     int sharpen = 0;             // 0.1.3: Off (owner 84: "no screen filters or ANYTHING like that shit on by default"; the
                                  // headset's sharpening was on, Normal, from session 7's "all vr options should be on by default")
-    bool space_warp = false;     // Smoother frames (AppSW): 0.1.3 off and out of the menus: SH3 never drew the motion
-                                 // the headset needs (the owner's 0.1.2 log: "smoother frames on 0% of them"), so the
-                                 // option did nothing; back once SH3 draws it (the handoff's follow-up)
+    bool space_warp = true;      // Smoother frames (AppSW): 0.1.3 off and out of the menus (SH3 drew no motion: the
+                                 // owner's 0.1.2 log, "smoother frames on 0% of them"); 0.1.4 back in both menus, the
+                                 // motion drawn (sh3vr.cpp motion_frame) and on to start (vr261: motion on every frame of
+                                 // play, right for standing, walking, turning and the head alone). The launcher's
+                                 // Options.SPACE_WARP_ON the same; a file from before 0.1.4 gets it on once (load_options).
     bool show_performance = false;
     // View
     bool first_person = true;

@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.3</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.4</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -17,17 +17,39 @@ taken and refined, and the VR layer and launcher of our Ratchet & Clank and Jak 
 Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 
 > [!NOTE]
-> No game files are included. You need the PC release of Silent Hill 3 (2003): its "SILENT HILL 3" folder with
-> sh3.exe and data (about 5 GB). The launcher copies it onto the headset from a folder or a .zip and checks it.
+> No game files are included. You need the PC release of Silent Hill 3 (2003), any edition (North American,
+> European or Asian; the disc's exe, a no-CD exe or a fixed one: see [Which copies work](#which-copies-of-silent-hill-3-work)):
+> its "SILENT HILL 3" folder with sh3.exe and data (about 5 GB). The launcher copies it onto the headset from a
+> folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.3's release notes](docs/RELEASE-NOTES-0.1.3.md): no screen filters
+with everything you need to install it ([0.1.4's release notes](docs/RELEASE-NOTES-0.1.4.md): Smoother frames (AppSW)
+working and on, and every PC copy of the game accepted, the disc's protected exe, no-CD exes and the European release
+among them; [0.1.3's](docs/RELEASE-NOTES-0.1.3.md): no screen filters
 or fuzz by default, smooth turning, gentler melee, a softer shadow, no crash on quitting; [0.1.2's](docs/RELEASE-NOTES-0.1.2.md);
 [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short:
-install SH3QuestVR-0.1.3.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
+install SH3QuestVR-0.1.4.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
 headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. Already on an earlier version? The launcher
-offers 0.1.3 itself (Updates). Reports from a headset are very welcome
+offers 0.1.4 itself (Updates). Reports from a headset are very welcome
 (the launcher's "Save a report to Download" holds the game's own logs).
+
+## Which copies of Silent Hill 3 work
+
+**Silent Hill 3 for Windows PC, the 2003 release**, in any edition: North American, European or Asian, CD or DVD.
+As far as we know they all have the same `sh3.exe` build, dated 2003-09-03, with the languages in the data files.
+The port runs its own recompiled copy of the game's code and reads only the exe's data, so any of these works:
+
+- the exe as installed from the disc, copy protection and all;
+- a no-CD or no-DVD exe;
+- an exe changed by a fix such as the SH3 PC Fix;
+- the unprotected exe the port was made from (SHA-1 `d851669ef609b3164e3581aa8dcfbfaec866cb79`).
+
+The launcher checks the exe's data (163 pieces against the build's; up to 16 changed by a patch still pass) and that
+the data files are there. Files of another size, such as another edition's languages or a mod, are only noted. If
+the check is not sure, **Play in VR anyway** still tries it, and `sh3.log` says what the game found. Up to 0.1.3 the
+launcher took only the unprotected exe; that is where "wrong version" came from. Not these: the PlayStation 2 game,
+and the PS3 or Xbox 360 HD Collection. No European or Asian exe has been tried on the port yet: reports are welcome.
+More in [0.1.4's release notes](docs/RELEASE-NOTES-0.1.4.md#which-copies-of-silent-hill-3-work).
 
 ## Features
 
@@ -59,6 +81,9 @@ offers 0.1.3 itself (Updates). Reports from a headset are very welcome
   walls, the head in a wall darkening the view, **grabbing** with the hand.
 - **A Silent Hill pointer** for every screen: menus, the inventory, the map, memos, puzzles, the VR menu; point and
   pull, the hand ticks on what a pull can choose.
+- **Smoother frames (AppSW)**, on by default: each frame the game gives the headset how the world moved and how far
+  away it is (both eyes' motion and depth), and at 120 Hz the headset makes every other frame itself; your hands and
+  what they hold are left still, and cuts are not smeared.
 - **Dynamic resolution**: the world drawn a little smaller only while frames come late, text and hands always sharp.
 - **The picture** as the game draws it: no screen filters to start (no film grain, drifting fog, sharpening,
   smoothing or vignette), a lamp's lens flare at the lamp. **Film grain**, **Drifting fog** (on a far layer in the
@@ -73,8 +98,12 @@ offers 0.1.3 itself (Updates). Reports from a headset are very welcome
 ## For developers
 
 - The whole first release: [docs/LIST-0.1.0.md](docs/LIST-0.1.0.md). The game's addresses: [docs/GAME_FACTS.md](docs/GAME_FACTS.md).
-  The latest handoff: docs/HANDOFF-2026-11-25-SESSION17.md.
+  The latest handoff: docs/HANDOFF-2026-11-26-SESSION19.md.
 - Recompile: `PY=<venv python> sh tools/regen.sh` (Git Bash; `--recomp-only` after changing src/game/sh3.c).
+  It needs the unprotected exe (the SHA-1 above) in game/: the code is recompiled from it. tools/exe_ref.py (run by
+  regen.sh) writes src/runtime/exe_ref.h (the build's data pages, sections and imports, for the loader) and
+  src/recomp/gen/exe_code_data.c (the data in its code section), and the launcher's list comes from
+  tools/game_manifest.py.
 - PC test build: tools/build_pc.bat. Quest APK: tools/build_quest.py (NDK 27.2, SDK 34, JDK 17).
 - sh3-nx's own README (the Switch port, building the NRO, its credits): [docs/README-sh3-nx.md](docs/README-sh3-nx.md).
 

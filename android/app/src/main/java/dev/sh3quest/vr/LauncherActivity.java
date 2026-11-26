@@ -344,6 +344,9 @@ public final class LauncherActivity extends Activity {
             LinearLayout card = card();
             card.addView(text("Ready", 24, GOOD, true));
             card.addView(text("Silent Hill 3 (PC, " + check.exeName + ")", 15, INK, false));
+            if (check.exeData != null || !check.wrongSize.isEmpty() || !check.settled.isEmpty()) {
+                card.addView(text(check.summary(), 13, MUTED, false));  // 0.1.4: what was accepted, and why
+            }
             gap(card, 14);
             card.addView(button("PLAY IN VR", true, view -> play(true)));
             page.addView(card);
@@ -381,8 +384,9 @@ public final class LauncherActivity extends Activity {
     private void showFilesNeeded() {
         LinearLayout card = card();
         card.addView(text("First, your game files", 22, RUST_LIGHT, true));
-        card.addView(text("This port runs your own copy of Silent Hill 3 for the PC (the 2003 release): its "
-            + "\"SILENT HILL 3\" folder, with sh3.exe and the data folder, about 5 GB.\n\n"
+        card.addView(text("This port runs your own copy of Silent Hill 3 for the PC: the folder the game installed "
+            + "(\"SILENT HILL 3\", with sh3.exe and the data folder, about 5 GB).\n\n"
+            + "Which copies work: " + GameFiles.WHICH_GAME + " Not the PS2, Xbox or HD Collection versions.\n\n"
             + "Copy that folder to the headset over USB (into Download, for example), then choose it here. Or copy it "
             + "straight to Android/data/" + getPackageName() + "/files/game and press Check again.", 15, INK, false));
         if (check != null && check.exeFound) {
@@ -399,6 +403,21 @@ public final class LauncherActivity extends Activity {
         }), 1);
         card.addView(row);
         page.addView(card);
+        if (check != null && check.exeFound) {
+            // 0.1.4 (owner 93: "make sure this build is compatible and works in all regards"): never stricter than the
+            // other Android port, which starts whatever sh3.exe it finds. A copy the check is not sure of can still be
+            // tried; the game's own log says where it stopped, if it does.
+            LinearLayout anyway = card();
+            anyway.addView(text("Try it anyway", 16, INK, true));
+            anyway.addView(text("The check above is not sure this copy runs, but the port can start it. If the game "
+                + "stops, the Logs tab says where and why.", 14, MUTED, false));
+            LinearLayout buttons = new LinearLayout(this);
+            buttons.setPadding(0, dp(8), 0, 0);
+            addToRow(buttons, button("Play in VR anyway", false, view -> play(true)), 1);
+            addToRow(buttons, button("Play flat anyway", false, view -> play(false)), 1);
+            anyway.addView(buttons);
+            page.addView(anyway);
+        }
     }
 
     private void showProgress() {
