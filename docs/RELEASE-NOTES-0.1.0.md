@@ -136,8 +136,10 @@ Left-handed (Options, Hands and weapons) swaps the hands.
 
 - The extra weapons stay in Heather's own hand (no holster for them yet).
 - Checked only on the PC test rig so far, so the feel of things on a headset is still to be tuned with your reports:
-  the strength a swing needs, the guard's angle for a block, the comfort options' defaults, and the puzzles' screens
-  with the pointer.
+  the strength a swing needs, the guard's angle for a block, the comfort options' defaults, the puzzles' screens
+  with the pointer, and the manual reload's reach (where the ammo pouch, a gun's magazine well and its slide, knob or
+  pump sit under your hand: each was checked by hand on the rig, for the handgun, the shotgun, the submachine gun and
+  the stun gun, not yet in a headset).
 
 ## Updating
 
