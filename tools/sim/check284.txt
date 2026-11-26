@@ -1,0 +1,94 @@
+# SH3 Quest VR, the PC rig (session 24, 0.1.6): every 0.1.6 change on one run, about 3 minutes with the load.
+# Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_GIVE="10:0,15:20,11:4,16:12" SH3_EQUIP="1,2"
+# SH3_EQUIP_EVERY=1000, and a sh3vr.ini from before 0.1.6 (defaults 5, Refresh rate 72, Render resolution 1.2,
+# Foveated rendering High): sh3.log "before 0.1.6 ... every Performance option at its default once ... changed:".
+# 1. The monsters drawn from the head (owner 115): check270's start, turn and step; its shots compared with vr270's.
+# 2. The reload hint (the handgun empty, 20 spare): a level label just above the gaze, clear of the hands, looking down
+#    and level, holding still for small head moves and gliding to a big one.
+# 3. The sprint toggle: a click runs, a click stops, the stick let go stops; a click while standing then a push runs.
+# 4. The shotgun in both hands (SH3_EQUIP's second, about 1000 frames of play in): walking back, strafing, looking
+#    down, the head turned standing: her body faces the head, her arms never crossed, the second hand in reach.
+# 5. The watch: health and stamina on the left wrist.
+# Every picture checked whole (both eyes, her hands, the weapon and its direction, the label, the monsters).
+5200 shot s05200-scene
+7318 shot c07318-start
+7330 right_x -1
+7368 right_x 0
+7380 left_y 1
+7400 left_y 0
+7520 shot c07520-view
+7530 head_yaw 20
+7540 shot c07540-head-left
+7550 head_yaw -20
+7560 shot c07560-head-right
+7570 head_yaw 50
+7580 shot c07580-head-far-left
+7590 head_yaw 0
+# 2. the hint: looking down at the hands, the magazine dropped (right stick down), the next step shown
+7600 head_pitch -35
+7625 shot h07625-hint-down
+7640 right_y -1
+7646 right_y 0
+7672 shot h07672-hint-next
+7680 head_pitch 0
+7700 shot h07700-hint-level
+7710 head_yaw 8
+7722 shot h07722-hint-small-move
+7730 head_yaw 40
+7733 shot h07733-hint-glide
+7760 shot h07760-hint-settled
+7770 head_yaw 0
+7790 shot h07790-hint-back
+# 3. the sprint toggle
+7900 left_y 1
+7920 left_click 1
+7924 left_click 0
+7975 shot r07975-running
+8000 left_click 1
+8004 left_click 0
+8030 left_click 1
+8034 left_click 0
+8060 left_y 0
+8120 left_click 1
+8124 left_click 0
+8132 left_y 1
+8165 shot r08165-running-again
+8200 left_y 0
+8230 shot r08230-stopped
+# 4. the shotgun in both hands
+8380 lh_at_second 1
+8381 left_grip 1
+8400 shot t08400-two-hands
+8410 left_y -1
+8445 shot t08445-walk-back
+8470 shot t08470-walk-back-b
+8490 left_y 0
+8500 left_x 1
+8530 shot t08530-strafe-right
+8545 left_x -1
+8575 shot t08575-strafe-left
+8590 left_x 0
+8600 head_pitch -40
+8615 shot t08615-look-down
+8625 head_pitch 0
+8640 head_yaw 30
+8675 shot t08675-head-turned
+8690 head_yaw 0
+8700 left_y -1
+8702 head_yaw 25
+8730 shot t08730-back-head-turned
+8740 left_y 0
+8742 head_yaw 0
+8750 left_grip 0
+8751 lh_at_second 0
+# 5. the watch
+8760 head_pitch -40
+8760 head_yaw 10
+8760 hand_roll -90
+8760 hand_pitch 30
+8760 lh_x 0.12
+8760 lh_y 0.12
+8760 lh_z 0
+8790 shot w08790-wrist
+8800 quit 0

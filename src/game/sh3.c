@@ -97,6 +97,89 @@ int sh3_game_view(float out[16]) {
     memcpy(out, game_cam_view, sizeof game_cam_view);
     return 1;
 }
+/* 0.1.6 (owner messages 115-118, a player on 0.1.5: "Enemies only become visible when they're right on top of you"):
+ * whether a model is drawn is decided by 0x43A0F0 (the model draw 0x454670's only test; docs/GAME_FACTS.md, Camera)
+ * against the culling camera 0x439FD0 sets up from the game's OWN camera: 0x43AD30 keeps the game's view at 0x743C34
+ * beside the head's it hands to SetViewMatrix, and the camera's place comes from 0x471800(). In first person the game's
+ * camera is often a fixed one framing Heather from ahead or aside, so a monster ahead in the head's view was left out
+ * until it came near her, into that camera's picture. The PC VR mod has the game's camera itself at her head (the
+ * Camera Mod) with a wide guard band; here a model the game's camera leaves out is tested again from the head: drawn
+ * when its bounding sphere is within 80 degrees of the head's gaze (both eyes' view, with room for a quick turn) and
+ * within the game's far distance. One the game hides by its list (0x742A64 pairs at 0x742A68, 0x439AA0) stays hidden. */
+extern void sub_0043A0F0_gen(void);
+static unsigned head_cull_drawn, head_cull_logged;
+static int head_cull_told = -100000;
+/* testing (0.1.6, the PC rig): SH3_CULL_TEST=1 tests every model again from the head as if the game's camera had left
+ * each out, so the head's test is seen whole: a model behind the head or past the far distance is not drawn, one in
+ * view is (the counts in the 1200-frame line). */
+static int head_cull_test = -1;
+static unsigned head_cull_seen, head_cull_hidden;
+void sub_0043A0F0(void) {
+    sub_0043A0F0_gen();
+    if (head_cull_test < 0) head_cull_test = getenv("SH3_CULL_TEST") && atoi(getenv("SH3_CULL_TEST")) ? 1 : 0;
+    int game_said = -1;  /* testing: the game's own answer, kept for a frame drawn from its camera */
+    if (head_cull_test && sh3vr_active() && vr_view_at >= 0 && rt_frame - vr_view_at <= 1) {
+        game_said = g_eax ? 1 : 0;
+        g_eax = 0;
+    }
+    if (g_eax || !sh3vr_active() || vr_view_at < 0 || rt_frame - vr_view_at > 1) return;
+    const float *h = (const float *)GPTR(VR_SCRATCH);
+    if (!memcmp(h, game_cam_view, sizeof game_cam_view)) {  /* the frame drawn from the game's camera itself */
+        if (game_said >= 0) g_eax = (uint32_t)game_said;
+        return;
+    }
+    if (game_said >= 0) {
+        head_cull_seen++;
+        if (!game_said) head_cull_hidden++;  /* left out by the game's camera itself */
+    }
+    const uint32_t obj = MEM32(0x742A50);  /* the model 0x43A0F0 tested (0x44ACD0's, [0x7F7894]) */
+    if (!obj) return;
+    const int32_t listed = (int32_t)MEM32(0x742A64);
+    for (int32_t i = 0; i < listed && i < 1024; i++)
+        if (MEM16(0x742A68u + 4u * (uint32_t)i) == MEM16(obj + 0x80) && MEM16(0x742A6Au + 4u * (uint32_t)i) == MEM16(obj + 0x82))
+            return;
+    const float r = MEMF(0x742A30), far_d = MEMF(0x743BD0);  /* its bounding radius (0x439810); the far distance */
+    const float px = MEMF(0x7F7884), py = MEMF(0x7F7888), pz = MEMF(0x7F788C);  /* its place (0x44AD20's) */
+    /* the head's place and gaze from its view (D3D row vectors, world = (view - t) M^-1; M a rotation, maybe scaled) */
+    const float s2 = h[0] * h[0] + h[1] * h[1] + h[2] * h[2];
+    if (!(s2 > 1e-12f)) return;
+    const float cx = -(h[12] * h[0] + h[13] * h[1] + h[14] * h[2]) / s2;
+    const float cy = -(h[12] * h[4] + h[13] * h[5] + h[14] * h[6]) / s2;
+    const float cz = -(h[12] * h[8] + h[13] * h[9] + h[14] * h[10]) / s2;
+    float fx = h[2], fy = h[6], fz = h[10];
+    const float fl = sqrtf(fx * fx + fy * fy + fz * fz);
+    if (!(fl > 1e-6f)) return;
+    fx /= fl, fy /= fl, fz /= fl;
+    const float dx = px - cx, dy = py - cy, dz = pz - cz;
+    const float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+    float off = 0.0f;
+    if (dist > r) {
+        if (far_d > 0.0f && dist - r > far_d) return;
+        float c = (dx * fx + dy * fy + dz * fz) / dist;
+        c = c > 1.0f ? 1.0f : c < -1.0f ? -1.0f : c;
+        off = (acosf(c) - asinf(r / dist)) * 57.2958f;
+        if (off > 80.0f) return;
+    }
+    g_eax = 1;
+    head_cull_drawn++;
+    if (head_cull_logged < 3) {
+        head_cull_logged++;
+        rt_log("VR: frame %d: a model the game's camera leaves out (%04X %04X, %.1f m from the head, %.0f degrees off "
+               "the gaze, radius %.2f m) drawn: the head sees it", rt_frame, MEM16(obj + 0x80), MEM16(obj + 0x82),
+               dist / 490.0f, off < 0.0f ? 0.0f : off, r / 490.0f);
+    }
+    if (rt_frame - head_cull_told >= (head_cull_test ? 120 : 1200)) {
+        if (head_cull_test)
+            rt_log("VR: frame %d: SH3_CULL_TEST: %u model tests, %u drawn from the head's view (the game's camera had "
+                   "left out %u)", rt_frame, head_cull_seen, head_cull_drawn, head_cull_hidden);
+        else
+            rt_log("VR: frame %d: %u model draws the game's camera left out were drawn from the head's view (since the "
+                   "last line)", rt_frame, head_cull_drawn);
+        head_cull_drawn = head_cull_seen = head_cull_hidden = 0;
+        head_cull_told = rt_frame;
+    }
+}
+
 /* 0x67B9B0 rebuilds the camera block (view, projection, their products) when it is dirty: the projection the frame
  * camera's view is drawn with is taken here, for the eyes' corrections. */
 extern void sub_0067B9B0_gen(void);
@@ -2562,6 +2645,8 @@ recomp_func_t recomp_lookup_manual(uint32_t va) {
     case 0x0041E200u: return sub_0041E200;  /* 0.1.5: the depth of field left out in VR */
     case 0x0041FF80u: return sub_0041FF80;  /* 0.1.5: the shaking double picture left out in VR */
     case 0x0049FAC0u: return sub_0049FAC0;  /* 0.1.5: the lamps' test from the frame camera in VR, no read back */
+    case 0x0043A0F0u: return sub_0043A0F0;  /* 0.1.6: the models' culling tested again from the head (0x454670 calls it
+                                             * by address: without this line the wrapper is never reached, vr286) */
     case 0x006483A7u: return sub_006483A7;  /* 0.1.5: D3DX's math, natively */
     case 0x00648432u: return sub_00648432;
     case 0x00648491u: return sub_00648491;

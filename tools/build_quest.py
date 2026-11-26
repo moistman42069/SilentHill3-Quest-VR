@@ -56,9 +56,16 @@ def check_sources() -> None:
     for wrapped in ("sub_004ACE10_gen", "sub_004B33E0_gen", "sub_004162A0_gen", "sub_004D83B0_gen", "sub_00495360_gen",
                     "sub_004D44E0_gen", "sub_005A5E40_gen", "sub_0060DA50_gen",
                     "sub_006483A7_gen", "sub_00648639_gen", "sub_00648432_gen", "sub_00648491_gen",
-                    "sub_0064856F_gen", "sub_0049FAC0_gen", "sub_0041E200_gen", "sub_0041FF80_gen"):
+                    "sub_0064856F_gen", "sub_0049FAC0_gen", "sub_0041E200_gen", "sub_0041FF80_gen",
+                    "sub_0043A0F0_gen"):
         if wrapped not in gen.read_text(encoding="utf8", errors="replace"):
             sys.exit(f"src/recomp/gen lacks {wrapped}: run tools/regen.sh --recomp-only after changing sh3.c")
+    # 0.1.6 (vr286): a wrapper is reached by calls by address (RECOMP_ICALL_SAFE) only through recomp_lookup_manual;
+    # 0x43A0F0's only caller calls it that way, and its wrapper went unused until the case was added.
+    sh3c = (ROOT / "src/game/sh3.c").read_text(encoding="utf8", errors="replace")
+    for name in re.findall(r"^void (sub_[0-9A-F]{8})\(void\)", sh3c, re.M):
+        if f"case 0x{name[4:]}u:" not in sh3c:
+            sys.exit(f"src/game/sh3.c wraps {name} but recomp_lookup_manual has no case for it: calls by address miss it")
     if not (ROOT / "src/recomp/gen/exe_code_data.c").is_file():  # 0.1.4: the code section's switch tables (rt_core.c)
         sys.exit("src/recomp/gen lacks exe_code_data.c: run tools/exe_ref.py game/sh3.exe (tools/regen.sh does)")
 

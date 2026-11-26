@@ -40,6 +40,8 @@
 namespace sh3q { bool sim_second_spot(float out[3]); }
 // SH3 Quest VR (session 16): the reload by hand's places (sh3vr_reload.cpp), for "lh_at_reload N".
 namespace sh3q { bool sim_reload_spot(int what, float out[3]); }
+// SH3 Quest VR (0.1.6): a holster's place (sh3vr_combat.cpp), for "lh_at_holster N" / "rh_at_holster N".
+namespace sh3q { bool sim_holster_spot(int n, float out[3]); }
 
 namespace quest {
 
@@ -365,6 +367,15 @@ public:
             if (side == 0 && at_reload != 0 && sh3q::sim_reload_spot(at_reload, spot))
                 out.hand_aim[side].position = Vec3{spot[0], spot[1], spot[2]} + Vec3{number("lh_x"), number("lh_y"),
                                                                                      number("lh_z")};
+            // SH3 (0.1.6), "lh_at_holster N" / "rh_at_holster N": the controller at a holster's place
+            // (sh3vr_combat.cpp sim_holster_spot: 1 the gun's, 2 the melee weapon's, 3 the belt pouch, 4 the chest
+            // pocket, 5 the ammo pouch), its lh_x lh_y lh_z (rh_...) then metres from it: the radius options checked.
+            const int at_holster = (int)number(side == 0 ? "lh_at_holster" : "rh_at_holster");
+            if (at_holster != 0 && sh3q::sim_holster_spot(at_holster, spot))
+                out.hand_aim[side].position =
+                    Vec3{spot[0], spot[1], spot[2]} + Vec3{number(side == 0 ? "lh_x" : "rh_x"),
+                                                           number(side == 0 ? "lh_y" : "rh_y"),
+                                                           number(side == 0 ? "lh_z" : "rh_z")};
             out.hand_grip[side] = {out.hand_aim[side].position,
                                    hand * Quat{std::sin(m_grip_tilt * 0.5f), 0, 0, std::cos(m_grip_tilt * 0.5f)}};
         }

@@ -787,3 +787,34 @@ call 0x4B74B0 all round her every 120 frames, and none found a floor item in any
 - **The unlimited submachine gun** is item 0x0D (weapon 17): 0x497800 never takes a round from it, so its loaded
   count never changes. SH3_GIVE=13:0 gives it 0 loaded: the attack decision is then the dry click (vr277's
   "no shot"); 13:50 fires (vr278).
+
+## Session 24 (2026-11-26): 0.1.6, which models the game draws (disassembly; owner messages 115-118)
+
+- The model draw's gate: **0x00454670** (from 0x00685F27 in 0x00685E60) calls **0x0043A0F0** and draws the model
+  (0x0045F5D0(model, ..., [obj+0x78] & 0x2000)) only when it returns non-zero. 0x43A0F0 has no other caller.
+- **0x0043A0F0** (cdecl, no arguments, eax 0/1): the current object [0x007F7894] (0x44ACD0), kept at 0x00742A50; its
+  bounding radius 0x00439810(eax = [obj+0x80] word) into 0x00742A30 (below [0x0068A868] = always drawn); then, when
+  [0x00742A64] > 0, the pairs (word [obj+0x80], word [obj+0x82]) at 0x00742A68 + 4i (0x00439AA0): listed = hidden.
+  Its place: 0x0044AD20 copies the vec4 at 0x007F7884. Tests: depth along the culling camera's forward
+  (0x00742A10, from its place 0x00742A20); the camera inside the sphere = drawn; further than [0x00743BD0] (0x43AB00,
+  the far distance) = hidden; else the centre and a radius offset (along 0x00742A00) through the matrix 0x00742970
+  (world to the PS2 screen) and a circle test round the screen's middle ([0x0068E6DC]) of radius [0x00742A48]
+  (0x00439EE0, from the projection scales 0x43AB80 / 0x43ABC0).
+- **0x00439FD0** sets that culling camera up (from 0x00685E60 and 0x00685F90): 0x00742970 = 0x0043ADD0's copy of
+  0x00743CB4; a local view = 0x0043AD50's copy of **0x00743C34**; 0x7429B0 = its inverse (0x00439CB0); the axes
+  0x007429F0 / 0x00742A00 / 0x00742A10 = (1,0,0) / (0,-1,0) / (0,0,1) through it; the place 0x00742A20 = 0x00471800()
+  (the game camera's, 0x0089E850).
+- **0x0043AD30** (the frame camera's view, from 0x006853C0 with 0x004A0500()'s matrix) calls SetViewMatrix 0x004162A0
+  and then copies its own argument (esi) to 0x00743C34. SH3 Quest VR hands SetViewMatrix the head's view in first
+  person, but 0x00743C34 keeps the game camera's view: **the models' culling is the game camera's, not the head's**
+  (the frame's own culling, 0x0072C420, follows the head). In a fixed-camera room a monster ahead of Heather was not
+  drawn until it entered that camera's picture near her. 0.1.5's lamps' glows had the same cause (their own test).
+- SH3 Quest VR 0.1.6 wraps 0x0043A0F0 (src/game/sh3.c): when the game says hidden and the frame is drawn from the head,
+  a model not in the game's list is drawn when its sphere is within 80 degrees of the head's gaze and within the far
+  distance. The PC VR mod instead has the game camera itself at Heather's head (the Camera Mod) and widens its
+  projection on the GPU side ([Stereo] culling guard band, 176 degrees).
+  The rig's check of the head test: SH3_CULL_TEST=1 treats every model as left out by the game, so the head test alone
+  decides (sh3.log "SH3_CULL_TEST: N model tests, M drawn" every 120 frames; vr286).
+- 0x454670 calls 0x43A0F0 BY ADDRESS (RECOMP_ICALL_SAFE in the generated code), so the wrapper is reached only through
+  sh3.c's recomp_lookup_manual (its case); the dispatch table points at sub_0043A0F0_gen. Every wrapper needs its case
+  (tools/build_quest.py checks; vr286 ran without it).

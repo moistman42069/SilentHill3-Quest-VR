@@ -49,7 +49,8 @@ constexpr float kEyeRatio = 0.936f;       // eye height / body height
 struct Options {
     bool vr = true;
     // Performance (the launcher's "Recommended performance options" are these defaults: LIST 7)
-    float refresh_hz = 120.0f;  // owner 98: 120 (the game's 16-17 ms frames = two refreshes, an even ~60 a second)
+    float refresh_hz = 120.0f;  // owner 98, and 121 for 0.1.6 ("BEST defaults for BEST performance"): 120 Hz (the head's
+                                // turns redrawn at 120 Hz, a late frame held 8.3 ms more, not 13.9 as at 72)
     float resolution = 1.0f;  // every headset from 0.1.5 (owner 97; 0.1.0-0.1.4 started a Quest 3 or 3S at 1.5)
     bool dynamic_resolution = true;  // LIST 51: the game's 3D pictures drawn smaller while the headset falls behind
     int foveation = 2;
@@ -101,6 +102,8 @@ struct Options {
     float snap_degrees = 45.0f;
     float smooth_degrees = 120.0f;  // a second, the stick fully over
     int move_by = 0;             // 0 head (the default, the owner 2026-11-24), 1 the left hand
+    bool sprint_toggle = true;   // 0.1.6 (owner 111: "an option for a sprint toggle (on by default)"): a left-stick click runs
+                                 // until clicked again or the stick is let go; off, she runs while it is held in
     bool vignette = false;       // the comfort vignette while turning or moving: 0.1.3 off (owner 84: no screen filters)
     float vignette_strength = 50.0f;  // %
     bool head_fade = true;       // the head in a wall darkens the view
@@ -119,6 +122,10 @@ struct Options {
     bool punches = true;
     bool gun_club = true;
     bool holsters = true;
+    bool gun_on_hip = true;      // 0.1.6 (owner 122): the gun's holster at the main-hand hip, the melee weapon's over the
+                                 // main-hand shoulder; off: as 0.1.0-0.1.5 (the gun over the shoulder, melee at the hip)
+    float holster_radius_cm = 18.0f;     // 0.1.6 (owner 122): how near the hand must come to a weapon holster
+    float ammo_pouch_radius_cm = 14.0f;  // 0.1.6 (owner 122: "a bit larger"): the ammo pouch's (it was 10 cm)
     bool holster_pouch = true;   // supplies
     int flashlight = 0;          // the chest flashlight aims: 0 where the eyes look, 1 where she faces (the game's)
     bool chest_light_touch = true;
@@ -129,7 +136,8 @@ struct Options {
     bool manual_reload = true;   // LIST 46: guns reloaded with the hands (sh3vr_reload.cpp)
     bool reload_hints = true;    // LIST 46: the reload's next step on the screen, the first three reloads of a run
     bool hand_sounds = true;     // a sound for every hand action (holsters, the pouch, the slide, a hand on a wall...: sh3vr_sounds.cpp)
-    bool wrist_health = true;    // LIST 49: the health bar on her left wrist, where her watch is, shown when looked at
+    bool wrist_health = true;    // LIST 49: the health and stamina bars on her left wrist, where her watch is, shown when
+                                 // looked at; 0.1.6 "Health and stamina on your wrist", on the View page (owner 111: a toggle)
     bool blocking = true;        // LIST 50: a raised weapon or arm takes a monster's hit (less damage)
     bool shake_free = true;      // owner message 38: shaking the controllers counts as the game's button mashing to get free
                                  // when she is knocked down or held (sh3vr_combat.cpp struggle_frame; sh3.c 0x4D44E0)
@@ -338,6 +346,7 @@ void combat_frame();           // begin_next_frame after body_frame
 void combat_pad(Sh3VrPad& p, uint16_t& add_buttons, bool& block_attack);  // map_pad in play (first person)
 bool weapon_shown_in_hand();   // a weapon is drawn at the main hand (first person)
 bool combat_gun_in_hand();
+bool weapon_two_handed();     // 0.1.6: the other hand on the weapon's second grip (her body keeps facing the head)
 // Owner 61 (session 14): the beam saber in the VR hand with physical melee on: the main trigger is the game's ready alone
 // (its beam lit, action 7), the attack the swings' own (vr202: the attack held with the ready gave action 37, no beam).
 bool combat_trigger_readies();
@@ -440,7 +449,7 @@ bool reload_blocks_game();              // sh3vr_block_game_reload
 void reload_game_event(int weapon, int event_index);
 bool reload_fingers(int hand, float out[5]);  // the off hand's shape round a magazine, a shell, the slide
 void reload_actions(Sh3VrActions* out);
-unsigned reload_hint_texture(int& w, int& h);  // the hint's strip (top row first), 0 none shown
+unsigned reload_hint_texture(int& w, int& h, int& box_w);  // the hint (top row first; its box box_w wide, centred), 0 none shown
 void reload_shot();                     // Heather fired: the handgun's slide cycles
 float reload_part_back(int item);       // how far the gun's slide, knob or pump is back now (m)
 float reload_pump_back();               // the shotgun's pump drawn back by the other hand (m), 0 none

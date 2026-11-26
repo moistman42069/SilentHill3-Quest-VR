@@ -22,6 +22,27 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
 - [ ] 0.1.5, an update from 0.1.4: sh3.log "defaults ... folded": Smoother frames, ghost hands and Heather's shadow
       off, a Quest 3 or 3S at Render resolution 1.0x; 120 Hz. Show performance: steady at 60 game frames a second
       in the park and the mall.
+- [ ] 0.1.6, an update from 0.1.5 with Performance options changed (72 Hz, 1.2x, foveation High, say): the launcher's
+      Options, Performance shows every row at its default (120 Hz, 1.0x, Dynamic resolution on, Smoother frames off,
+      Medium, boost on, Sharpening off, Show performance off, Game threads three cores); sh3.log (game started on the PC
+      rig without the launcher) "sh3vr.ini from before 0.1.6 ... every Performance option at its default once ...
+      changed: ...". Change one afterwards: it stays after quitting and starting again. Show performance at 120 Hz in
+      the park and the mall: the game's frames a second as 0.1.5's (about 55-95), few displays missed; turning the head and
+      walking look even (no judder or double edges).
+- [ ] 0.1.6 (owner 115, a player: "Enemies only become visible when they're right on top of you"): the opening
+      nightmare's park, first person: the dogs and other monsters show as soon as they are in view at a distance
+      (in the fog and the dark as the game draws them), not only when they reach Heather; sh3.log "a model the game's
+      camera leaves out ... drawn: the head sees it" and every 20 s "N model draws ... drawn from the head's view".
+      Third person: as the game draws it.
+- [ ] 0.1.6 Sprint toggle (on): a left-stick click runs; she keeps running until the stick is clicked again or let go
+      half a second; sh3.log "sprint on / off (Sprint toggle: ...)". Off (Options, Comfort): runs only while held in.
+- [ ] 0.1.6 (owner 111, the arms twisting two-handed): a gun in both hands, walk back and to the sides while looking
+      ahead: her body keeps facing where you look ("walking back ... her body keeps facing the head"), no 180-degree
+      turn, the arms never cross through her, the second grip held (no "second grip ... past her arm's reach").
+- [ ] 0.1.6 the reload hint (Manual reload, the first reloads): a small level label just over where you look; look down
+      at the hands: it follows into view, level, readable, not over the hands; small head moves leave it still.
+- [ ] 0.1.6 "Health and stamina on your wrist" (View): off, no bars on the watch and the game's HUD in first person
+      (if on in Extra options); on, the bars again.
 
 ## View and comfort
 - [ ] New Game: the opening movie plays on the big cinema screen in front of you (sharp, 4:3, no stutter), with its
@@ -79,7 +100,7 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       short press in play pauses, as before. The menu's View page, "First person" off: third person (the game's
       camera, in stereo); on: first person. Every row changes, and the launcher shows the change afterwards.
 - [ ] A place where the game's camera matters (a fixed-camera room, a chase): third person comes and goes by itself.
-- [ ] Performance: steady at 120 Hz with Show performance on (Smoother frames, AppSW, on; boost, foveation Medium;
+- [ ] Performance: 120 Hz (the start; forced once by 0.1.6) with Show performance on (Smoother frames off; boost, foveation Medium;
       every headset at Render resolution 1.0x since 0.1.5); both eyes are drawn in one pass (multiview: VR does not
       start without it). Dynamic resolution (on): Show performance's "3D" share drops below 100% only while frames come
       late (a heavy room) and climbs back after 5 s of calm; the world a little softer meanwhile, text, menus and her
@@ -127,7 +148,7 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       no bars at the view's top left and no red cross (the watch has them); third person (VR menu, View, "First person" off):
       the game's normal HUD, its two bars at the view's top left (about 22 degrees left, 16 up, easy to read, following
       the view gently) and the cross on the panel, no watch; back to first person: the top left empty, the watch again.
-      "Health bar on your wrist" off: the normal HUD in first person too.
+      "Health and stamina on your wrist" (View) off: the normal HUD in first person too.
 - [ ] Shake to break free: let a monster knock her down or grab her, then shake both controllers hard side to side:
       each shake buzzes with a rustle, she gets up sooner than when waiting (sh3.log "VR: she is knocked down or held"
       and "she got free after ... s (N shakes counted ...)"); the buttons pressed fast still work.
@@ -150,10 +171,14 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       on the hilt.
 - [ ] Empty hands: a hard jab punches (sh3.log: "melee attack id ... learned" before the first punch lands needs the
       knife or pipe used once); a gun swung hard clubs.
-- [ ] Holsters: every gun on the main-hand shoulder (reach over it), every melee weapon on the main-hand hip: grip there
-      draws the one last put there (sh3.log "drawn from the holster"), letting go there puts it away; drawing one puts
-      the held one in its own holster. Belt pouch: supplies. Chest pocket: the flashlight. Easy to reach, no false
-      draws when the hand passes the face or the belt.
+- [ ] Holsters (0.1.6, owner 122): every gun on the main-hand hip, every melee weapon over the main-hand shoulder
+      (reach over it): grip there draws the one last put there (sh3.log "drawn from the holster"), letting go there
+      puts it away; drawing one puts the held one in its own holster. "Gun on the hip, melee on the shoulder" off: the
+      gun over the shoulder and melee at the hip, as 0.1.5. Belt pouch: supplies. Chest pocket: the flashlight. Easy to
+      reach, no false draws when the hand passes the face or the belt.
+- [ ] Radius options (0.1.6, owner 122): "Weapon holster radius" (18 cm) and "Ammo pouch radius" (14 cm, was 10):
+      the ammo pouch found by feel without looking; at 30 cm both still pick the nearest place (the gun's holster and
+      the supplies pouch do not steal a magazine grab); at 10 / 6 cm only a hand right on them.
 - [ ] Spatial sound (headphones or the Quest's speakers): a monster, a door or the radio heard off to one side; turn
       your head and the sound stays where it is in the world (it moves to the other ear when you turn past it), and
       behind you it is a little softer and duller. sh3.log: "spatial sound: the game's listener is its camera's view".

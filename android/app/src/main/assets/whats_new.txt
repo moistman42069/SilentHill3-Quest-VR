@@ -1,3 +1,24 @@
+0.1.6:
+
+- Monsters are seen at their distance: the game picked which characters to draw with its own camera, not your head,
+  so in first person a monster ahead was not drawn until it was close to Heather. A character its camera leaves out
+  is now checked again from your head and drawn when it is in your view.
+- The best performance options, set once as you update: every option on the Performance page back to its default
+  (120 Hz, Render resolution 1.0x, Dynamic resolution on, Smoother frames off, Foveated rendering Medium, CPU and GPU
+  boost on, Sharpening off, Show performance off, the game on three cores). Change them afterwards and they stay.
+- The holsters swapped: your gun on your right hip, your melee weapon over your right shoulder. "Gun on the hip, melee
+  on the shoulder" (Options, Hands and weapons) off puts them back as they were.
+- "Weapon holster radius" (18 cm) and "Ammo pouch radius" (now 14 cm to start, it was 10) on Hands and weapons: how
+  near your hand must come to draw a weapon or take a magazine.
+- Sprint toggle (on to start; Options, Comfort): click the left stick to run until you click again or let the stick
+  go. Off: hold it in to run.
+- "Health and stamina on your wrist" on the View page turns the watch's bars on or off (it was "Health bar on your
+  wrist", on Hands and weapons). Off, first person shows the game's own HUD.
+- Backing up with a gun in both hands no longer twists her arms: in first person she keeps facing where you look and
+  steps back or to the side, and with both hands on a weapon her body follows your head sooner.
+- The reload hint is a small level label just above where you look, so it stays in view when you look down at your
+  hands.
+
 0.1.5:
 
 - No more black screen a few seconds into play, and no more 2-second freezes: the game waited for the headset to give

@@ -36,10 +36,12 @@ namespace {
 enum WeaponKind { kGun = 0, kStun, kLight, kHeavy, kUnknown };
 // The owner's layout (2026-11-24, session 3: "you can only really have one weapon equipped at a time anyway. so go ahead
 // and make it so right shoulder is gun holster, and right hip is melee. both can be grabbed whenever, recognizing
-// whichever gun/melee weapon you last holstered"): every gun on the main-hand shoulder, every melee weapon on the
-// main-hand hip; the belt pouch (supplies) and the chest pocket (flashlight) as before. LIST 46: the ammo pouch at the
-// front of the belt on the off hand's side gives that hand magazines, shells and batteries (sh3vr_reload.cpp).
-enum HolsterId { kShoulder = 0, kHip, kPouch, kLightPocket, kAmmo, kHolsterCount };
+// whichever gun/melee weapon you last holstered"): every gun in one holster, every melee weapon in the other (0.1.6,
+// owner 122: the gun at the main-hand hip, the melee weapon over the main-hand shoulder, "Gun on the hip, melee on the
+// shoulder"; off, the 2026-11-24 layout); the belt pouch (supplies) and the chest pocket (flashlight) as before. LIST
+// 46: the ammo pouch at the front of the belt on the off hand's side gives that hand magazines, shells and batteries
+// (sh3vr_reload.cpp).
+enum HolsterId { kGunHolster = 0, kMeleeHolster, kPouch, kLightPocket, kAmmo, kHolsterCount };
 
 struct WeaponInfo {
     const char* name;
@@ -57,19 +59,19 @@ struct WeaponInfo {
 };
 constexpr int kProfiles = 10;  // the weapons with a measured hold (profile_of)
 const WeaponInfo kWeapons[kProfiles] = {
-    {"handgun", "Handgun", kGun, {368, 0}, {610, 0}, 1, 0.24f, 0.09f, 0.0f, false, 0.16f, 7.0f, kShoulder},
-    {"shotgun", "Shotgun", kGun, {290, 0}, {490, 0}, 1, 0.75f, 0.10f, 0.36f, true, 0.70f, 11.0f, kShoulder},
-    {"submachine gun", "Submachine Gun", kGun, {557, 0}, {890, 0}, 1, 0.42f, 0.10f, 0.22f, true, 0.36f, 3.0f, kShoulder},
-    {"stun gun", "Stun Gun", kStun, {132, 0}, {226, 0}, 1, 0.26f, 0.12f, 0.0f, false, 0.16f, 0.0f, kShoulder},
-    {"knife", "Knife", kLight, {166, 0}, {334, 0}, 1, 0.46f, 0.19f, 0.0f, false, 0.0f, 0.0f, kHip},
-    {"steel pipe", "Steel Pipe", kHeavy, {172, 170}, {294, 290}, 2, 0.82f, 0.14f, 0.18f, true, 0.0f, 0.0f, kHip},
-    {"katana", "Katana", kHeavy, {69, 72}, {122, 114}, 2, 0.95f, 0.12f, 0.12f, true, 0.0f, 0.0f, kHip},
-    {"maul", "Maul", kHeavy, {208, 0}, {426, 0}, 1, 0.76f, 0.22f, 0.22f, true, 0.0f, 0.0f, kHip},
+    {"handgun", "Handgun", kGun, {368, 0}, {610, 0}, 1, 0.24f, 0.09f, 0.0f, false, 0.16f, 7.0f, kGunHolster},
+    {"shotgun", "Shotgun", kGun, {290, 0}, {490, 0}, 1, 0.75f, 0.10f, 0.36f, true, 0.70f, 11.0f, kGunHolster},
+    {"submachine gun", "Submachine Gun", kGun, {557, 0}, {890, 0}, 1, 0.42f, 0.10f, 0.22f, true, 0.36f, 3.0f, kGunHolster},
+    {"stun gun", "Stun Gun", kStun, {132, 0}, {226, 0}, 1, 0.26f, 0.12f, 0.0f, false, 0.16f, 0.0f, kGunHolster},
+    {"knife", "Knife", kLight, {166, 0}, {334, 0}, 1, 0.46f, 0.19f, 0.0f, false, 0.0f, 0.0f, kMeleeHolster},
+    {"steel pipe", "Steel Pipe", kHeavy, {172, 170}, {294, 290}, 2, 0.82f, 0.14f, 0.18f, true, 0.0f, 0.0f, kMeleeHolster},
+    {"katana", "Katana", kHeavy, {69, 72}, {122, 114}, 2, 0.95f, 0.12f, 0.12f, true, 0.0f, 0.0f, kMeleeHolster},
+    {"maul", "Maul", kHeavy, {208, 0}, {426, 0}, 1, 0.76f, 0.22f, 0.22f, true, 0.0f, 0.0f, kMeleeHolster},
     // Session 13 (vr195 mesh dumps, SH3_MESH_DUMP=W; the extras after a clear): the beam saber, its hilt (bone 0,
     // 126/154) the game holds in its own right hand (group 34); the flamethrower, its body (238/434, bones 0-1) and its
     // tank under it (49/106), held in both of the game's own hands (groups 37, 38).
-    {"beam saber", "Beam Saber", kHeavy, {126, 0}, {154, 0}, 1, 0.95f, 0.10f, 0.10f, true, 0.0f, 0.0f, kHip},
-    {"flamethrower", "Flamethrower", kGun, {238, 49}, {434, 106}, 2, 0.55f, 0.12f, 0.28f, true, 0.42f, 1.0f, kShoulder},
+    {"beam saber", "Beam Saber", kHeavy, {126, 0}, {154, 0}, 1, 0.95f, 0.10f, 0.10f, true, 0.0f, 0.0f, kMeleeHolster},
+    {"flamethrower", "Flamethrower", kGun, {238, 49}, {434, 106}, 2, 0.55f, 0.12f, 0.28f, true, 0.42f, 1.0f, kGunHolster},
 };
 
 // The game's inventory order of the weapons (short[0x6BDD4C + 2 i], item i = 1..13: checked in the exe, GAME_FACTS.md
@@ -82,8 +84,8 @@ int base_slot(int w) { return w == 15 ? 1 : w == 16 ? 3 : w == 18 ? 17 : w; }
 
 // Which holster a weapon goes to. The extras (no mesh signature known) by the game's own attack decision 0x494C40 (its
 // class table at 0x494CD8, checked 2026-11-24): weapons 10 and 17 (18) are decided as the shotgun and the submachine
-// gun are (loaded rounds, a reload when empty): the shoulder; 9, 13 and 14 as the pipe and the katana (light, heavy and
-// third attacks): the hip.
+// gun are (loaded rounds, a reload when empty): the gun holster; 9, 13 and 14 as the pipe and the katana (light, heavy
+// and third attacks): the melee holster.
 int holster_of(int w);
 
 // The game's weapon numbers (the drawn weapon 0x712C656 and the equipped slot 0x712CABF count the same way; checked in
@@ -124,9 +126,9 @@ int holster_of(int w) {
     switch (base_slot(w)) {
     case 9:
     case 13:
-    case 14: return kHip;
+    case 14: return kMeleeHolster;
     case 10:
-    case 17: return kShoulder;
+    case 17: return kGunHolster;
     }
     return -1;
 }
@@ -782,43 +784,57 @@ bool owned(int slot) { return slot >= 0 && slot < 32 && (game.weapons_owned >> s
 
 bool holster_on(int h) {
     switch (h) {
-    case kShoulder:
-    case kHip: return opt.holsters;
+    case kGunHolster:
+    case kMeleeHolster: return opt.holsters;
     case kPouch: return opt.holsters && opt.holster_pouch;
     case kLightPocket: return opt.chest_light_touch;  // the flashlight: its own switch, on with holsters off too
     case kAmmo: return reload_pouch_on();  // "Manual reload", a gun in the hand that reloads by hand
     }
     return false;
 }
+// 0.1.6 (owner 122: "lets switch holsters ... so gun is on bottom right hip now and melee is on top right shoulder ...
+// with toggles for perference"): "Gun on the hip, melee on the shoulder" (on to start) puts the gun's holster at the
+// main-hand hip and the melee weapon's over the main-hand shoulder; off, as 0.1.0-0.1.5 had them (the gun over the
+// shoulder, the melee weapon at the hip). Each holster still gives back the weapon of its kind last put there.
+bool holster_at_shoulder(int h) {
+    return (h == kGunHolster && !opt.gun_on_hip) || (h == kMeleeHolster && opt.gun_on_hip);
+}
+bool holster_at_hip(int h) {
+    return (h == kGunHolster && opt.gun_on_hip) || (h == kMeleeHolster && !opt.gun_on_hip);
+}
 const char* holster_name(int h) {
-    static const char* const kNames[] = {"shoulder (guns)", "hip (melee)", "belt pouch", "chest pocket", "ammo pouch"};
+    if (h == kGunHolster) return opt.gun_on_hip ? "hip (guns)" : "shoulder (guns)";
+    if (h == kMeleeHolster) return opt.gun_on_hip ? "shoulder (melee)" : "hip (melee)";
+    static const char* const kNames[] = {"", "", "belt pouch", "chest pocket", "ammo pouch"};
     return h >= 0 && h < kHolsterCount ? kNames[h] : "?";
 }
 
 // The holster's place (tracking: x right, y up, -z forward from the eyes): on the body, turned with it; left-handed
-// mirrors left and right. The gun's is at the top of the main-hand shoulder, a little behind it (reached over the
-// shoulder, the way a slung gun is); the melee weapon's at the main-hand hip; the supplies pouch at the other hip, a
-// little behind it; the ammo pouch in front of that, at the front of the belt (where magazine pouches are worn).
+// mirrors left and right. The shoulder's is at the top of the main-hand shoulder, a little behind it (reached over the
+// shoulder, the way a slung weapon is); the hip's at the main-hand hip; the supplies pouch at the other hip, a little
+// behind it; the ammo pouch in front of that, at the front of the belt (where magazine pouches are worn).
 Vec3 holster_place(int h) {
     const float H = player_height_m();
     const float mx = opt.left_handed ? -1.0f : 1.0f;
     Vec3 l;
-    switch (h) {
-    case kShoulder: l = {0.16f * mx, -0.10f * H, 0.08f}; break;
-    case kHip: l = {0.20f * mx, -0.40f * H, -0.02f}; break;
-    case kPouch: l = {-0.20f * mx, -0.40f * H, 0.06f}; break;
-    case kAmmo: l = {-0.10f * mx, -0.38f * H, -0.06f}; break;
-    default: l = {0.0f, -0.22f * H, -0.12f}; break;  // the chest pocket: the flashlight
-    }
-    if (opt.seated && (h == kHip || h == kPouch || h == kAmmo)) l.y = -0.33f * H;
+    if (holster_at_shoulder(h)) l = {0.16f * mx, -0.10f * H, 0.08f};
+    else if (holster_at_hip(h)) l = {0.20f * mx, -0.40f * H, -0.02f};
+    else if (h == kPouch) l = {-0.20f * mx, -0.40f * H, 0.06f};
+    else if (h == kAmmo) l = {-0.10f * mx, -0.38f * H, -0.06f};
+    else l = {0.0f, -0.22f * H, -0.12f};  // the chest pocket: the flashlight
+    if (opt.seated && (holster_at_hip(h) || h == kPouch || h == kAmmo)) l.y = -0.33f * H;
     // From the eyes with the head level: looking down at the belt does not take the belt down with the eyes.
     return level_eyes(fi.head) + rotate(yaw_quat(body_yaw), l);
 }
+// How near the hand must come (m). 0.1.6 (owner 122: "add radius options for weapon holsters AND mag holsters ... the
+// radius for mag grabbing is a bit too small, so make it a bit larger"): "Weapon holster radius" (18 cm to start: the
+// shoulder's was 18, the hip's 16) for both weapon holsters, "Ammo pouch radius" (14 cm to start; it was 10). Where two
+// places overlap the nearest is taken (update_holsters).
 float holster_radius(int h) {
     switch (h) {
-    case kShoulder: return 0.18f;
-    case kHip: return 0.16f;
-    case kAmmo: return 0.10f;
+    case kGunHolster:
+    case kMeleeHolster: return std::clamp(opt.holster_radius_cm, 5.0f, 40.0f) * 0.01f;
+    case kAmmo: return std::clamp(opt.ammo_pouch_radius_cm, 5.0f, 40.0f) * 0.01f;
     default: return 0.13f;
     }
 }
@@ -1343,8 +1359,8 @@ void update_holsters() {
                     // Holding one of its kind: it goes in when the grip lets go (below).
                     stowing[h] = true;
                 } else if (c > 0 && owned(c)) {
-                    // The one held (if any) goes to its own holster (a gun to the shoulder, a melee weapon to the
-                    // hip); the holster's comes out.
+                    // The one held (if any) goes to its own holster (a gun to the gun holster, a melee weapon to
+                    // the melee holster); the holster's comes out.
                     if (in_hand && game.weapon > 0 && holster_of(game.weapon) >= 0)
                         holsters[holster_of(game.weapon)].content = base_slot(game.weapon);
                     request_equip(c);
@@ -1724,6 +1740,15 @@ bool sim_second_spot(float out[3]) {
     out[0] = s.x, out[1] = s.y, out[2] = s.z;
     return true;
 }
+// The PC rig (xr_sim's "lh_at_holster N" / "rh_at_holster N", 0.1.6): a holster's place (tracking), N 1 the gun's, 2
+// the melee weapon's, 3 the belt pouch, 4 the chest pocket, 5 the ammo pouch; lh_x... then metres from it (the radius
+// options checked at a known distance).
+bool sim_holster_spot(int n, float out[3]) {
+    if (n < 1 || n > kHolsterCount) return false;
+    const Vec3 s = holster_place(n - 1);
+    out[0] = s.x, out[1] = s.y, out[2] = s.z;
+    return true;
+}
 Quat quat_from_axes(Vec3 x, Vec3 y, Vec3 z) { return quat_of_axes(x, y, z); }
 
 bool weapon_point(Vec3 model, Vec3& tracking) {
@@ -1995,6 +2020,10 @@ bool weapon_guide_dot() {
 }
 
 bool melee_hold_still() { return now < still_until; }
+
+// 0.1.6 (owner 111, the arms twisting while two-handing): the weapon in the hand has the other hand on its second grip
+// (more than half taken), for her body to keep facing the head (sh3vr.cpp's facing).
+bool weapon_two_handed() { return in_hand && two_w > 0.5f; }
 
 const char* weapon_name(int slot) {
     const WeaponInfo* w = info_of(slot);

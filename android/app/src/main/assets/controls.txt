@@ -1,7 +1,7 @@
 IN PLAY (first person; third person where it differs)
 Move: left stick (towards where the head looks, or the left hand: Options, Comfort, Walk towards). Walking in the room moves Heather too.
 Turn: right stick (smooth, or snap 45 degrees: Options, Comfort).
-Run: left stick click.
+Run: left stick click (Sprint toggle on: she runs until you click again or let the stick go; off: hold it in; Options, Comfort).
 Action, examine, talk: A. Or reach out and grip.
 Ready the weapon: main trigger held (third person: main grip or trigger).
 Attack, fire: main trigger. Melee weapons: swing them. Empty hands: punch.
@@ -16,16 +16,18 @@ First / third person: VR menu, View, First person.
 Recentre the view: click both sticks together (a click of one stick alone does what it always did).
 
 WEAPONS (first person)
-Draw: main hand to the holster, grip. Your gun (handgun, shotgun, submachine gun, stun gun) over your right
-shoulder; your melee weapon (knife, steel pipe, katana, maul) on your right hip. Each gives back the one you last
-put there; drawing one puts the one in your hand in its own holster. Left-handed: the left side.
+Draw: main hand to the holster, grip. Your gun (handgun, shotgun, submachine gun, stun gun) on your right hip;
+your melee weapon (knife, steel pipe, katana, maul) over your right shoulder ("Gun on the hip, melee on the
+shoulder" off swaps them). Each gives back the one you last put there; drawing one puts the one in your hand in its
+own holster. Left-handed: the left side. How near your hand must come: "Weapon holster radius" and "Ammo pouch
+radius" (Options, Hands and weapons).
 Put away: hold it at its holster and let go.
 Two hands: off grip on the foregrip of a long gun, the pipe, katana or maul (under the handgun to steady it).
 Aim: where the gun points; the red guide dot shows it.
 Melee: a real swing hits where the weapon went. Punches land half the weakest weapon's hit; a gun swung hard hits like
 a pipe.
 Block: hold the weapon, or your forearm, up between you and a monster (Options, Hands and weapons).
-Health and stamina: in first person, turn your left wrist toward you and look at her watch (third person: the game's HUD).
+Health and stamina: in first person, turn your left wrist toward you and look at her watch (third person: the game's HUD; "Health and stamina on your wrist" off, View: the game's HUD in first person too).
 Get free when knocked down or held: shake both controllers hard (Options, Hands and weapons), or press buttons fast.
 
 RELOAD (Manual reload, on)

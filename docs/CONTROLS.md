@@ -22,7 +22,7 @@ released A stomps; both views; docs/GAME_FACTS.md.
 |------------------------|---------------------------------------------------------|---------------------------------------|
 | Move                   | Left stick (towards where the head looks by default, or the left hand: Walk towards); walking in the room | Left stick (the game's own) |
 | Turn                   | Right stick: smooth (or snap 45°)                      | Right stick (the game's)              |
-| Run (dash)             | Left stick click                                       | Left stick click                      |
+| Run (dash)             | Left stick click: runs until clicked again or the stick is let go ("Sprint toggle", on; off: held in) | Left stick click (the same) |
 | Action / examine / talk | A; or reach out and grip (Grab with the hand)         | A                                     |
 | Ready weapon (aim)     | Main trigger (held)                                    | Main grip or main trigger (held)      |
 | Attack / fire          | Main trigger; melee: swing the weapon; empty hands: punch | Main trigger (with the weapon ready) |
@@ -42,7 +42,7 @@ released A stomps; both views; docs/GAME_FACTS.md.
 
 | What                      | How                                                                      |
 |---------------------------|--------------------------------------------------------------------------|
-| Draw a weapon             | Main hand to its holster, grip: every gun (handgun, shotgun, submachine gun, stun gun, the gun extras) over the main-hand shoulder; every melee weapon (knife, steel pipe, katana, maul, the melee extras) on the main-hand hip. Each gives back the one last put there (at first, the first of its kind in the inventory); drawing one puts the held one in its own holster |
+| Draw a weapon             | Main hand to its holster, grip: every gun (handgun, shotgun, submachine gun, stun gun, the gun extras) on the main-hand hip; every melee weapon (knife, steel pipe, katana, maul, the melee extras) over the main-hand shoulder (0.1.6; "Gun on the hip, melee on the shoulder" off swaps them back). How near the hand must come: "Weapon holster radius" (18 cm). Each gives back the one last put there (at first, the first of its kind in the inventory); drawing one puts the held one in its own holster |
 | Put it away               | Hold it at its holster and let go of the grip                            |
 | Two hands                 | Off grip on the weapon's foregrip (long guns, pipe, katana, maul; under the handgun to steady it) |
 | Aim                       | Where the gun points (the guide dot shows it); two hands aim along both  |
@@ -50,10 +50,10 @@ released A stomps; both views; docs/GAME_FACTS.md.
 | Punch                     | Empty hand, a hard jab (every second punch lands the knife's hit: half the weakest weapon) |
 | Gun as a club             | Swing a gun hard: the pipe's hit                                         |
 | Block ("Block with your weapon or arms", on) | Hold the weapon, or a forearm, up between you and a monster: its hit keeps a quarter of the damage behind a melee weapon (the knife a third), half behind a gun, 60% on a bare arm |
-| Health and stamina ("Health bar on your wrist", on) | In first person, turn your left wrist toward you and look at her watch: her health (yellow, red under a quarter, pulsing when under half) and under it her stamina (green: it drains as she runs and comes back at rest). Third person shows the game's normal HUD (its Life Gauge and Life Display, when on in Extra options) |
+| Health and stamina ("Health and stamina on your wrist", View, on; off: the game's HUD in first person too) | In first person, turn your left wrist toward you and look at her watch: her health (yellow, red under a quarter, pulsing when under half) and under it her stamina (green: it drains as she runs and comes back at rest). Third person shows the game's normal HUD (its Life Gauge and Life Display, when on in Extra options) |
 | Get free ("Shake to break free", on) | When a monster knocks her down or holds her: shake the controllers hard side to side (each quick shake buzzes); pressing the buttons fast still works too |
 | Supplies                  | Off or main hand to the belt pouch, grip                                 |
-| Reload ("Manual reload", on) | Right stick down drops the magazine (the stun gun's battery). Off hand to the ammo pouch (the front of the belt, off-hand side), grip: a new one; line it up under the grip and push it up until it seats (handgun, stun gun; the submachine gun takes its magazine up through its grip too). Shotgun: a shell from the pouch pushed into the loading port under the gun, one at a time. A new magazine can be taken before the old one is dropped |
+| Reload ("Manual reload", on) | Right stick down drops the magazine (the stun gun's battery). Off hand to the ammo pouch (the front of the belt, off-hand side; "Ammo pouch radius", 14 cm from 0.1.6), grip: a new one; line it up under the grip and push it up until it seats (handgun, stun gun; the submachine gun takes its magazine up through its grip too). Shotgun: a shell from the pouch pushed into the loading port under the gun, one at a time. A new magazine can be taken before the old one is dropped |
 | Cock (after loading an empty gun) | Handgun: off hand grips the top of the slide, pulls it all the way back and lets go. Submachine gun: the cocking knob on top at the back, the same. Shotgun: off hand on the pump, back and forward. The slide, knob and pump move with the hand; an empty handgun's slide stays back and it cycles on each shot. Until then the trigger only clicks |
 | "Manual reload" off, or a controller lost | The game reloads as it always did (by itself when the gun is empty, or from the inventory) |
 | Flashlight on / off       | Either hand to the chest pocket, grip                                    |

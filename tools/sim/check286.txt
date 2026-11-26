@@ -1,0 +1,143 @@
+# SH3 Quest VR, the PC rig (session 24, 0.1.6, after owner 122): about 3 minutes with the load. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:0,15:20" SH3_EQUIP=1 SH3_CULL_TEST=1.
+# 1. SH3_CULL_TEST=1: every model tested from the head as if the game's camera had left it out. Each picture as
+#    vr284's (nothing in view missing, at the front, 40, 75 and 180 degrees and 60 right); the log's 120-frame counts
+#    fall when the head turns from the park's models.
+# 2. The holsters swapped (Gun on the hip, melee on the shoulder, on): the handgun put away at the right hip, the knife
+#    drawn over the right shoulder, the handgun drawn from 17 cm off the hip holster (Weapon holster radius 18 cm), the
+#    knife going back to the shoulder.
+# 3. The ammo pouch (Ammo pouch radius 14 cm): a grip 20 cm in front of it takes nothing, 12 cm takes a magazine.
+# 4. The sprint toggle's rest timer: the stick let go, sprint off about half a second later (real time).
+# 5. The VR menu's Hands and weapons page: the new rows; Ammo pouch radius stepped to 15 cm and back.
+5200 shot s05200-scene
+7318 shot c07318-start
+7330 right_x -1
+7368 right_x 0
+7380 left_y 1
+7400 left_y 0
+7520 shot k07520-front
+7530 head_yaw 40
+7560 shot k07560-head-40
+7570 head_yaw 75
+7600 shot k07600-head-75
+7610 head_yaw 180
+7650 shot k07650-head-behind
+7660 head_yaw -60
+7690 shot k07690-head-right-60
+7700 head_yaw 0
+# 2. the holsters
+7720 rh_at_holster 1
+7720 head_pitch -45
+7740 shot g07740-hand-at-hip-holster
+7745 right_grip 1
+7755 right_grip 0
+7770 shot g07770-gun-put-away
+7780 rh_at_holster 2
+7780 head_pitch 0
+7800 right_grip 1
+7815 rh_at_holster 0
+7830 right_grip 0
+7850 shot g07850-knife-drawn
+7860 rh_at_holster 1
+7860 rh_x 0.17
+7860 head_pitch -45
+7880 right_grip 1
+7890 shot g07890-gun-from-hip
+7895 rh_at_holster 0
+7895 rh_x 0
+7895 head_pitch 0
+7905 right_grip 0
+7925 shot g07925-gun-in-hand
+# 3. the ammo pouch
+7940 right_y -1
+7946 right_y 0
+7960 lh_at_holster 5
+7960 lh_z -0.20
+7960 head_pitch -45
+7975 left_grip 1
+7985 shot p07985-grip-20cm-out
+7990 left_grip 0
+8000 lh_z -0.12
+8015 left_grip 1
+8030 shot p08030-magazine-taken
+8040 lh_at_holster 0
+8040 lh_z 0
+8040 head_pitch 0
+8060 shot p08060-magazine-in-hand
+8070 left_grip 0
+# 4. the sprint toggle's rest timer
+8100 left_y 1
+8110 left_click 1
+8114 left_click 0
+8160 left_y 0
+8220 shot r08220-stopped
+# 5. the VR menu: to the page tabs, four pages on (Hands and weapons), down to the holster rows, then the pouch's.
+# Both controllers point at the floor meanwhile: a row the pointer is over takes the selection (vr286's A presses
+# changed a View row the pointer had taken instead of the page).
+8230 hand_pitch -80
+8240 menu 1
+8350 menu 0
+8370 left_y 1
+8374 left_y 0
+8380 a 1
+8384 a 0
+8390 a 1
+8394 a 0
+8400 a 1
+8404 a 0
+8410 a 1
+8414 a 0
+8425 left_y -1
+8429 left_y 0
+8435 left_y -1
+8439 left_y 0
+8445 left_y -1
+8449 left_y 0
+8455 left_y -1
+8459 left_y 0
+8465 left_y -1
+8469 left_y 0
+8475 left_y -1
+8479 left_y 0
+8485 left_y -1
+8489 left_y 0
+8495 left_y -1
+8499 left_y 0
+8505 left_y -1
+8509 left_y 0
+8515 left_y -1
+8519 left_y 0
+8525 left_y -1
+8529 left_y 0
+8535 left_y -1
+8539 left_y 0
+8545 left_y -1
+8549 left_y 0
+8560 shot m08560-hands-holsters
+8570 left_y -1
+8574 left_y 0
+8580 left_y -1
+8584 left_y 0
+8590 left_y -1
+8594 left_y 0
+8600 left_y -1
+8604 left_y 0
+8610 left_y -1
+8614 left_y 0
+8620 left_y -1
+8624 left_y 0
+8630 left_y -1
+8634 left_y 0
+8640 left_y -1
+8644 left_y 0
+8660 shot m08660-ammo-pouch-radius
+8670 left_x 1
+8674 left_x 0
+8690 shot m08690-ammo-15
+8700 left_x -1
+8704 left_x 0
+8720 b 1
+8724 b 0
+8730 hand_pitch 0
+8750 quit 0

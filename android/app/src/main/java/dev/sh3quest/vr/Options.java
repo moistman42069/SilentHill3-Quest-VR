@@ -51,13 +51,14 @@ class Options {
     /** 4 from 0.1.4 (Smoother frames on); 5 from 0.1.5 (Smoother frames off, Render resolution 1.0x, ghost hands and
      *  Heather's shadow off):
      *  Config.newDefaults puts each version's changes in once, as sh3vr.cpp load_options does. */
-    static final int DEFAULTS_VERSION = 5;
+    static final int DEFAULTS_VERSION = 6;  // 6 from 0.1.6: every Performance option at its default once (owner 121)
     /** 0.1.5 (the owner's 0.1.4 report: "keep appsw off by default going forward"): Smoother frames (AppSW) off to start
      *  (sh3vr_internal.h space_warp the same); 0.1.4 had it on at 120 Hz, which the game could not feed. */
     static final boolean SPACE_WARP_ON = false;
-    /** The refresh rate to start (sh3vr_internal.h refresh_hz the same). Owner 98 ("set performance to a default you
-     *  would see works best"): 120 Hz, as the game takes 16-17 ms a frame on a Quest 3 (the owner's 0.1.3 and 0.1.4
-     *  logs), two 120 Hz refreshes, an even ~60 a second; at 72 Hz each would take two refreshes (36), at 90 two (45). */
+    /** The refresh rate to start (sh3vr_internal.h refresh_hz the same): 120 Hz. Owner 98 ("set performance to a
+     *  default you would see works best for this build") and owner 121 for 0.1.6 ("BEST defaults for BEST
+     *  performance"): the headset redraws your head's turns 120 times a second, and a frame the game is late with is
+     *  held 8.3 ms more, not 13.9 as at 72 Hz. */
     static final String REFRESH_DEFAULT = "120";
     static final String[] DEFAULTS_0_1_3 = {"sharpen", "film_grain", "drifting_fog", "brightness", "contrast",
         "saturation", "dark_edges", "smooth_edges", "turn", "vignette"};
@@ -115,9 +116,8 @@ class Options {
         // Performance: the Quest 3's best by default
         new Option(VR_INI, "refresh_hz", "Refresh rate", PERFORMANCE, Kind.CHOICE,
             new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, 0, 0, 0, "",
-            REFRESH_DEFAULT, true, "120 Hz: the game makes up to 60 frames a second, so each one shows twice, evenly, "
-            + "and the headset keeps your head's turns smooth between them. At 72 or 90 Hz a frame that takes a little "
-            + "too long waits a whole refresh more."),
+            REFRESH_DEFAULT, true, "120 Hz (the default) is the smoothest: the headset redraws your head's turns 120 "
+            + "times a second, and a frame the game is late with waits the least. Lower rates use less power."),
         number("resolution", "Render resolution", PERFORMANCE, 0.6f, 1.5f, 0.05f, "x", 1.0f,
             "1.0 is the headset's own resolution. Lower is faster, higher is sharper (a Quest 3 or 3S has room for "
             + "more). Dynamic resolution keeps the game smooth either way."),
@@ -188,12 +188,20 @@ class Options {
             "Menus, the inventory, the map and memos come up where you look, fading in, and stay put while you point at them."),
         sw("messages_at_things", "Messages next to things", VIEW, true,
             "What Heather says about a thing shows right by it, not on a screen; subtitles stay low in your view."),
+        sw("wrist_health", "Health and stamina on your wrist", VIEW, true,
+            "In first person, turn your left wrist to look at her watch: her health and stamina show there (her health "
+            + "pulses when it runs low), in place of the game's HUD, even before the game's own Life Gauge is unlocked. "
+            + "Off: no bars on the watch, and first person shows the game's own HUD instead. Third person always shows "
+            + "the game's normal HUD, its Life Gauge and Life Display when turned on in Extra options."),
         // Comfort
         choice("turn", "Turning", COMFORT, new String[] {"Snap", "Smooth"}, 1, "The right stick turns."),
         number("snap_degrees", "Snap turn angle", COMFORT, 15f, 90f, 15f, "deg", 45f, ""),
         number("smooth_degrees", "Smooth turn speed", COMFORT, 30f, 360f, 15f, "deg/s", 120f, ""),
         choice("move_by", "Walk towards", COMFORT, new String[] {"Where the head looks", "Where the left hand points"}, 0,
             "The left stick moves Heather this way."),
+        sw("sprint_toggle", "Sprint toggle", COMFORT, true,
+            "Click the left stick to run; she keeps running until you click it again or let the stick go. Off: she "
+            + "runs while you hold the stick in."),
         sw("vignette", "Comfort vignette", COMFORT, false, "The edges of the view darken while moving or turning."),
         number("vignette_strength", "Vignette strength", COMFORT, 10f, 100f, 10f, "%", 50f, ""),
         sw("head_fade", "Head in walls darkens the view", COMFORT, true, ""),
@@ -215,8 +223,14 @@ class Options {
         sw("punches", "Punches", HANDS, true, "Empty hands punch at half the weakest weapon's damage."),
         sw("gun_club", "Guns as clubs", HANDS, true, "A gun swung hard hits like a pipe."),
         sw("holsters", "Holsters", HANDS, true,
-            "Your gun on your right shoulder, your melee weapon on your right hip: reach and grip to draw the one you "
-            + "last put there, let go there to put it away."),
+            "Your gun on your right hip, your melee weapon over your right shoulder (or the other way round: the next "
+            + "option): reach and grip to draw the one you last put there, let go there to put it away."),
+        // 0.1.6 (owner 122): where each weapon's holster is, and how near the hand must come
+        sw("gun_on_hip", "Gun on the hip, melee on the shoulder", HANDS, true,
+            "On: the gun's holster at your right hip, the melee weapon's over your right shoulder. Off: the gun over the "
+            + "shoulder and the melee weapon at the hip, as before 0.1.6. Left-handed mirrors them."),
+        number("holster_radius_cm", "Weapon holster radius", HANDS, 10f, 30f, 1f, "cm", 18f,
+            "How near your hand has to come to the hip or shoulder holster to draw or put away a weapon."),
         sw("holster_pouch", "Belt pouch (supplies)", HANDS, true, "Grip at the belt for the health drinks."),
         choice("flashlight", "Chest flashlight aims", HANDS, new String[] {"Where you look", "Where Heather faces (the game's)"}, 0, "On her chest the beam goes where you look; take it in a hand to point it yourself."),
         sw("chest_light_touch", "Take the flashlight from your chest", HANDS, true, "Grip at the chest pocket to hold the flashlight; let go and it goes back on your chest. The trigger of the hand holding it switches it."),
@@ -230,15 +244,14 @@ class Options {
             "Reload with your hands: push the right stick down to drop the magazine, take a new one from the front of "
             + "your belt and push it in; pull the slide back after an empty gun. Shotgun shells one at a time, then the "
             + "pump."),
+        number("ammo_pouch_radius_cm", "Ammo pouch radius", HANDS, 6f, 30f, 1f, "cm", 14f,
+            "How near your hand has to come to the ammo pouch at the front of your belt to take a magazine, shells or "
+            + "a battery."),
         sw("reload_hints", "Reload hints", HANDS, true,
             "The next reload step on the screen, for your first three reloads each time you play."),
         sw("hand_sounds", "Hand sounds", HANDS, true,
             "A sound for everything your hands do, heard from where they are: the slide, the pump, a magazine dropped "
             + "or pushed in, holsters, the pouch, the flashlight's pocket, a hand on a wall, a gun knocked on one."),
-        sw("wrist_health", "Health bar on your wrist", HANDS, true,
-            "In first person, turn your left wrist to look at her watch: her health and stamina show there (her health "
-            + "pulses when it runs low), in place of the game's HUD. Third person shows the game's normal HUD, its Life "
-            + "Gauge and Life Display when turned on in Extra options; back in first person, the watch again."),
         sw("blocking", "Block with your weapon or arms", HANDS, true,
             "Hold your weapon, or your forearm, up between you and a monster: its hit does a quarter of the damage behind "
             + "a melee weapon, half behind a gun, a bit over half on a bare arm."),

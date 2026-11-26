@@ -1,0 +1,41 @@
+# SH3 Quest VR, the PC rig (session 24, 0.1.6, the release's own check of owner 115's report), about 4 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300" SH3_STEER_AT_ATTACKER=1 SH3_HP=100
+# (no SH3_CULL_TEST: as players have it). door252's walk: the park's gate by hand, then 0.9 m into the hall, where its
+# dog comes at her from the left (bites from game frame 8655, vr225). The head turned left at it from the hall's
+# start: each picture shows the dog wherever it is in view, at its distance, not only once it reaches her; sh3.log
+# "a model the game's camera leaves out (...) drawn: the head sees it" names what the game's own camera left out.
+7740 left_y 1
+8100 left_y 0
+8105 shot j08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8200 shot j08200-hall
+8200 left_y 1
+8260 shot d08260-front
+8280 head_yaw 45
+8300 shot d08300-left-45
+8320 head_yaw 80
+8340 shot d08340-left-80
+8380 shot d08380-left-80
+8420 shot d08420-left-80
+8440 head_yaw 45
+8460 shot d08460-left-45
+8500 shot d08500-left-45
+8520 head_yaw 0
+8540 shot d08540-front
+8580 shot d08580-front
+8600 head_yaw 45
+8620 shot d08620-left-45
+8660 shot d08660-left-45
+8680 head_yaw 0
+8700 shot d08700-front
+8720 left_y 0
+8760 shot d08760-front
+8800 quit 0

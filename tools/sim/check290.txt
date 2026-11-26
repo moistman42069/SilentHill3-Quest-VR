@@ -1,0 +1,38 @@
+# SH3 Quest VR, the PC rig (session 24, 0.1.6, owner 115's report), about 4 minutes; run as check289.txt (no
+# SH3_CULL_TEST). vr289 showed the hall's dog left out by the game's camera 8.8 m from the head ("a model the game's
+# camera leaves out (0200 015D ...) drawn") and biting her from behind (its place 0.67 m behind her facing at the
+# bite). Here the head looks to both sides at the gate and then behind her while she stands 0.9 m into the hall, so
+# the dog is seen coming at its distance; quit at 9400 for the 1200-frame count line ("N model draws the game's camera
+# left out were drawn from the head's view").
+7740 left_y 1
+8100 left_y 0
+8105 shot j08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8130 head_yaw 55
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8145 shot e08145-gate-left
+8150 head_yaw -55
+8165 shot e08165-gate-right
+8170 head_yaw 0
+8200 shot j08200-hall
+8200 left_y 1
+8300 left_y 0
+8305 head_yaw 180
+8320 shot b08320-behind
+8340 shot b08340-behind
+8360 shot b08360-behind
+8380 shot b08380-behind
+8400 shot b08400-behind
+8400 head_pitch -35
+8420 shot b08420-behind-down
+8440 shot b08440-behind-down
+8460 head_pitch 0
+8460 head_yaw 0
+8500 shot b08500-front
+9400 quit 0

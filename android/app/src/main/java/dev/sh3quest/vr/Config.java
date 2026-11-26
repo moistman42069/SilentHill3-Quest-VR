@@ -68,7 +68,8 @@ final class Config extends Options {
 
     /** 0.1.3 (Options.DEFAULTS_0_1_3): a sh3vr.ini from before 0.1.3 gets 0.1.3's changed defaults once, then says so.
      *  0.1.4: one from before 0.1.4 gets Smoother frames on once (0.1.2 saved it when it did nothing; now it works).
-     *  0.1.5: one from before 0.1.5 gets Smoother frames, the ghost hands and Heather's shadow off, and 1.0x for a Quest 3's 1.5x. */
+     *  0.1.5: one from before 0.1.5 gets Smoother frames, the ghost hands and Heather's shadow off, and 1.0x for a Quest 3's 1.5x.
+     *  0.1.6: one from before 0.1.6 gets every Performance option at its default once (owner 121), 120 Hz among them. */
     private static float number(String text, float otherwise) {
         try {
             return text == null ? otherwise : Float.parseFloat(text.trim());
@@ -112,6 +113,23 @@ final class Config extends Options {
             // load_options the same). The refresh rate stays (120 Hz, owner 98).
             if (STRONG_QUEST && Math.abs(number(vr.get("resolution"), 0f) - 1.5f) < 0.001f) {
                 vr.put("resolution", "1");
+            }
+        }
+        if (version < 6) {
+            // 0.1.6 (owner 121: "BEST defaults for BEST performance", forced in this update): every option on the
+            // Performance page back to its default once, whatever was saved (sh3vr.cpp load_options the same), and the
+            // game's threads at three cores.
+            for (Option option : ALL) {
+                if (PERFORMANCE.equals(option.page)) {
+                    vr.put(option.key, option.fallback);
+                }
+            }
+            if (!get(GAME_THREADS).equals(GAME_THREADS.fallback)) {
+                try {
+                    set(GAME_THREADS, GAME_THREADS.fallback);
+                } catch (IOException e) {
+                    // sh3.ini stays as it was; the Options tab shows it
+                }
             }
         }
         try {

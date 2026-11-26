@@ -102,11 +102,13 @@ const OptionRow kRows[] = {
     SW(panel_follow, "Screen follows the view", "View", false),
     SW(menus_in_view, "Menus open in front of you", "View", false),
     SW(messages_at_things, "Messages next to things", "View", false),
+    SW(wrist_health, "Health and stamina on your wrist", "View", false),  // 0.1.6: named for both, on View (owner 111)
     // Comfort
     CH(turn, "Turning", "Comfort", kTurn, false),
     NU(snap_degrees, "Snap turn angle", "Comfort", 15.0f, 90.0f, 15.0f, "deg", false),
     NU(smooth_degrees, "Smooth turn speed", "Comfort", 30.0f, 360.0f, 15.0f, "deg/s", false),
     CH(move_by, "Walk towards", "Comfort", kMoveBy, false),
+    SW(sprint_toggle, "Sprint toggle", "Comfort", false),  // 0.1.6 (owner 111)
     SW(vignette, "Comfort vignette", "Comfort", false),
     NU(vignette_strength, "Vignette strength", "Comfort", 10.0f, 100.0f, 10.0f, "%", false),
     SW(head_fade, "Head in walls darkens the view", "Comfort", false),
@@ -125,6 +127,8 @@ const OptionRow kRows[] = {
     SW(punches, "Punches", "Hands and weapons", false),
     SW(gun_club, "Guns as clubs", "Hands and weapons", false),
     SW(holsters, "Holsters", "Hands and weapons", false),
+    SW(gun_on_hip, "Gun on the hip, melee on the shoulder", "Hands and weapons", false),  // 0.1.6 (owner 122)
+    NU(holster_radius_cm, "Weapon holster radius", "Hands and weapons", 10.0f, 30.0f, 1.0f, "cm", false),
     SW(holster_pouch, "Belt pouch (supplies)", "Hands and weapons", false),
     CH(flashlight, "Chest flashlight aims", "Hands and weapons", kFlashlight, false),
     SW(chest_light_touch, "Take the flashlight from your chest", "Hands and weapons", false),
@@ -133,9 +137,9 @@ const OptionRow kRows[] = {
     SW(grabbing, "Grab with the hand", "Hands and weapons", false),
     SW(take_by_hand, "Take items with your hand", "Hands and weapons", false),
     SW(manual_reload, "Manual reload", "Hands and weapons", false),
+    NU(ammo_pouch_radius_cm, "Ammo pouch radius", "Hands and weapons", 6.0f, 30.0f, 1.0f, "cm", false),  // owner 122
     SW(reload_hints, "Reload hints", "Hands and weapons", false),
     SW(hand_sounds, "Hand sounds", "Hands and weapons", false),
-    SW(wrist_health, "Health bar on your wrist", "Hands and weapons", false),
     SW(blocking, "Block with your weapon or arms", "Hands and weapons", false),
     SW(shake_free, "Shake to break free", "Hands and weapons", false),
     // Vibration (keys stay haptics* so earlier sh3vr.ini files keep their settings)
@@ -176,6 +180,8 @@ void clamp_options() {
     opt.contrast = std::clamp(opt.contrast, 50.0f, 150.0f);
     opt.saturation = std::clamp(opt.saturation, 0.0f, 200.0f);
     opt.dark_edges = std::clamp(opt.dark_edges, 0.0f, 100.0f);
+    opt.holster_radius_cm = std::clamp(opt.holster_radius_cm, 10.0f, 30.0f);
+    opt.ammo_pouch_radius_cm = std::clamp(opt.ammo_pouch_radius_cm, 6.0f, 30.0f);
 }
 
 }  // namespace
@@ -256,8 +262,9 @@ void device_defaults() {
 
 // The defaults' version sh3vr.ini is written with (the launcher's Options.DEFAULTS_VERSION): 3 from 0.1.3, 4 from
 // 0.1.4 (Smoother frames on to start, now that the motion is drawn), 5 from 0.1.5 (Smoother frames off, Render
-// resolution 1.0x on every headset, the ghost hands and Heather's shadow off).
-constexpr int kDefaultsVersion = 5;
+// resolution 1.0x on every headset, the ghost hands and Heather's shadow off), 6 from 0.1.6 (every Performance option
+// put back to its default once: owner 121).
+constexpr int kDefaultsVersion = 6;
 
 void load_options() {
     device_defaults();
@@ -356,6 +363,34 @@ void load_options() {
                "starts%s", defaults, opt.space_warp ? "on" : "off", had_warp ? "on" : "off", opt.resolution, had_res,
                opt.ghost_hands ? "on" : "off", had_ghost ? "on" : "off", opt.her_shadow ? "on" : "off",
                had_shadow ? "on" : "off", saved ? "" : "; the file could not be saved");
+    }
+    if (defaults < 6) {
+        // 0.1.6 (owner 121: "i told you to set defaults to the best performance and force switch it in this next update
+        // ... BEST defaults for BEST performance"): every option on the Performance page goes back to its default once,
+        // whatever was saved: 120 Hz, Render resolution 1.0x, Dynamic resolution on, Smoother frames (AppSW) off,
+        // Foveated rendering Medium, CPU and GPU boost on, Sharpening off, Show performance off. The player can change
+        // them again afterwards (the launcher's Config.newDefaults does the same).
+        const Options d{};
+        char changed[512] = "";
+        size_t used = 0;
+        for (int i = 0; i < n; i++) {
+            const OptionRow& r = rows[i];
+            if (std::strcmp(r.page, "Performance")) continue;
+            const size_t at = (size_t)((const char*)r.value - (const char*)&opt);
+            if (at >= sizeof(Options)) continue;
+            const void* want = (const char*)&d + at;
+            size_t size = r.kind == Kind::kSwitch ? sizeof(bool) : (r.kind == Kind::kNumber || r.values) ? sizeof(float) : sizeof(int);
+            if (!std::memcmp(r.value, want, size)) continue;
+            std::memcpy(r.value, want, size);
+            if (used < sizeof changed - 64)
+                used += (size_t)std::snprintf(changed + used, sizeof changed - used, "%s%s", used ? ", " : "", r.name);
+        }
+        const bool saved = save_options();
+        rt_log("VR: sh3vr.ini from before 0.1.6 (defaults %d): every Performance option at its default once (%.0f Hz, "
+               "Render resolution %.2fx, Dynamic resolution %s, Smoother frames %s, foveation %d, boost %s, sharpening "
+               "%d)%s%s%s", defaults, opt.refresh_hz, opt.resolution, opt.dynamic_resolution ? "on" : "off",
+               opt.space_warp ? "on" : "off", opt.foveation, opt.boost ? "on" : "off", opt.sharpen,
+               used ? "; changed: " : "; none had changed", changed, saved ? "" : "; the file could not be saved");
     }
 }
 
@@ -1103,7 +1138,7 @@ void place_panel(bool force) {
 // message is about (where a hand closed on it; with the button, ahead of the eyes) or low in the view. Screens (menus,
 // the inventory, the map, memos, puzzles, the VR menu) open in front of the eyes ("Menus open in front of you") and
 // stay put while the pointer works on them; "Screen follows the view" glides them round when you turn far away.
-enum class UiKind { kNone, kHud, kScreen, kMessage, kSubtitle };
+enum class UiKind { kNone, kHud, kScreen, kMessage, kSubtitle, kHint };  // kHint: 0.1.6, the reload hint alone
 struct UiState {
     UiKind kind = UiKind::kNone;
     float fade = 0.0f;
@@ -1118,6 +1153,8 @@ struct UiState {
     int content_frame = -100;     // the last frame something was drawn on the panel
 } ui;
 float frame_box[4] = {2.0f, 2.0f, -1.0f, -1.0f};  // this frame's 2D on the panel (sh3vr_panel_box)
+bool hint_now = false;                             // 0.1.6: the reload hint drawn on the panel this frame
+float hint_box[4] = {0.0f, 0.0f, 1.0f, 1.0f};      // ... its box (0..1 of the panel, top row first)
 // The frame camera drew the world this frame (sh3vr_frame_world); out of play without it, the frame is one of the
 // game's full screens (the inventory, the map, memos, menus without the world): its picture whole on the panel
 // (d3d8.c vr_route), shown opaque, the eyes dark round it.
@@ -1618,6 +1655,8 @@ void ui_place_frame() {
     if (length(goal.position - panel_pose.position) < 0.02f) ui.gliding = false;
 }
 
+Vec3 hint_goal();  // 0.1.6: the reload hint's spot (below)
+
 // A new kind of UI comes up: where it starts.
 void ui_start(UiKind kind) {
     if (!head_known()) return;
@@ -1645,7 +1684,43 @@ void ui_start(UiKind kind) {
     } else if (kind == UiKind::kSubtitle) {
         ui.thing = eyes + level * 1.6f + Vec3{0.0f, -0.42f, 0.0f};
         rt_log("VR: frame %d: subtitles low in the view", rt_frame);
+    } else if (kind == UiKind::kHint) {
+        ui.thing = hint_goal();
+        rt_log("VR: frame %d: the reload hint in view, level, a little over where the eyes look", rt_frame);
     }
+}
+
+// 0.1.6 (the owner's 0.1.5 video: the reload hint, at the panel's foot, tilted with the head and slid off the view
+// looking down at the hands): the hint alone stands as a label of its own, level, 1.1 m off, 12 degrees over where the
+// eyes look (clear of the hands at the reload). Within about 3 degrees of that it holds still (no swim with each small
+// head move); further, it glides there (fully at 12 degrees off, in about an eighth of a second). Its text as large to
+// the eye as on the screen.
+constexpr float kHintDist = 1.1f;
+Vec3 hint_goal() {
+    const float yaw = tracking_yaw(fi.head.orientation);
+    const float pitch = std::clamp(std::asin(std::clamp(gaze().y, -1.0f, 1.0f)) + 0.21f, -1.2f, 0.7f);
+    const Vec3 dir{-std::sin(yaw) * std::cos(pitch), std::sin(pitch), -std::cos(yaw) * std::cos(pitch)};
+    return fi.head.position + dir * kHintDist;
+}
+
+void ui_place_hint(int pw, int ph) {
+    const Vec3 eyes = fi.head.position;
+    const Vec3 goal = hint_goal();
+    Vec3 d = ui.thing - eyes;
+    const float dist = std::max(length(d), 1e-3f);
+    const float c = std::clamp(dot(d * (1.0f / dist), (goal - eyes) * (1.0f / kHintDist)), -1.0f, 1.0f);
+    const float off = std::acos(c);
+    const float rate = 8.0f * std::clamp((off - 0.05f) / 0.16f, 0.0f, 1.0f);
+    ui.thing = ui.thing + (goal - ui.thing) * (1.0f - std::exp(-rate * frame_dt()));
+    d = ui.thing - eyes;
+    const Vec3 at = eyes + d * (kHintDist / std::max(length(d), 1e-3f));
+    ui.thing = at;
+    ui.pose = {at, face_eyes(at, eyes)};
+    const float text_w = (ui.box[2] - ui.box[0]) * opt.panel_width * kHintDist / std::max(opt.panel_distance, 0.3f);
+    const float bw = (ui.box[2] - ui.box[0]) * (float)panel_w, bh = (ui.box[3] - ui.box[1]) * (float)panel_h;
+    const float a = bw / std::max(bh, 1.0f), pa = (float)pw / (float)std::max(ph, 1);
+    const float fx = a >= pa ? 1.0f : a / pa;
+    ui.width = text_w / std::max(fx, 0.05f);
 }
 
 // A message's or subtitle's layer each frame: by its thing (a label 10 cm over it, kept between 0.5 and 2.5 m from the
@@ -1683,7 +1758,7 @@ void ui_place_label(int pw, int ph) {
 // Draws the shown picture (ui_tex) into the panel's swapchain picture: whole for screens and the HUD, the text's box
 // letterboxed for messages and subtitles.
 void ui_draw(unsigned target, int pw, int ph) {
-    const bool crop = ui.kind == UiKind::kMessage || ui.kind == UiKind::kSubtitle;
+    const bool crop = ui.kind == UiKind::kMessage || ui.kind == UiKind::kSubtitle || ui.kind == UiKind::kHint;
     float src[4] = {0.0f, 0.0f, 1.0f, 1.0f}, dst[4] = {-1.0f, -1.0f, 1.0f, 1.0f};
     if (crop) {
         for (int k = 0; k < 4; k++) src[k] = ui.box[k];
@@ -1717,7 +1792,7 @@ void ui_draw(unsigned target, int pw, int ph) {
     glUniform4fv(ui_u_dst, 1, dst);
     glUniform4fv(ui_u_src, 1, src);
     glUniform1f(ui_u_fade, ui.fade * ui.fade * (3.0f - 2.0f * ui.fade));  // eased
-    glUniform1f(ui_u_back, crop ? 0.38f : 0.0f);
+    glUniform1f(ui_u_back, crop && ui.kind != UiKind::kHint ? 0.38f : 0.0f);  // 0.1.6: the hint has its own backing
     glUniform1f(ui_u_opaque, ui.opaque ? 1.0f : 0.0f);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindSampler(0, (GLuint)sampler);
@@ -1741,6 +1816,7 @@ bool ui_frame(unsigned menu_tex, unsigned target, int pw, int ph, PanelLayer& pa
         if (menu_tex) want = UiKind::kScreen;
         else if (scene) want = box_ok && opt.messages_at_things ? UiKind::kSubtitle : UiKind::kHud;
         else if (!game.playable) want = UiKind::kScreen;
+        else if (hint_now && !box_ok) want = UiKind::kHint;  // 0.1.6: the reload hint alone, a label in view
         else want = box_ok && opt.messages_at_things ? UiKind::kMessage : UiKind::kHud;
         ui.content_frame = rt_frame;
         if (want != ui.kind) {
@@ -1763,6 +1839,8 @@ bool ui_frame(unsigned menu_tex, unsigned target, int pw, int ph, PanelLayer& pa
             ui.box[1] = std::max(0.0f, frame_box[1] - 0.03f);
             ui.box[2] = std::min(1.0f, frame_box[2] + 0.02f);
             ui.box[3] = std::min(1.0f, frame_box[3] + 0.03f);
+        } else if (want == UiKind::kHint) {
+            for (int k = 0; k < 4; k++) ui.box[k] = hint_box[k];  // its box exactly (its own rust rim)
         }
         ui.fade = std::min(1.0f, ui.fade + dt / 0.15f);
     } else if (ui.kind != UiKind::kNone && rt_frame - ui.content_frame > 2) {
@@ -1772,8 +1850,9 @@ bool ui_frame(unsigned menu_tex, unsigned target, int pw, int ph, PanelLayer& pa
     }
     panel.visible = ui.kind != UiKind::kNone && ui.fade > 0.0f;
     panel.blend = true;
-    if (ui.kind == UiKind::kMessage || ui.kind == UiKind::kSubtitle) {
-        ui_place_label(pw, ph);
+    if (ui.kind == UiKind::kMessage || ui.kind == UiKind::kSubtitle || ui.kind == UiKind::kHint) {
+        if (ui.kind == UiKind::kHint) ui_place_hint(pw, ph);
+        else ui_place_label(pw, ph);
         panel.pose = ui.pose;
         panel.width = ui.width;
         panel.height = ui.width * (float)ph / (float)std::max(pw, 1);
@@ -1786,7 +1865,7 @@ bool ui_frame(unsigned menu_tex, unsigned target, int pw, int ph, PanelLayer& pa
     {
         static UiKind logged = UiKind::kNone;
         if (ui.kind != logged && ui.kind != UiKind::kNone) {
-            static const char* const kNames[] = {"none", "the HUD", "a screen", "a message", "subtitles"};
+            static const char* const kNames[] = {"none", "the HUD", "a screen", "a message", "subtitles", "the reload hint"};
             rt_log("VR: frame %d: the UI shows %s, %.2f x %.2f m at %.2f %.2f %.2f; the text's box %.3f %.3f %.3f %.3f",
                    rt_frame, kNames[(int)ui.kind], panel.width, panel.height, panel.pose.position.x,
                    panel.pose.position.y, panel.pose.position.z, ui.box[0], ui.box[1], ui.box[2], ui.box[3]);
@@ -2013,6 +2092,36 @@ void show_wrist_bar() {
 // The controllers as the pad (bindings: sh3.c's VR defaults, savedata/keyvr.ini; docs/CONTROLS.md).
 enum PadButton { kX = 0, kA, kB, kY, kLB, kRB, kLT, kRT, kBack, kStart, kLS, kRS };
 
+// 0.1.6 (owner 111: "an option for a sprint toggle (on by default)"): with Sprint toggle on, a click of the left stick
+// starts Heather running, and she runs until it is clicked again or the stick rests (half a second let go), the game
+// pauses or a scene starts; off, she runs while the stick is held in, as before. Running is the game's dash (its X) in
+// both views and, in first person, the VR walk's run (plan_move). The click is the one stick_chord passes on, so both
+// sticks clicked together (the recentre) never start or stop it.
+bool sprinting = false;
+void update_sprint() {
+    const Controls& c = fi.controls;
+    static bool was_click = false;
+    static float rest = 0.0f;
+    const bool click = c.left_click;
+    const bool stick = std::fabs(c.left_x) >= 0.15f || std::fabs(c.left_y) >= 0.15f;
+    const bool playing = game.playable && !game.cutscene && !game.demo && !vr_menu_open;
+    const bool before = sprinting;
+    if (!opt.sprint_toggle) {
+        sprinting = click;
+    } else {
+        if (click && !was_click && playing) {
+            sprinting = !sprinting;
+            rest = 0.0f;  // a click while standing leaves half a second to push the stick
+        }
+        rest = stick ? 0.0f : rest + game_seconds;  // the real time (a game frame spans 1-2 refreshes at 120 Hz)
+        if (sprinting && (rest >= 0.5f || !playing)) sprinting = false;
+    }
+    if (opt.sprint_toggle && sprinting != before)
+        rt_log("VR: frame %d: sprint %s (Sprint toggle%s)", rt_frame, sprinting ? "on" : "off",
+               sprinting ? ": the left stick clicked" : click && !was_click ? ": clicked again" : rest >= 0.5f ? ": the stick let go" : "");
+    was_click = click;
+}
+
 void map_pad() {
     const Controls& c = fi.controls;
     Sh3VrPad p{};
@@ -2085,7 +2194,7 @@ void map_pad() {
     set(kB, c.b);
     set(kY, c.x);      // map
     set(kStart, c.y);  // inventory
-    set(kX, c.left_click);                               // dash (run)
+    set(kX, play ? sprinting : c.left_click);           // dash (run): 0.1.6 the Sprint toggle's (update_sprint)
     set(kLT, c.right_click);                             // search view
     if (play) {
         set(kLS, off_trigger > 0.6f);                    // flashlight
@@ -2236,7 +2345,7 @@ void plan_move() {
         move.steer = 1;
         move.heading = wrap(base + std::atan2(lx, ly));
         move.speed = len;
-        move.run = c.left_click;
+        move.run = sprinting;  // 0.1.6: the Sprint toggle's (update_sprint), held in when it is off
     } else if (opt.room_walk) {
         if (dist > 0.2f * kUnitsPerMetre) {
             move.steer = 1;
@@ -2274,22 +2383,39 @@ void plan_move() {
     // (LIST 42), never snapped. Walking, her facing follows the stick at up to 10 rad/s (the walk itself goes where the
     // stick says at once, sh3.c). Standing, she starts turning when the head is 50 degrees off and stops within 10, at up
     // to 4 rad/s, eased; her feet step through the turn (sh3vr_ik.cpp's plants).
+    // 0.1.6 (owner 111: "the arms twisting a bit when two handing a gun ... when walking back while looking forward"; the
+    // 0.1.5 log: "her body turns after the head" at 146-178 degrees while backing up): in first person her body faces
+    // where the head looks while she walks, and the stick moves her any way, back and sideways, without turning her (the
+    // PC VR mod's CameraRelativeStrafe: "camera-relative lateral strafe instead of rotating Heather and her flashlight
+    // toward the movement direction"). In third person she faces her walk, as the game's own. Standing with a weapon in
+    // both hands, her body follows the head from 20 degrees (50 otherwise), so her shoulders stay under the hands.
     static bool turning_body = false;
     static float turn_speed = 0;
     const float now = game.yaw, dt = frame_dt();
+    const bool first_person = view_mode == ViewMode::kFirstPerson;
+    const bool two_handed = first_person && weapon_two_handed();
     if (move.steer) {
-        const float d = wrap(move.heading - now);
+        const float target = first_person ? view_heading : move.heading;
+        const float d = wrap(target - now);
         move.face = 1;
         move.face_yaw = wrap(now + std::clamp(d, -10.0f * dt, 10.0f * dt));
         turning_body = false;
         turn_speed = 0;
+        static bool told_strafe = false;
+        if (first_person && !told_strafe && std::fabs(wrap(move.heading - view_heading)) > 100.0f * kPi / 180.0f) {
+            told_strafe = true;
+            rt_log("VR: frame %d: walking back (%.0f degrees from the head's way): her body keeps facing the head",
+                   rt_frame, wrap(move.heading - view_heading) * 180.0f / kPi);
+        }
     } else if (!move.hold_still) {
         const float off = wrap(view_heading - now);
-        if (!turning_body && std::fabs(off) > 50.0f * kPi / 180.0f) {
+        const float start = (two_handed ? 20.0f : 50.0f) * kPi / 180.0f, stop = (two_handed ? 4.0f : 10.0f) * kPi / 180.0f;
+        if (!turning_body && std::fabs(off) > start) {
             turning_body = true;
-            rt_log("VR: frame %d: her body turns after the head (%.0f degrees off)", rt_frame, off * 180.0f / kPi);
+            rt_log("VR: frame %d: her body turns after the head (%.0f degrees off%s)", rt_frame, off * 180.0f / kPi,
+                   two_handed ? ", a weapon in both hands" : "");
         }
-        if (turning_body && std::fabs(off) < 10.0f * kPi / 180.0f) {
+        if (turning_body && std::fabs(off) < stop) {
             turning_body = false;
             rt_log("VR: frame %d: her body faces the head again (%.0f degrees off)", rt_frame, off * 180.0f / kPi);
         }
@@ -2691,6 +2817,7 @@ void begin_next_frame() {
     comfort_turn();
     body_frame();
     combat_frame();
+    update_sprint();  // 0.1.6
     plan_move();
     map_pad();
     state_haptics();
@@ -2827,16 +2954,25 @@ int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
         glDisable(GL_SCISSOR_TEST);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, read_fbo);
         const unsigned menu_tex = vr_menu_open ? menu_texture() : 0;
-        // LIST 46: the reload's hint, a strip at the foot of the panel (over the game's 2D; Silent Hill 3 has no HUD
-        // there in play), both top row first.
-        int hw = 0, hh = 0;
-        const unsigned hint_tex = !screen && !menu_tex && fi.should_render ? reload_hint_texture(hw, hh) : 0;
+        // LIST 46: the reload's hint, a label at the foot of the panel (over the game's 2D; Silent Hill 3 has no HUD
+        // there in play), both top row first. 0.1.6: its box kept (hint_box), so ui_frame shows it as a label of its
+        // own in view (ui_place_hint) when nothing else of the game's is on the panel.
+        int hw = 0, hh = 0, hbw = 0;
+        const unsigned hint_tex = !screen && !menu_tex && fi.should_render ? reload_hint_texture(hw, hh, hbw) : 0;
+        hint_now = false;
         if (hint_tex) {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, panel_fbo);
             glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hint_tex, 0);
-            const int x0 = (panel_w - hw) / 2, y0 = panel_h - hh - panel_h / 12;
-            glBlitFramebuffer(0, 0, hw, hh, x0, y0, x0 + hw, y0 + hh, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            // 0.1.6: only the label's own box is copied (the picture round it is clear), so the game's 2D beside it stays
+            const int bw = std::clamp(hbw, 1, std::min(hw, panel_w)), sx = (hw - bw) / 2, x0 = (panel_w - bw) / 2;
+            const int y0 = panel_h - hh - panel_h / 12;
+            glBlitFramebuffer(sx, 0, sx + bw, hh, x0, y0, x0 + bw, y0 + hh, GL_COLOR_BUFFER_BIT, GL_LINEAR);
             panel_used = true;
+            hint_now = true;
+            hint_box[0] = (float)x0 / (float)panel_w;
+            hint_box[1] = (float)y0 / (float)panel_h;
+            hint_box[2] = (float)(x0 + bw) / (float)panel_w;
+            hint_box[3] = (float)(y0 + hh) / (float)panel_h;
         }
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_fbo);
         unsigned ptarget = 0;

@@ -473,7 +473,7 @@ void update_hint(const GunProfile* g) {
     }
 }
 
-// The hint's picture: a strip at the panel's foot (sh3vr.cpp draws it there), top row first like the panel's.
+// The hint's picture: a label drawn on the panel (sh3vr.cpp; 0.1.6 shown on its own in view), top row first like the panel's.
 constexpr int kHintW = 1024, kHintH = 64;
 std::vector<uint32_t> hint_canvas;
 GLuint hint_tex = 0;
@@ -690,9 +690,11 @@ void reload_actions(Sh3VrActions* out) {
     want_sound = -1;
 }
 
-unsigned reload_hint_texture(int& w, int& h) {
+unsigned reload_hint_texture(int& w, int& h, int& box_w) {
+    static int drawn_box_w = kHintW;
     w = kHintW;
     h = kHintH;
+    box_w = drawn_box_w;
     if (hint_shown.empty() || hint_wanted.empty() || now - hint_at > kHintShow) return 0;
     if (!hint_tex) {
         glGenTextures(1, &hint_tex);
@@ -710,11 +712,17 @@ unsigned reload_hint_texture(int& w, int& h) {
         auto rgba = [](int r, int gg, int b, int a) {
             return (uint32_t)a << 24 | (uint32_t)b << 16 | (uint32_t)gg << 8 | (uint32_t)r;
         };
-        hint_canvas.assign((size_t)kHintW * kHintH, rgba(10, 8, 7, 210));
-        const uint32_t rust = rgba(128, 38, 24, 255);
-        for (int x = 0; x < kHintW; x++) hint_canvas[x] = hint_canvas[(size_t)(kHintH - 1) * kHintW + x] = rust;
+        // 0.1.6 (the owner's 0.1.5 video): the backing only round the text (the rest clear), so the hint stands as a
+        // small label of its own in view (sh3vr.cpp ui_place_hint), cropped to box_w, not a strip the panel's width.
         const int size = 26;
         const int tw = (int)hint_drawn.size() * (int)(36 * size / 80.0f + 0.5f);
+        const int bw = std::min(kHintW, tw + 64), bx = (kHintW - bw) / 2;
+        drawn_box_w = box_w = bw;
+        hint_canvas.assign((size_t)kHintW * kHintH, 0u);
+        const uint32_t back = rgba(10, 8, 7, 210), rust = rgba(128, 38, 24, 255);
+        for (int y = 0; y < kHintH; y++)
+            for (int x = bx; x < bx + bw; x++)
+                hint_canvas[(size_t)y * kHintW + x] = y == 0 || y == kHintH - 1 || x == bx || x == bx + bw - 1 ? rust : back;
         ui_text(hint_canvas.data(), kHintW, kHintH, std::max(8, (kHintW - tw) / 2), 42, size, rgba(236, 228, 212, 255),
                 hint_drawn.c_str());
         GLint prev_tex = 0, unpack = 0, row_len = 0, align = 4;
