@@ -38,6 +38,8 @@
 
 // SH3 Quest VR (session 13): the held weapon's second grip (sh3vr_combat.cpp), for "lh_at_second 1".
 namespace sh3q { bool sim_second_spot(float out[3]); }
+// SH3 Quest VR (session 16): the reload by hand's places (sh3vr_reload.cpp), for "lh_at_reload N".
+namespace sh3q { bool sim_reload_spot(int what, float out[3]); }
 
 namespace quest {
 
@@ -348,6 +350,14 @@ public:
             // lh_x lh_y lh_z then metres from it, so every weapon's two-hand hold is checked the same way.
             float spot[3];
             if (side == 0 && number("lh_at_second") != 0 && sh3q::sim_second_spot(spot))
+                out.hand_aim[side].position = Vec3{spot[0], spot[1], spot[2]} + Vec3{number("lh_x"), number("lh_y"),
+                                                                                     number("lh_z")};
+            // SH3 (session 16), "lh_at_reload N": the left controller where the reload by hand wants it
+            // (sh3vr_reload.cpp sim_reload_spot: 1 the part lined up 5 cm short of its well, 2 pushed home, 3 at the
+            // slide or the cocking knob), lh_x lh_y lh_z then metres from it: the code's own places, which follow the
+            // guns as drawn, not numbers that go stale when a hold changes (vr237).
+            const int at_reload = (int)number("lh_at_reload");
+            if (side == 0 && at_reload != 0 && sh3q::sim_reload_spot(at_reload, spot))
                 out.hand_aim[side].position = Vec3{spot[0], spot[1], spot[2]} + Vec3{number("lh_x"), number("lh_y"),
                                                                                      number("lh_z")};
             out.hand_grip[side] = {out.hand_aim[side].position,

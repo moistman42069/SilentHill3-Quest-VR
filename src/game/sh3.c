@@ -1712,6 +1712,40 @@ void sh3_vr_frame(void) {
                     rt_log("testing: frame %d: her health %.1f after a hit: SH3_HP lets go (a death goes on)", rt_frame,
                            MEMF(p + 0x180));
             }
+            /* SH3_TEST_EMPTY_FIRE=1 (the PC rig, session 16, owner 75: reload verified): 0x497800 (a round taken from
+             * the equipped gun, LIST 46's "no free ammo" wrapper) called through the guest stack as the game calls it
+             * (cdecl, item 0 = the equipped gun), once with the equipped gun at 0 loaded (the wrapper's own answer: its
+             * ret's pop was missing until session 16, never reached in a run since a gun fires at 0 only when drawn
+             * mid-shot) and once loaded 300 frames later (the game's own way): the stack must come back level. Every
+             * guest register is kept. */
+            static int fire_test = -2, fire_stage;
+            static uint32_t fire_at;
+            if (fire_test == -2) fire_test = getenv("SH3_TEST_EMPTY_FIRE") ? atoi(getenv("SH3_TEST_EMPTY_FIRE")) : 0;
+            if (fire_test && fire_stage < 2 && (fire_stage == 0 || frame_no - fire_at >= 300)) {
+                const int item = (int16_t)MEM16(0x6BDD24u + 2u * (uint32_t)MEM8(0x712CABF));
+                if (item >= 9 && item <= 12 && (MEM32(0x712CA80) >> item & 1u) &&
+                    (fire_stage == 0) == (GUN_COUNT(item) == 0)) {
+                    const uint32_t keep[6] = {g_eax, g_ecx, g_edx, g_ebx, g_esi, g_edi};
+                    const uint32_t esp0 = g_esp;
+                    const int before = GUN_COUNT(item);
+                    g_esp -= 4;
+                    MEM32(g_esp) = 0;            /* the item: 0, the equipped gun */
+                    g_esp -= 4;
+                    MEM32(g_esp) = 0x00497800u;  /* the call's return address (the wrapper is called directly) */
+                    sub_00497800();
+                    const uint32_t answer = g_eax;
+                    g_esp += 4;                  /* cdecl: the caller pops its argument */
+                    const int off = (int)(g_esp - esp0);
+                    rt_log("testing: frame %u: 0x497800 called for item %d %s: the stack %s (%+d bytes), answered %u, "
+                           "its count %d -> %d", frame_no, item,
+                           fire_stage == 0 ? "at 0 loaded (the wrapper's own way)" : "loaded (the game's own way)",
+                           off == 0 ? "level" : "OFF", off, answer, before, GUN_COUNT(item));
+                    g_esp = esp0;
+                    g_eax = keep[0], g_ecx = keep[1], g_edx = keep[2], g_ebx = keep[3], g_esi = keep[4], g_edi = keep[5];
+                    fire_stage++;
+                    fire_at = frame_no;
+                }
+            }
             /* SH3_LIFE_DISPLAY=1 (the PC rig): the game's Life Display option on (bit 0x80 of 0x70E66C6, as the
              * Extra options' switch 0x60CB90 sets it), to see what the game itself draws for it */
             static int life_on = -2;

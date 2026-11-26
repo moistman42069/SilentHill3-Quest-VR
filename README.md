@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.0</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.1</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -21,10 +21,12 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > sh3.exe and data (about 5 GB). The launcher copies it onto the headset from a folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([release notes](docs/RELEASE-NOTES-0.1.0.md)). In short: install
-SH3QuestVR-0.1.0.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the headset, open
-SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. The first release has not yet been played on a headset:
-reports are very welcome (the launcher's "Save a report to Download" holds the game's own logs).
+with everything you need to install it ([0.1.0's release notes](docs/RELEASE-NOTES-0.1.0.md), the first release's
+full guide; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md), its patch). In short: install SH3QuestVR-0.1.1.apk (developer
+mode, SideQuest or adb), copy your game folder or a .zip of it to the headset, open SH3 Quest VR, CHOOSE THE GAME
+FOLDER, then PLAY IN VR. Already on 0.1.0? The launcher offers 0.1.1 itself (Updates). The first release has not yet
+been played on a headset: reports are very welcome (the launcher's "Save a report to Download" holds the game's own
+logs).
 
 ## Features
 

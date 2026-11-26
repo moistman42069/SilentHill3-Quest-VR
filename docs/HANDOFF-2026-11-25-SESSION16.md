@@ -1,14 +1,41 @@
 # SH3 Quest VR: handoff, session 16 (2026-11-25)
 
 Read docs/HANDOFF-2026-11-25-SESSION15.md first (its run commands and switches); this one carries on from it.
-PC test builds 196-199 (build_pc_199.log, BUILD OK), regen before 198 (regen_198.log); runs vr230-vr236 (about 32
-minutes of runs). The release: see "The release" below.
+PC test builds 196-202 (build_pc_202.log, BUILD OK), regen before 198 (regen_198.log); runs vr230-vr240 (about 46
+minutes of runs: vr237-vr240 the reload check the owner asked for). Releases: 0.1.0 and the patch 0.1.1 (below).
 
 ## The owner's messages this session (C:/SH3Quest/notes/owner-messages-sessions1-7.txt, 72-73)
 
 - 72: pick up where session 15 stopped, miss/forget nothing, proceed with the list.
 - 73: when done, publish the release on GitHub; no headset test by the owner first ("as long as you can guarantee
   itll all launch on quest"); thorough release notes with every needed detail; proceed with the list.
+- 74: "i assume manual reload has been checked and verified too right?" (answered: by hand in the sim, sessions 4-13;
+  not on a headset).
+- 75: make sure reload is verified before publishing (came after v0.1.0 was up): vr237, reload.txt on build 199 (the
+  release's code), below.
+- 76: the owner handles Discord and the like; only git here (docs/DISCORD-ANNOUNCEMENT.txt left as it is).
+- 77: people had already downloaded 0.1.0: release the fix as a quick patch (0.1.1), a first test of the updater.
+
+## Reload verified, the shotgun's port fixed: 0.1.1 (owner 74-77)
+
+- vr237 (reload.txt on build 199, 0.1.0's code): only the handgun reloaded; the shotgun's shells, the submachine
+  gun's magazine and the stun gun's battery were let go 3-5 cm off their wells and dropped.
+- Build 200 logged the places (the well minus the part's top, both in the gun's model space); vr238: the submachine
+  gun's and stun gun's wells were right on their drawn models (the script's fixed hand places of session 4 were
+  stale), but the shotgun's port (an aim-space offset) lay at its model's (-212.7, 47.0, -7.6): at the trigger
+  guard's front, 5.4 cm under the receiver's floor, in the air. A REAL BUG in 0.1.0: a shell pushed into the visible
+  port could seat early and was drawn going in under the gun.
+- Build 201: the shotgun's port on its model (sh3vr_reload.cpp kGuns, GAME_FACTS "Shotgun"); the rig's
+  "lh_at_reload 1/2/3" (xr_sim.cpp, sim_reload_spot in sh3vr_reload.cpp) places the off controller from the code's
+  own places, and reload.txt uses it (with "lh_at_second 1" for the pump). vr239: all four guns reloaded by hand,
+  pictures checked whole.
+- Build 202: SH3_TEST_EMPTY_FIRE=1 (sh3.c sh3_vr_frame) calls 0x497800 through the guest stack; vr240: at 0 loaded
+  the wrapper's way (answered 0, count kept 0) and loaded the game's way (10 -> 9), the stack level both times: the
+  session-16 "no free ammo" pop fix verified. All four guns again.
+- 0.1.1: versionCode 2, whats_new.txt and README, docs/RELEASE-NOTES-0.1.1.md; build_quest_6.log; the APK's checks as
+  0.1.0's (only the version differs in the manifest; SDL2 and the loader byte-identical; libmain's needs the same, no
+  text relocations, SDL_main; the same certificate 38811d96...; the updater's checks: digest, size, package, newer
+  name, versionCode 2 > 1, the same signer).
 
 ## A crash fixed (would have crashed every headset at the first melee hit)
 
@@ -64,7 +91,14 @@ minutes of runs). The release: see "The release" below.
   reservation is MAP_NORESERVE. NOT checked: a run on a headset (none here).
 - The repository: C:/SH3Quest/SH3QuestVR is now a git repository (main), pushed to
   github.com/moistman42069/SilentHill3-Quest-VR on top of its README commit; .gitignore keeps out /game (sh3.exe),
-  src/recomp/gen, build/, .gradle/, keys and APKs. Tag v0.1.0 and the GitHub release with the APK and the notes.
+  src/recomp/gen, build/, .gradle/, keys, APKs and logs. PUBLISHED 2026-11-25: main a2435a8 (the source, 683 files)
+  and b38e2c1 (the notes: the reload's reach still to be felt on a headset), tag v0.1.0 (annotated), the release
+  github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.0 (not a draft or prerelease) with
+  SH3QuestVR-0.1.0.apk (GitHub's digest sha256:3d974b4d... matches) and the notes; the GitHub API's releases/latest
+  gives v0.1.0 and the asset name the launcher's updater looks for. The repository's local git config: user
+  moistman42069 with GitHub's noreply address, core.autocrlf false (files stay LF).
+  The first commit's message says "for the Meta Quest (standalone, OpenXR) and PC VR": the PC build is the test rig,
+  not a PC VR release (left as it is: a force push to reword it is not worth it).
 - docs/RELEASE-NOTES-0.1.0.md: what you need (the exe SHA-1s, the data by size), installing, everything in 0.1.0,
   controls, logs and reports, known for now, updating, credits, files.
 
@@ -86,7 +120,11 @@ minutes of runs). The release: see "The release" below.
 - tools/sim: door229.txt header, make_door231.py and door231.txt.
 - docs: LIST-0.1.0.md (27 done, 45, 40), GAME_FACTS.md (Combat), README.md (v0.1.0, download, this handoff),
   RELEASE-NOTES-0.1.0.md, this handoff; HANDOFF-2026-11-24-SESSIONS5-7.md and SESSION8.md (paths made %USERPROFILE%).
-- .gitignore: .gradle/, local.properties, *.jks, *.keystore, release.properties, *.apk.
+- .gitignore: .gradle/, local.properties, *.jks, *.keystore, release.properties, *.apk, *.log.
+- For 0.1.1: src/vr/sh3vr_reload.cpp (the shotgun's port on its model, the place log, sim_reload_spot);
+  src/vr/xr_sim.cpp ("lh_at_reload"); src/game/sh3.c (SH3_TEST_EMPTY_FIRE, test only); tools/sim/reload.txt (the
+  places from the code); android/app/build.gradle (versionCode 2, 0.1.1); android/app/src/main/assets/whats_new.txt;
+  README.md; docs/RELEASE-NOTES-0.1.1.md; docs/GAME_FACTS.md (the shotgun's frame and port); LIST 40 and 46.
 
 Waiting for the owner's go (files on C:, never deleted without it): as session 15 lists, plus vr230-vr236's logs and
 shots, build_pc_196-199.log, regen_198.log, build_quest_5.log.

@@ -1,4 +1,14 @@
-The first release: Silent Hill 3 in VR on the Quest, standalone, from your own PC copy of the game.
+0.1.1, a patch for 0.1.0:
+
+- Manual reload, the shotgun: its shells now go into its loading port where you see it, under the receiver just in
+  front of the trigger guard. In 0.1.0 the port was taken about 5 cm below the gun, in the air, so a shell pushed
+  into the real port could count as loaded before it got there and was drawn going in under the gun.
+- Every gun's reload by hand checked again on this build (handgun, shotgun, submachine gun, stun gun): magazine or
+  shells in, the slide, pump or knob worked, the game's own counts, nothing free.
+- The game's log now says where your hand put a magazine or shell against the gun's well for the first reloads, so a
+  report shows how close a reload came if one ever does not take.
+
+0.1.0, the first release: Silent Hill 3 in VR on the Quest, standalone, from your own PC copy of the game.
 
 - First person at Heather's eyes, head and hands tracked (6DoF); walk in your room and she walks. Third person with the
   game's own camera whenever you like: hold the left menu button for a second.

@@ -243,12 +243,23 @@ Marks: [ ] open, [~] started, [x] done (with how it was checked), [?] needs the 
 39. [~] README, CREDITS, NOTICE, release notes, What's new and "Recommended performance options"; credits: cutarev
     (sh3-nx, sh2-nx), NotGodlikeUwU (SH3 VR mod), heathercherymason-beep (Android port), sp00nznet (xboxrecomp),
     ThirteenAG (WidescreenFixesPack), zealottormunds (camera mod), Steam006 (PC Fix), Khronos (OpenXR), SDL, pl_mpeg (Dominic Szablewski).
-40. [ ] The APK (one build pass, signed with our own key), its SHA-256, local git repo. The owner (2026-11-24, session
+40. [x] The APK (one build pass, signed with our own key), its SHA-256, local git repo. The owner (2026-11-24, session
     3): once every item is done, build the APK and hand it over (path and SHA-256) for the owner to test first; publish
     nothing until the owner says.
     Session 15: built (build_quest.py, debug key: no release key yet) and handed over, not published:
     android/build/SH3QuestVR-0.1.0.apk, 10,493,334 bytes, SHA-256
     3c2d90625fae25d2a721a90b6b2dbe05e9a36359b03026b07300d462a36e33c5. Waiting for the owner's headset run.
+    Session 16 (owner 73: publish without the owner's headset test): the release key made (C:/SH3Quest/keys, its
+    certificate's SHA-256 in tools/release-cert.sha256), the release APK built (build_quest.py --release):
+    SH3QuestVR-0.1.0.apk, 9,198,022 bytes, SHA-256 3d974b4d9b0c4b2eff16877500e507a6f46bb9f18120b4f6fd614fbe60a544b0;
+    its launch checks without a headset (HANDOFF-2026-11-25-SESSION16.md, "The release"). PUBLISHED 2026-11-25: the
+    source pushed to main (a2435a8, b38e2c1), tag v0.1.0, the release
+    github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.0 with the APK (GitHub's digest matches) and
+    docs/RELEASE-NOTES-0.1.0.md; the launcher's updater sees it as the latest (not a prerelease).
+    0.1.1 (owner 75-77: reload verified, then a patch release since 0.1.0 had been downloaded; the updater's first
+    test): versionCode 2, SH3QuestVR-0.1.1.apk 9,200,394 bytes, SHA-256
+    d902aab2e77b886fb716bbffcc23aa8831afe9c9b2a374bad9dbfaa6f18cc2e9 (the same release key), tag v0.1.1,
+    docs/RELEASE-NOTES-0.1.1.md (the patch first, then the whole guide).
 
 ## H. Added by the owner (2026-11-24, session 3), all in 0.1.0
 41. [~] Heather's own hands at the controllers, no stand-in hands (the owner: "as native vr as possible keeping in mind
@@ -348,6 +359,16 @@ Marks: [ ] open, [~] started, [x] done (with how it was checked), [?] needs the 
     handgun's slide, the shotgun's pump, the submachine gun's bolt); shells loaded one at a time; Heather's fingers
     gripping each part properly through it; the game's own ammo and reload kept right (counts, the reload sound, no
     free ammo); "Manual reload" in the VR menu and the launcher (on; off gives the game's reload on its button).
+    Session 16 (owner 74-75, reload verified on the release's build): vr237 (build 199, 0.1.0's code) reloaded only
+    the handgun: reload.txt's fixed hand places (session 4) had gone stale as the guns' holds changed (sessions 12-14),
+    and the shotgun's port, an aim-space offset, lay at its model's (-212.7, 47.0, -7.6), 5.4 cm under the receiver's
+    floor in the air (vr238's place log). Build 201: the shotgun's port on its model (-180, 22, 0), the way in
+    (0.892, -0.451, 0), seated bottom at the port; the rig's "lh_at_reload 1/2/3" (xr_sim.cpp, sim_reload_spot) takes
+    the places from the code. vr239/vr240 (build 202): all four guns by hand (the handgun 0/20 -> 10/10, the slide; the
+    shotgun two shells 0/12 -> 2/10, the pump; the submachine gun 0/60 -> 32/28, the knob; the stun gun 0/3 -> 3/0),
+    pictures checked whole; "no free ammo" called through the guest stack both ways (SH3_TEST_EMPTY_FIRE: at 0 loaded
+    answered 0, kept 0; loaded 10 -> 9; the stack level both times). Released as 0.1.1. Still [~]: the feel on a
+    headset (HEADSET_CHECKLIST).
 47. [x] A GitHub repository ready for the first release (the owner, session 3): github.com/moistman42069/
     SilentHill3-Quest-VR, public, README (what 0.1.0 brings, testers wanted), CREDITS.md, NOTICE; the source and the
     APK go up with the release. A Discord announcement asking for testers: docs/DISCORD-ANNOUNCEMENT.txt (1840

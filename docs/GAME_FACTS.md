@@ -100,7 +100,10 @@ Mark what we confirm ourselves with (checked: how).
   - Submachine gun 557 / 890: an Uzi's layout, the magazine up through the grip (x 31-54), the trigger guard ahead of
     it, the muzzle along +x; the split cocking knob on top at the rear, x 0-12.7, y 55-69.5 (88 vertices of bone 0).
   - Shotgun 290 / 490: bone 1 is the barrel assembly with its muzzle along -x; the pump is the wide block at x -129 ..
-    -13 (35 vertices).
+    -13 (35 vertices). In the weapon frame's model space (sh3vr_combat.cpp's, which weapon_point and
+    weapon_model_point use: barrel +x, the muzzle's bore at the origin, y down): the receiver x -250 to -140 with its
+    floor at y 21, the trigger guard x -240 to -212 under it; the loading port (session 16, sh3vr_reload.cpp kGuns) at
+    (-180, 22, 0), shells going in along (0.892, -0.451, 0).
   - Stun gun 132 / 226.
   SH3 Quest VR moves those vertices in the vertex buffer for the cocking visual (d3d8.c vr_gun_part, sh3vr_reload.cpp
   kMovingParts).

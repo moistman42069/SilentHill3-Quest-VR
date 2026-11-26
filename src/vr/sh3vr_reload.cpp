@@ -77,8 +77,15 @@ const GunProfile kGuns[4] = {
     {10, "handgun", kMagazine, kSlide, {0.0f, -0.065f, 0.010f}, {0.0f, 0.95f, -0.31f}, {0.0f, 0.075f, 0.020f}, 0.035f,
      "Push it up into the bottom of the grip", true, {36.5f, -25.0f, -15.0f}, {0.210f, 0.978f, 0.0f},
      {36.5f, -25.5f, -15.0f}, {26.0f, 37.0f, -13.9f}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+    // The shotgun's loading port on its model (session 16, vr237/vr238, owner 75): the aim-space port of session 4 lay
+    // at the model's (-212.7, 47.0, -7.6) once the gun was held as the game holds it (sessions 12-14): at the trigger
+    // guard's front, 5.4 cm under the receiver's floor, in the air, so a shell pushed into the port that shows "seated"
+    // short of it and was drawn going in under the gun. Now the port's middle on the receiver's floor (bone 1, y down:
+    // the receiver x -250 to -140, its floor y 21; the trigger guard x -240 to -212 under it), the way in up and
+    // forward towards the magazine tube, the shell going its whole length in (its bottom at the port when seated).
     {11, "shotgun", kShell, kPump, {0.0f, -0.050f, -0.120f}, {0.0f, 0.45f, -0.89f}, {}, 0.060f,
-     "Push the shell into the loading port under the gun", false, {}, {}, {}, {}, {}, {}},
+     "Push the shell into the loading port under the gun", true, {-180.0f, 22.0f, 0.0f}, {0.892f, -0.451f, 0.0f},
+     {-180.0f, 22.0f, 0.0f}, {}, {}, {}},
     {12, "submachine gun", kMagazine, kHandle, {0.0f, -0.085f, 0.010f}, {0.0f, 0.97f, -0.24f}, {0.0f, 0.120f, 0.080f},
      0.040f, "Push it up into the bottom of the grip", true, {44.7f, -19.3f, -13.4f}, {0.105f, 0.994f, 0.0f},
      {42.3f, -43.4f, -13.4f}, {6.0f, 56.0f, -7.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
@@ -322,10 +329,28 @@ void update_part(const GunProfile& g, bool down, bool up) {
         buzz(oh, 0.2f, 0.02f, 200.0f);
     }
     st.aligned = aligned;
-    if (now - st.logged_at > 1.0) {
+    static float logged_along = 1.0e9f;
+    static int detail_lines = 0;
+    if (now - st.logged_at > 1.0 || std::fabs(along - logged_along) > 0.01f) {
         st.logged_at = now;
+        logged_along = along;
         rt_log("testing: the %s held %.3f m along the %s's well, %.3f m off its line%s", part_name(g.part), along,
                g.name, lateral, st.old_in ? " (the old one still in)" : aligned ? " (lined up)" : "");
+        // Session 16 (vr237, owner 75: the shotgun's, submachine gun's and stun gun's parts let go off their wells):
+        // where the well and the part's top are, to tell a stale rig script from a well that misses the drawn gun.
+        if (detail_lines < 60) {
+            detail_lines++;
+            const Vec3 d = well - tip;
+            const HandState& o = hands[oh];
+            Vec3 wm{}, tm{};
+            const bool in_model = weapon_model_point(well, wm) && weapon_model_point(tip, tm);
+            rt_log("testing: the %s's well minus the %s's top (%.3f %.3f %.3f) m, the way in (%.3f %.3f %.3f); the off "
+                   "hand shown %.3f m from its controller%s; in the gun's model (x490): the well (%.1f %.1f %.1f), the "
+                   "top (%.1f %.1f %.1f)%s; the well from the %s",
+                   g.name, part_name(g.part), d.x, d.y, d.z, dir.x, dir.y, dir.z,
+                   length(o.shown.position - o.grip.position), o.inside ? " (inside a surface)" : "", wm.x, wm.y, wm.z,
+                   tm.x, tm.y, tm.z, in_model ? "" : " (not placed)", model_placed(g) ? "model" : "aim offset");
+        }
     }
     if (aligned && along >= -0.015f && along - st.aligned_along >= 0.012f) {
         seated(g);
@@ -455,6 +480,25 @@ GLuint hint_tex = 0;
 std::string hint_drawn;
 
 }  // namespace
+
+// The PC rig (xr_sim's "lh_at_reload N", session 16: reload.txt's fixed places had gone stale as the guns' holds
+// changed, vr237): where the off controller goes for the reload by hand, from this frame's places: 1 the part's top 5
+// cm short of its well on the well's line, 2 its top 0.5 cm into the well (home), 3 the off fist at the slide's or the
+// cocking knob's grab point. The part moves with the controller (the same turn), so its top's miss is the move.
+bool sim_reload_spot(int what, float out[3]) {
+    const GunProfile* g = profile();
+    if (!g || !hands_ready()) return false;
+    const HandState& o = hands[off_hand()];
+    Vec3 s;
+    if (what == 1 || what == 2)
+        s = o.grip.position + (well_point(*g) + well_dir(*g) * (what == 1 ? -0.05f : 0.005f) - part_tip(*g));
+    else if (what == 3 && g->action != kNoAction && g->action != kPump)
+        s = grab_point(*g);
+    else
+        return false;
+    out[0] = s.x, out[1] = s.y, out[2] = s.z;
+    return true;
+}
 
 // ================================================================ shared (sh3vr_internal.h)
 
