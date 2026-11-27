@@ -86,7 +86,12 @@ happen once. add a menu section in the in game vr menu with all the hints so peo
 
 ## Next
 
-1. Done: vr362-369 read, every picture whole; AUDIT rows 168/169; the release APK (above), @SIZE@/@SHA@ filled.
-2. Release: commit (C:/SH3Quest/commit_017.txt), annotated tag v0.1.7, push main and the tag, gh release (without
-   asking, owner 123), releases/latest's asset digest and a downloaded copy's SHA-256, the handoff commit, memory.
-3. After the release: the players' reports on 0.1.7 (drafts in C:/SH3Quest/notes, never posted unasked).
+0.1.7 PUBLISHED 2026-11-26: main 703f432, annotated tag v0.1.7, release "Silent Hill 3 Quest VR 0.1.7"
+(https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.7, latest, not a draft). Its asset
+SH3QuestVR-0.1.7.apk: 9,561,654 bytes, digest sha256:82c01b5344242f756437c4d3c0c56da29a4090a99db5b44bc2bdd4f9329c0880,
+a downloaded copy's SHA-256 the same. The APK also at C:/SH3Quest/SH3QuestVR-0.1.7.apk.
+
+1. The players' reports on 0.1.7 and the owner's next messages (drafts in C:/SH3Quest/notes, never posted unasked;
+   C:/SH3Quest/notes/reply-pcvr-maker-0.1.7.txt is the PC VR mod's maker's, for the owner to send).
+2. Headset: docs/HEADSET_CHECKLIST.md's 0.1.7 items (the hints from a new install; the grab with the stick held).
+3. The next run number is vr370, the next PC build 245.
