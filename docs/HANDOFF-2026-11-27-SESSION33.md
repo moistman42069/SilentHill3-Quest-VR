@@ -130,3 +130,27 @@ C:/SH3Quest/checks268.sh (vr413-422, about 30 minutes, both ini files backed up 
   vr406 still showed (the hints are once ever; vr406 has 7 more panel pictures for it): m422.png, m422b.png. The trigger
   lines as vr406's (curl 0.46 / 16, 0.16 / 4, 0.36 / 8); all ten "own shape ready"; no crash or error. "all done 268";
   sh3vr.ini back (left_handed = 0, grip_spot = 0, no grip_anywhere) and sh3quest_weapons.ini back.
+
+## 0.1.8 released
+
+- The APK: `source /c/RACQuest/env.sh; python -I tools/build_quest.py --release` (log C:/SH3Quest/build_quest_018.log:
+  sh3vr_combat.cpp rebuilt, libmain.so linked), then tools/apkcheck.py against 0.1.7's: 22 files each, changed only
+  the manifest (versionCode 8 -> 9, "0.1.7" -> "0.1.8"), whats_new.txt, classes.dex and libmain.so; libSDL2.so and
+  libopenxr_loader.so byte-identical; both signed with certificate 38811d96...cd416e6a; ALL CHECKS PASS. libmain.so
+  carries the migration's new log line and "Hold weapons anywhere".
+- **SH3QuestVR-0.1.8.apk: 9,613,170 bytes, SHA-256 71dd5e643e86e6a84191f23a7eef7499673466e73740fbc0d510525ba1d52682**
+  (C:/SH3Quest/SH3QuestVR-0.1.8.apk).
+- Commit 5465fc8 on main (message C:/SH3Quest/commit_018.txt), annotated tag v0.1.8 (7297e76), both pushed; the
+  release "Silent Hill 3 Quest VR 0.1.8" with docs/RELEASE-NOTES-0.1.8.md and the APK, marked latest. Checked after:
+  releases/latest is v0.1.8, its asset's digest sha256:71dd5e64...1d52682 and 9,613,170 bytes, and a copy downloaded
+  with gh (C:/SH3Quest/dl018) hashes the same.
+
+## Next
+
+1. Players' reports on 0.1.8 and their headset logs (sh3.log says what VR did; every item gained or lost is in it).
+2. The video's 11:40-11:45 (owner 160): the picture through a small window at the top as the clothes store's cutscene
+   starts. A save at that fight (or the flat PC game there) settles whether it is the game's own opening or ours.
+3. Keys lost to 0.1.7's looks stay lost in saves made after (0.1.8 keeps keys from now on; the notes say to load an
+   earlier save). A key could be given back where its giver's flag is set (docs/GAME_FACTS.md session 32: "No record
+   of an item ever held") and its door has not opened: only with the owner's word, as it changes saves.
+4. docs/HEADSET_CHECKLIST.md's 0.1.8 items on a headset.
