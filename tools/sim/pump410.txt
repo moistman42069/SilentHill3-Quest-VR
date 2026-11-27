@@ -1,0 +1,62 @@
+# SH3 Quest VR, the PC rig (session 33, 0.1.8): the shotgun's pump worked for real (parts384's shotgun was loaded,
+# so no pump was due and its 1 cm move never drew the pump). The shotgun empty with a reserve: the trigger (empty),
+# two shells from the pouch pushed into the port (reload.txt's places), the pump taken with the left hand, then seen
+# close from the right at rest, drawn back 7 cm (right and left), pushed forward again, and a shot. The pump must go
+# back along the barrel toward the receiver with the hand (0.1.7 slid it forward, toward the muzzle), and home again.
+# Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_GIVE="10:0,15:20,11:0,16:12" SH3_EQUIP="2"
+# SH3_EQUIP_EVERY=600 (the shotgun about 7316). sh3.log: "the pump next", "the shotgun's pump worked: it fires".
+7320 right_first_touch 1
+7330 rh_x -0.12
+7330 rh_y 0.22
+7330 rh_z 0.05
+7400 shot s0-shotgun-empty
+7405 right_trigger 1
+7465 right_trigger 0
+7475 lh_x 0.10
+7475 lh_y -0.277
+7475 lh_z 0.24
+7485 left_grip 1
+7505 lh_x 0
+7505 lh_y 0
+7505 lh_z 0
+7505 lh_at_reload 1
+7515 lh_at_reload 2
+7525 left_grip 0
+7535 lh_at_reload 0
+7535 lh_x 0.10
+7535 lh_y -0.277
+7535 lh_z 0.24
+7545 left_grip 1
+7565 lh_x 0
+7565 lh_y 0
+7565 lh_z 0
+7565 lh_at_reload 1
+7575 lh_at_reload 2
+7585 left_grip 0
+7595 lh_at_reload 0
+7595 lh_at_second 1
+7605 left_grip 1
+7615 view_free 1
+7615 view_x 0.42
+7615 view_y -0.11
+7615 view_z -0.30
+7615 view_yaw 90
+7615 view_pitch 0
+7630 shot s1-shotgun-right-pumprest
+7635 lh_z 0.07
+7650 shot s2-shotgun-right-pumpback
+7655 view_x -0.22
+7655 view_yaw -90
+7670 shot s2-shotgun-left-pumpback
+7675 view_x 0.42
+7675 view_yaw 90
+7680 lh_z 0
+7700 shot s3-shotgun-right-pumpforward
+7705 view_free 0
+7705 view_yaw 0
+7715 left_grip 0
+7720 lh_at_second 0
+7730 right_trigger 1
+7790 right_trigger 0
+7810 quit 0

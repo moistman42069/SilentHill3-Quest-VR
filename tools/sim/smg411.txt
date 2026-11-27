@@ -1,0 +1,86 @@
+# SH3 Quest VR, the PC rig (session 33, 0.1.8): the submachine gun's and the flamethrower's other hand seen side-on
+# (pics383's close views look at the back of that hand, where its fingers' bend cannot show): two-handed, from the
+# eyes, from in front, from in front on either side, from above and from below. The fingers must close round the
+# receiver's (the body's) front, never stand straight in the air. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0" SH3_EQUIP="3,10"
+# SH3_EQUIP_EVERY=600 (the submachine gun about 7316, the flamethrower about 7916).
+7320 right_first_touch 1
+7330 rh_x -0.12
+7330 rh_y 0.22
+7330 rh_z 0.05
+# --- the submachine gun
+7400 lh_at_second 1
+7400 lh_x 0
+7400 lh_y 0
+7400 lh_z 0
+7405 left_grip 1
+7480 shot q2-smg-2eyes
+7485 view_free 1
+7485 view_x 0.08
+7485 view_y -0.08
+7485 view_z -0.62
+7485 view_yaw 180
+7495 shot q2-smg-front
+7500 view_x 0.32
+7500 view_z -0.52
+7500 view_yaw 135
+7510 shot q2-smg-frontright
+7515 view_x -0.16
+7515 view_yaw -135
+7525 shot q2-smg-frontleft
+7530 view_x 0.08
+7530 view_y 0.17
+7530 view_z -0.30
+7530 view_yaw 0
+7530 view_pitch -85
+7540 shot q2-smg-above
+7545 view_x -0.10
+7545 view_y -0.36
+7545 view_z -0.27
+7545 view_yaw -90
+7545 view_pitch 45
+7555 shot q2-smg-below
+7560 view_free 0
+7560 view_yaw 0
+7560 view_pitch 0
+7565 left_grip 0
+7570 lh_at_second 0
+# --- the flamethrower
+8000 lh_at_second 1
+8000 lh_x 0
+8000 lh_y 0
+8000 lh_z 0
+8005 left_grip 1
+8080 shot q9-flame-2eyes
+8085 view_free 1
+8085 view_x 0.08
+8085 view_y -0.08
+8085 view_z -0.70
+8085 view_yaw 180
+8095 shot q9-flame-front
+8100 view_x 0.32
+8100 view_z -0.58
+8100 view_yaw 135
+8110 shot q9-flame-frontright
+8115 view_x -0.16
+8115 view_yaw -135
+8125 shot q9-flame-frontleft
+8130 view_x 0.08
+8130 view_y 0.17
+8130 view_z -0.32
+8130 view_yaw 0
+8130 view_pitch -85
+8140 shot q9-flame-above
+8145 view_x -0.10
+8145 view_y -0.36
+8145 view_z -0.30
+8145 view_yaw -90
+8145 view_pitch 45
+8155 shot q9-flame-below
+8160 view_free 0
+8160 view_yaw 0
+8160 view_pitch 0
+8165 left_grip 0
+8170 lh_at_second 0
+8190 quit 0

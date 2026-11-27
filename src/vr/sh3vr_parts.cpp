@@ -5,7 +5,7 @@
 //   vr_draw_passes): the body; the moving part (the handgun's slide, the submachine gun's cocking knob, the shotgun's
 //   pump) as its own faces moved whole, so nothing it shares with the body stretches (session 4 found the slide's faces
 //   pulled into spikes when its vertices were moved in the buffer); the submachine gun's magazine left out while it is
-//   out of the gun.
+//   out of the gun; the trigger (session 31) as its own faces turned about its pin as her finger pulls it.
 // - The part in the off hand while reloading (the owner: "be sure the gripping of ammo/shells/mags is as clean as
 //   possible. like re4 vr has hand poses for mag/shell gripping", and "make sure you make the models as detailed as
 //   possible and as matching to the game as can be"): the game has no magazine, shell or battery model of its own (the
@@ -558,12 +558,12 @@ double now = 0;
 
 // ---------------------------------------------------------------- the weapon's meshes (faces by group)
 
-constexpr int kGroupBody = 0, kGroupMoving = 1, kGroupMag = 2;
+constexpr int kGroupBody = 0, kGroupMoving = 1, kGroupMag = 2, kGroupTrigger = 3, kGroups = 4;
 struct GunMesh {
     uint32_t nv = 0, np = 0;
     int item = 0;                 // the gun's inventory item (vr_gun_item), 0 none
     std::vector<uint8_t> group;   // per face of the last face list
-    std::vector<uint16_t> faces[3];
+    std::vector<uint16_t> faces[kGroups];
     int ntris = 0;
     uint32_t tris_sum = 0;
     bool moving_ok = false;
@@ -597,14 +597,39 @@ struct MovingPart {
     float lo[3], hi[3];
     float back;
 };
+// (`back`: the model's x drawn back. Session 31: the shotgun's was +1 since session 4, which took its barrel to run
+// along -x; its muzzle is at x 0 (the hold's), its receiver at x -250 to -140 and the pump ahead of it at -129 to -13,
+// with its own travel (6 cm, 29 units) the gap between them: so the pump drawn back goes along -x, as her hand on it
+// does (second_spot). 0.1.7 slid it forward, past the muzzle, as the hand pulled it back.)
 const MovingPart kMovingParts[] = {
     {368, 610, 10, kSlideVerts, (int)(sizeof kSlideVerts / sizeof *kSlideVerts), 0, {-1000, 21.5f, -1000},
      {1000, 1000, 1000}, -1.0f},
     {557, 890, 12, kKnobVerts, (int)(sizeof kKnobVerts / sizeof *kKnobVerts), 0, {-1.5f, 54.5f, -13}, {13.5f, 70.5f, 4},
      -1.0f},
     {290, 490, 11, kPumpVerts, (int)(sizeof kPumpVerts / sizeof *kPumpVerts), 1, {-130, -0.7f, -9.3f},
-     {-12.4f, 27.8f, 9.3f}, 1.0f},
+     {-12.4f, 27.8f, 9.3f}, -1.0f},
 };
+// Session 31 (owner message 151): each gun's trigger, its own faces (four whole pieces, flat-shaded, sharing no vertex
+// with the rest: scratchpad trig_parts.py on the session 4 dumps), turned about its pin (sh3vr_combat.cpp kTriggers) by
+// as far as her finger pulls it. The handgun's two front top corners (201..207) lie at y 22.9 to 23.6, inside the
+// slide's cut (y 21.5 and up, kSlideVerts), so 0.1.7 moved the faces on them with the slide when it was racked: the
+// trigger's faces now go with the trigger first.
+const uint16_t kHandgunTrigger[] = {151, 152, 155, 156, 165, 166, 167, 168, 169, 170, 171, 172,
+                                    173, 174, 175, 176, 201, 203, 205, 207, 208, 209, 210, 211};
+const uint16_t kShotgunTrigger[] = {99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113,
+                                    114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 127, 128, 130, 131, 134};
+const uint16_t kSmgTrigger[] = {239, 240, 243, 244, 251, 252, 253, 254, 255, 256,
+                                257, 258, 259, 260, 261, 262, 263, 264, 265, 266};
+const MovingPart kTriggerParts[] = {
+    {368, 610, 10, kHandgunTrigger, (int)(sizeof kHandgunTrigger / sizeof *kHandgunTrigger), 0, {68.0f, 10.5f, -15.5f},
+     {77.0f, 24.2f, -9.2f}, 0},
+    {290, 490, 11, kShotgunTrigger, (int)(sizeof kShotgunTrigger / sizeof *kShotgunTrigger), 1, {-233.6f, 20.2f, -3.0f},
+     {-226.3f, 32.1f, 3.0f}, 0},
+    {557, 890, 12, kSmgTrigger, (int)(sizeof kSmgTrigger / sizeof *kSmgTrigger), 0, {63.2f, 10.9f, -12.6f},
+     {71.5f, 25.7f, -8.9f}, 0},
+};
+// Whether every vertex of part `mp` is in the draw, on its bone and in its box (else the draw is not that gun's mesh).
+bool part_matches(const MovingPart& mp, uint32_t nv, const uint8_t* v48);
 // The guns by signature: their item, and whether the magazine shows below the grip (the submachine gun's: its faces
 // all under y -19 on bone 0).
 int item_of_signature(uint32_t nv, uint32_t np) {
@@ -616,6 +641,17 @@ int item_of_signature(uint32_t nv, uint32_t np) {
 }
 
 const V48* vert(const uint8_t* v48, int i) { return (const V48*)(v48 + (size_t)i * 48); }
+
+bool part_matches(const MovingPart& mp, uint32_t nv, const uint8_t* v48) {
+    for (int i = 0; i < mp.count; i++) {
+        if (mp.verts[i] >= nv) return false;
+        const V48* x = vert(v48, mp.verts[i]);
+        if ((x->bone & 0xFF) != (uint32_t)mp.bone) return false;
+        for (int c = 0; c < 3; c++)
+            if (!(x->p[c] >= mp.lo[c] && x->p[c] <= mp.hi[c])) return false;
+    }
+    return true;
+}
 
 GunMesh* mesh_for(uint32_t nv, uint32_t np, const uint8_t* v48, const uint16_t* tris, int ntris) {
     uint32_t sum = (uint32_t)ntris;
@@ -631,32 +667,31 @@ GunMesh* mesh_for(uint32_t nv, uint32_t np, const uint8_t* v48, const uint16_t* 
     g->nv = nv, g->np = np, g->ntris = ntris, g->tris_sum = sum;
     g->item = item_of_signature(nv, np);
     g->moving_ok = false;
-    std::vector<uint8_t> in_part(nv, 0);
+    std::vector<uint8_t> in_part(nv, 0), in_trigger(nv, 0);
     for (const MovingPart& mp : kMovingParts) {
         if (mp.nv != nv || mp.np != np) continue;
-        bool ok = true;
-        for (int i = 0; i < mp.count && ok; i++) {
-            if (mp.verts[i] >= nv) {
-                ok = false;
-                break;
-            }
-            const V48* x = vert(v48, mp.verts[i]);
-            if ((x->bone & 0xFF) != (uint32_t)mp.bone) ok = false;
-            for (int c = 0; c < 3 && ok; c++)
-                if (!(x->p[c] >= mp.lo[c] && x->p[c] <= mp.hi[c])) ok = false;
-        }
-        if (ok) {
+        if (part_matches(mp, nv, v48)) {
             for (int i = 0; i < mp.count; i++) in_part[mp.verts[i]] = 1;
             g->moving_ok = true, g->moving_bone = mp.bone, g->moving_back = mp.back;
         } else rt_log("VR: the %u-vertex gun's moving part does not match its vertices: drawn with the body", nv);
     }
+    bool trigger_ok = false;
+    for (const MovingPart& tp : kTriggerParts) {
+        if (tp.nv != nv || tp.np != np) continue;
+        if (part_matches(tp, nv, v48)) {
+            for (int i = 0; i < tp.count; i++) in_trigger[tp.verts[i]] = 1;
+            trigger_ok = true;
+        } else rt_log("VR: the %u-vertex gun's trigger does not match its vertices: drawn with the body (not turning)", nv);
+    }
     for (auto& f : g->faces) f.clear();
     g->group.assign(ntris, kGroupBody);
-    int counts[3]{};
+    int counts[kGroups]{};
     for (int i = 0; i < ntris; i++) {
         const uint16_t* t = tris + i * 3;
         int grp = kGroupBody;
-        if (g->moving_ok && in_part[t[0]] + in_part[t[1]] + in_part[t[2]] >= 2) grp = kGroupMoving;
+        if (t[0] >= nv || t[1] >= nv || t[2] >= nv) grp = kGroupBody;
+        else if (trigger_ok && in_trigger[t[0]] && in_trigger[t[1]] && in_trigger[t[2]]) grp = kGroupTrigger;
+        else if (g->moving_ok && in_part[t[0]] + in_part[t[1]] + in_part[t[2]] >= 2) grp = kGroupMoving;
         else if (g->item == 12) {
             bool below = true;
             for (int j = 0; j < 3; j++) {
@@ -669,8 +704,8 @@ GunMesh* mesh_for(uint32_t nv, uint32_t np, const uint8_t* v48, const uint16_t* 
         g->faces[grp].insert(g->faces[grp].end(), t, t + 3);
         counts[grp]++;
     }
-    rt_log("VR: the %u-vertex gun's faces: %d body, %d moving part, %d magazine (passes)", nv, counts[0], counts[1],
-           counts[2]);
+    rt_log("VR: the %u-vertex gun's faces: %d body, %d moving part, %d magazine, %d trigger (passes)", nv, counts[0],
+           counts[1], counts[2], counts[3]);
     return g;
 }
 
@@ -739,6 +774,14 @@ int parts_passes(uint32_t nv, uint32_t np, const uint8_t* verts48, const uint16_
         const float r[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
         row_major(r, Vec3{g->moving_back * back * kUnitsPerMetre, 0, 0}, built[1].place.m);
         nbuilt = 2;
+    }
+    // Session 31: the trigger, turned as far as her finger, drawn, pulls it (kind 3: a turn in the held bone's model
+    // units, as a moving part's; at rest the identity). Always its own pass, so the draws are the same at rest and pulled.
+    if (!g->faces[kGroupTrigger].empty() && nbuilt < max) {
+        out[nbuilt] = {g->faces[kGroupTrigger].data(), (int)g->faces[kGroupTrigger].size() / 3, nullptr, 0, 0};
+        built[nbuilt].place.kind = 3;
+        weapon_trigger_place(nv, np, built[nbuilt].place.m);
+        nbuilt++;
     }
     if (!map_ready()) return nbuilt;
     // The part in the off hand, and those falling.

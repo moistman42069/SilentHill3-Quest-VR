@@ -225,7 +225,15 @@ class Options {
             "Off: you aim. On: the game's own lock-on, as in third person."),
         sw("two_hand", "Two-hand grips", HANDS, true,
             "The other hand on a long weapon's foregrip steadies and aims it."),
+        // 0.1.8 (owner message 146)
+        sw("grip_anywhere", "Hold weapons anywhere", HANDS, false,
+            "On: your other hand takes hold of the weapon wherever you grip it (the barrel, the slide, the shaft), "
+            + "wrapped round that part. Off: it takes each weapon's two-hand grip (the support grip, the pump, the "
+            + "handle), set in the VR menu's Two-hand grip spot."),
         sw("physical_melee", "Physical melee", HANDS, true, "Swing the weapon to hit, where it really goes."),
+        choice("swing_needed", "Swing strength needed", HANDS, new String[] {"Light", "Normal", "Hard"}, 1,
+            "How hard a real swing must be to hit. Normal: a firm swing; moving the weapon or your arm about never "
+            + "attacks. Light: 0.1.7's, a quicker swing is enough. Hard: only a full swing."),
         number("melee_damage_pct", "Melee damage", HANDS, 50f, 400f, 25f, "%", 200f,
             "How hard your swings and punches hit, against the game's own damage (its knife is very weak: a dog takes "
             + "about 25 of its slashes). The knife and your fists hit half as hard again on top, since a slash takes "

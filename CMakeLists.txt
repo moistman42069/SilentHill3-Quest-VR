@@ -12,7 +12,7 @@ file(GLOB GEN CONFIGURE_DEPENDS src/recomp/gen/*.c)
 file(GLOB RT CONFIGURE_DEPENDS src/runtime/*.c src/win32/*.c src/d3d8/*.c src/game/*.c)
 # The headset (OpenXR on the Quest and PC VR, the scripted sim on a PC) and SH3's VR. vr_menu.cpp / vr_options.cpp are
 # Ratchet's, kept for reference only.
-set(VR src/vr/sh3vr.cpp src/vr/sh3vr_body.cpp src/vr/sh3vr_combat.cpp src/vr/sh3vr_ik.cpp src/vr/sh3vr_menu.cpp src/vr/sh3vr_parts.cpp src/vr/sh3vr_reload.cpp src/vr/sh3vr_sounds.cpp src/vr/sh3vr_tips.cpp
+set(VR src/vr/sh3vr.cpp src/vr/sh3vr_body.cpp src/vr/sh3vr_combat.cpp src/vr/sh3vr_ik.cpp src/vr/sh3vr_menu.cpp src/vr/sh3vr_parts.cpp src/vr/sh3vr_reload.cpp src/vr/sh3vr_shape.cpp src/vr/sh3vr_sounds.cpp src/vr/sh3vr_tips.cpp
        src/vr/xr_openxr.cpp src/vr/xr_sim.cpp)
 
 if(ANDROID)

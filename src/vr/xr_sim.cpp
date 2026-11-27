@@ -54,6 +54,9 @@ bool sim_ready = false;
 // Set by the mod's shadow test aid (JAKVR_SHADOW_EYES, 0.1.8, LIST-0.1.8 item 9): a display frame whose shadows the
 // eyes saw far apart, shot as "apart-<frame>" (the frame after it, the one being finished); -1 for none.
 std::atomic<long> sim_shot_apart{-1};
+// SH3 (0.1.8, session 32): set with each "shot" command, so the mod logs both hands as drawn for that picture (each
+// finger's curl, the thumb's swing, the trigger: sh3vr_body.cpp body_fingers), the pictures read against numbers.
+std::atomic<int> sim_shot_hands{0};
 
 namespace {
 
@@ -360,6 +363,11 @@ public:
             if (side == 0 && number("lh_at_second") != 0 && sh3q::sim_second_spot(spot))
                 out.hand_aim[side].position = Vec3{spot[0], spot[1], spot[2]} + Vec3{number("lh_x"), number("lh_y"),
                                                                                      number("lh_z")};
+            // SH3 (0.1.8), "rh_at_second 1": the right controller there instead (a left-handed player's other hand),
+            // rh_x rh_y rh_z then metres from it
+            if (side == 1 && number("rh_at_second") != 0 && sh3q::sim_second_spot(spot))
+                out.hand_aim[side].position = Vec3{spot[0], spot[1], spot[2]} + Vec3{number("rh_x"), number("rh_y"),
+                                                                                     number("rh_z")};
             // SH3 (session 16), "lh_at_reload N": the left controller where the reload by hand wants it
             // (sh3vr_reload.cpp sim_reload_spot: 1 the part lined up 5 cm short of its well, 2 pushed home, 3 at the
             // slide or the cocking knob), lh_x lh_y lh_z then metres from it: the code's own places, which follow the
@@ -764,6 +772,7 @@ private:
     void apply(const Command& command) {
         if (command.name == "shot") {
             m_shot = command.value;
+            sim_shot_hands = 1;
         } else if (command.name == "quit") {
             m_quit = true;
         } else {

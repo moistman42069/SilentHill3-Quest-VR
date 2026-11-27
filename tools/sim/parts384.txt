@@ -1,0 +1,69 @@
+# SH3 Quest VR, the PC rig (session 31, 0.1.8): the guns' moving parts with the trigger now its own pass: the empty
+# handgun (its slide held back; the trigger must stay with the frame, 0.1.7 took two of its faces back with the slide),
+# its trigger pulled dry; the shotgun's pump hand. (Session 33: the shotgun here is loaded, so no pump is due and the
+# 1 cm moves below never draw the pump: the pump itself is worked in pump410.txt.) Run with QUEST_SIM_HEADSET=1
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 (session 31 added SH3_GRIP_FIT=1, the search; session 33 ran it without)
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_GIVE="10:0,15:20,11:4,16:12" SH3_EQUIP="1,2"
+# SH3_EQUIP_EVERY=600 (the handgun about 7316, the shotgun about 7916).
+7320 right_first_touch 1
+7330 rh_x -0.12
+7330 rh_y 0.22
+7330 rh_z 0.05
+# --- handgun, empty: its slide held back
+7426 shot p0-handgun-eyes-slideback
+7431 view_free 1
+7431 view_x 0.26
+7431 view_y -0.12
+7431 view_z -0.27
+7431 view_yaw 90
+7431 view_pitch 0
+7441 shot p0-handgun-close-slideback
+7446 view_x 0.38
+7446 view_y -0.11
+7446 view_z -0.25
+7456 shot p0-handgun-right-slideback
+7461 view_x -0.12
+7461 view_y -0.12
+7461 view_z -0.30
+7461 view_yaw -90
+7471 shot p0-handgun-closeleft-slideback
+7476 view_x 0.26
+7476 view_y -0.12
+7476 view_z -0.27
+7476 view_yaw 90
+7480 right_trigger 1
+7495 shot p0-handgun-close-slideback-pulled
+7500 right_trigger 0
+7515 shot p0-handgun-close-slideback-released
+7520 view_free 0
+7520 view_yaw 0
+# --- shotgun: the pump
+8026 shot p1-shotgun-eyes
+8031 lh_at_second 1
+8031 lh_x 0
+8031 lh_y 0
+8031 lh_z 0
+8036 left_grip 1
+8131 view_free 1
+8131 view_x 0.42
+8131 view_y -0.11
+8131 view_z -0.30
+8131 view_yaw 90
+8131 view_pitch 0
+8141 shot p1-shotgun-right-pumprest
+8146 lh_z 0.01
+8158 lh_z 0
+8170 shot p1-shotgun-right-pumpback
+8175 view_x -0.22
+8175 view_yaw -90
+8185 shot p1-shotgun-left-pumpback
+8190 view_x 0.42
+8190 view_yaw 90
+8195 lh_z -0.01
+8207 lh_z 0
+8220 shot p1-shotgun-right-pumpforward
+8225 view_free 0
+8225 view_yaw 0
+8230 left_grip 0
+8235 lh_at_second 0
+8240 quit 0

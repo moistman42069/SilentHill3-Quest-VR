@@ -1,0 +1,76 @@
+# SH3 Quest VR, the PC rig (session 33, 0.1.8): beam207.txt plus the lit beam from both sides and two-handed (owner 156: the beam along the hilt). Run with
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_GIVE="10:10,15:20,11:4,16:12,12:20,17:60,9:5,14:3,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,13:0"
+# SH3_EQUIP="3,9,4" SH3_EQUIP_EVERY=200 SH3_BEAM_LOG=10 (vr209, build 180: the beam mesh moved with the saber)
+# The beam saber (owner 61): vr206 showed its sprites (0x468F6E's glows, 0x468CDA's rays) drawn at a made-up depth
+# (z 0.5, rhw 1). Build 178 redraws each one by the game's blade on the saber in the VR hand with true depths
+# (sh3vr_beam_sprite). Pictures: held unlit, lit (two), lit with the blade forward and up, lit across, a swing.
+# --- beam saber (segment at script 7520; drawn at about 7480)
+7520 rh_y 0.1
+7520 rh_z -0.1
+7520 head_pitch -15
+7520 head_yaw -10
+7530 shot w07530-beam-held
+7540 right_trigger 1
+7570 shot w07570-beam-ready
+7590 shot w07590-beam-ready-2
+7600 rh_x 0.3
+7600 rh_z -0.05
+7610 rh_x -0.2
+7610 rh_z -0.4
+7612 shot w07612-beam-swing
+7625 shot w07625-beam-after-swing
+7640 rh_x 0.1
+7640 rh_y 0.25
+7640 rh_z -0.35
+7640 hand_pitch 45
+7660 shot w07660-beam-forward-up
+7670 hand_pitch 0
+7670 hand_yaw 70
+7670 rh_x 0.25
+7670 rh_y 0.15
+7670 rh_z -0.3
+7690 shot w07690-beam-across
+7700 right_trigger 0
+7705 hand_yaw 0
+7705 rh_x 0
+7705 rh_y 0
+7705 rh_z 0
+7705 head_pitch 0
+7705 head_yaw 0
+7720 shot w07720-beam-off
+# (session 33) the lit beam seen from both sides, then held two-handed, lit, from the eyes and both sides
+7725 right_trigger 1
+7745 view_free 1
+7745 view_x 0.38
+7745 view_y -0.11
+7745 view_z -0.25
+7745 view_yaw 90
+7760 shot w07760-beam-lit-right
+7765 view_x -0.22
+7765 view_yaw -90
+7780 shot w07780-beam-lit-left
+7785 view_free 0
+7785 view_yaw 0
+7790 lh_at_second 1
+7790 lh_x 0
+7790 lh_y 0
+7790 lh_z 0
+7795 left_grip 1
+7850 shot w07850-beam-two-lit-eyes
+7855 view_free 1
+7855 view_x 0.42
+7855 view_y -0.11
+7855 view_z -0.30
+7855 view_yaw 90
+7870 shot w07870-beam-two-lit-right
+7875 view_x -0.22
+7875 view_yaw -90
+7890 shot w07890-beam-two-lit-left
+7895 view_free 0
+7895 view_yaw 0
+7900 right_trigger 0
+7900 left_grip 0
+7900 lh_at_second 0
+7920 shot w07920-beam-two-off
+7940 quit 0

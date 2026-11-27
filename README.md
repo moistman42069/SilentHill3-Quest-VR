@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.7</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.8</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -23,7 +23,10 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md): A opens what you look
+with everything you need to install it ([0.1.8's release notes](docs/RELEASE-NOTES-0.1.8.md): every weapon held by
+Heather's own hand closing on its own shape, her trigger finger on the trigger and pulling it as the gun's trigger
+swings back, the second hand wrapped round each two-hand grip, her thumb along the frame, fingers that stop on the
+weapons, Hold weapons anywhere, Swing strength needed, the shotgun's pump the right way; [0.1.7's](docs/RELEASE-NOTES-0.1.7.md): A opens what you look
 at, your hands in sight in the dark, her hands closed round the guns' grips, no sticking to the dead dog, no false
 weapon bumps or dings, her shadow following her body, a tick and a buzz when something is used, harder melee, the
 break-free bar, a two-hand grip spot per weapon, Flat on the Quest, no getting stuck in a grab or a knockdown, hints shown once each (and a VR menu page to read them again); [0.1.6's](docs/RELEASE-NOTES-0.1.6.md): monsters seen at their
@@ -35,9 +38,9 @@ the world, both sticks to recentre; [0.1.4's](docs/RELEASE-NOTES-0.1.4.md): ever
 among them; [0.1.3's](docs/RELEASE-NOTES-0.1.3.md): no screen filters
 or fuzz by default, smooth turning, gentler melee, a softer shadow, no crash on quitting; [0.1.2's](docs/RELEASE-NOTES-0.1.2.md);
 [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short:
-install SH3QuestVR-0.1.7.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
+install SH3QuestVR-0.1.8.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
 headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. Already on an earlier version? The launcher
-offers 0.1.7 itself (Updates). Reports from a headset are very welcome
+offers 0.1.8 itself (Updates). Reports from a headset are very welcome
 (the launcher's "Save a report to Download" holds the game's own logs).
 
 ## Which copies of Silent Hill 3 work
@@ -81,10 +84,15 @@ More in [0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md#which-copies-of-sile
   Heather faces where you look while she walks, backing up included (the PC VR mod's camera-relative strafe).
 - **Blocking** with a weapon or a forearm held up, and **shake to break free** when a monster grabs her.
 - **Weapons in your hand**, each at its size and grip (the PC mod's calibration, sh3quest_weapons.ini), aimed where
-  the gun points with a guide dot, her fist closed round each gun's grip with her trigger finger on its trigger (0.1.7);
-  **two-hand grips** on the guns, the pipe, the katana and the maul, the second hand's spot yours to set per weapon.
+  the gun points with a guide dot. **Every weapon held by her own hand** closing on its own shape (0.1.8): each hand's
+  place fitted against the weapon's own mesh, her fingers round it and stopping on it, her thumb along the frame or
+  round the grip, her **trigger finger on the trigger**, pulling it: the gun's trigger swings back as far as you pull.
+  **Two-hand grips** on the guns, the pipe, the katana, the maul and the beam saber, the second hand wrapped round
+  each, its spot yours to set per weapon; **Hold weapons anywhere** (off to start) takes hold wherever your other hand
+  grips the weapon.
 - **Physical melee** with everything: real swings hit where the weapon went (the game's own hit volumes, damage,
-  knock-backs and sounds); **punches** at half the weakest weapon's hit; **guns as clubs**.
+  knock-backs and sounds); **punches** at half the weakest weapon's hit; **guns as clubs**; **Swing strength needed**
+  (Light, Normal, Hard; 0.1.8) so moving a weapon about never attacks.
 - **Holsters** on the body: your gun on your right hip, your melee weapon over your right shoulder (each gives back
   the one you last put there; mirrored left-handed; "Gun on the hip, melee on the shoulder" off swaps them), supplies
   in a belt pouch, the flashlight in the chest pocket. How near your hand must come: "Weapon holster radius" and
@@ -121,7 +129,7 @@ More in [0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md#which-copies-of-sile
 ## For developers
 
 - The whole first release: [docs/LIST-0.1.0.md](docs/LIST-0.1.0.md). The game's addresses: [docs/GAME_FACTS.md](docs/GAME_FACTS.md).
-  The latest handoff: docs/HANDOFF-2026-11-26-SESSION24.md.
+  The latest handoff: docs/HANDOFF-2026-11-27-SESSION33.md.
 - Recompile: `PY=<venv python> sh tools/regen.sh` (Git Bash; `--recomp-only` after changing src/game/sh3.c).
   It needs the unprotected exe (the SHA-1 above) in game/: the code is recompiled from it. tools/exe_ref.py (run by
   regen.sh) writes src/runtime/exe_ref.h (the build's data pages, sections and imports, for the loader) and

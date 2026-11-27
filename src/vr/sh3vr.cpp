@@ -62,6 +62,8 @@ const char* const kExtraVibration[] = {"Off", "Pickups", "The whole world"};
 // menu: "Adjust" and "Back to ..." are for a moment (the launcher, which writes sh3vr.ini whole, leaves it "As saved").
 const char* const kGripSpot[] = {"As saved", "Adjust: take hold where you want it", "Reset the weapon in your hand",
                                  "Reset every weapon"};
+// 0.1.8 (owner message 146: "make sure the melee isnt too senstiive off the bat"): how hard a real swing must be.
+const char* const kSwingNeeded[] = {"Light", "Normal", "Hard"};
 
 #define SW(key, name, page, next) {#key, name, page, Kind::kSwitch, &opt.key, 0, 0, 0, nullptr, 0, nullptr, "", next}
 #define CH(key, name, page, list, next) \
@@ -132,7 +134,9 @@ const OptionRow kRows[] = {
     SW(auto_aim_first_person, "Game's auto-aim in first person", "Hands and weapons", false),
     SW(two_hand, "Two-hand grips", "Hands and weapons", false),
     CH(grip_spot, "Two-hand grip spot", "Hands and weapons", kGripSpot, false),  // 0.1.7 (owner message 124)
+    SW(grip_anywhere, "Hold weapons anywhere", "Hands and weapons", false),  // 0.1.8 (owner message 146)
     SW(physical_melee, "Physical melee", "Hands and weapons", false),
+    CH(swing_needed, "Swing strength needed", "Hands and weapons", kSwingNeeded, false),  // 0.1.8 (owner message 146)
     NU(melee_damage_pct, "Melee damage", "Hands and weapons", 50.0f, 400.0f, 25.0f, "%", false),  // 0.1.7
     SW(punches, "Punches", "Hands and weapons", false),
     SW(gun_club, "Guns as clubs", "Hands and weapons", false),
@@ -193,6 +197,7 @@ void clamp_options() {
     opt.ammo_pouch_radius_cm = std::clamp(opt.ammo_pouch_radius_cm, 6.0f, 30.0f);
     opt.melee_damage_pct = std::clamp(opt.melee_damage_pct, 50.0f, 400.0f);
     opt.grip_spot = std::clamp(opt.grip_spot, 0, 3);
+    opt.swing_needed = std::clamp(opt.swing_needed, 0, 2);
 }
 
 }  // namespace
@@ -2216,11 +2221,19 @@ void update_sprint() {
             rest = 0.0f;  // a click while standing leaves half a second to push the stick
         }
         rest = stick ? 0.0f : rest + game_seconds;  // the real time (a game frame spans 1-2 refreshes at 120 Hz)
-        if (sprinting && (rest >= 0.5f || !playing)) sprinting = false;
+        // 0.1.8 (owner 152: "she keeps walking after interacting ... if you are moving at all when you interact"; the
+        // owner: "i assume it has something to do with the sprint toggle"): an event of the game's that holds her (an
+        // examine's message, a door, a pick-up) ends the run too, as a pause does: the game's run (its X) is not held
+        // through the message, and after it she walks until the stick is clicked again.
+        if (sprinting && (rest >= 0.5f || !playing || game.event_hold)) sprinting = false;
     }
     if (opt.sprint_toggle && sprinting != before)
         rt_log("VR: frame %d: sprint %s (Sprint toggle%s)", rt_frame, sprinting ? "on" : "off",
-               sprinting ? ": the left stick clicked" : click && !was_click ? ": clicked again" : rest >= 0.5f ? ": the stick let go" : "");
+               sprinting                ? ": the left stick clicked"
+               : click && !was_click    ? ": clicked again"
+               : rest >= 0.5f           ? ": the stick let go"
+               : game.event_hold        ? ": an event of the game's holds her"
+                                        : "");
     was_click = click;
 }
 
@@ -2423,7 +2436,8 @@ void plan_move() {
             from = -1;
         }
     }
-    if (view_mode != ViewMode::kFirstPerson || !game.player_valid || !in_play() || !head_known() || game.reacting) {
+    if (view_mode != ViewMode::kFirstPerson || !game.player_valid || !in_play() || !head_known() || game.reacting ||
+        game.gesture) {  // (0.1.8, owner 152: a gesture of the game's, sh3.c her_gesture)
         prev_pos_valid = false;
         catching_up = false;
         blocked_seconds = 0;
@@ -2490,7 +2504,7 @@ void plan_move() {
                            dist / kUnitsPerMetre);
             }
         }
-    } else if (opt.room_walk) {
+    } else if (opt.room_walk && !game.event_hold) {  // 0.1.8 (owner 152): not while an event of the game's holds her
         if (dist > 0.2f * kUnitsPerMetre) {
             move.steer = 1;
             move.heading = heading_of(off);
@@ -3312,6 +3326,8 @@ int sh3vr_her_room_shadow(const float view[16], const float proj[16], const floa
 }
 void sh3vr_shadow_part(const uint8_t* verts48, int nverts, const uint16_t* tris, int ntris, const float* consts,
                        uint32_t key, int kind) {
+    // 0.1.8: the weapon in her hand, its own shape for her fingers (combat_weapon_mesh: once, whatever the shadow)
+    if (active && kind == 1) combat_weapon_mesh(verts48, nverts, tris, ntris, consts, key);
     // 0.1.7: also while a room lamp casts her shadow (her room shadow is cast from this mesh)
     if (active && (opt.her_shadow || rt_frame - room_seen < 120)) shadow_part(verts48, nverts, tris, ntris, consts, key, kind);
 }

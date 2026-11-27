@@ -1,0 +1,53 @@
+# SH3 Quest VR, the PC rig (session 32, 0.1.8; owner message 152, two players on 0.1.7: "I took the key for the
+# bookstore ... the key is not in my inventory", "she keeps walking after interacting ... if you are moving at all when
+# you interact"), about 3 minutes. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_STEER_TO="-17386,21386;-17560,21570"
+# SH3_WALK_LOG=4 SH3_STATE_LOG=1 SH3_GESTURE_TEST="8540:5,8700:6,8800:0" (and SH3_NO_GESTURE_HOLD=1 for 0.1.7's way).
+# 1. The stick held from 7740 on the walk to the giant rabbit costume (event 8, vr206), A pressed every 60 frames
+#    while she walks (an examine text each time it finds the rabbit, the next press closing it): "her walk:" lines show
+#    whether she moves while the text is up, the game's mode and her action.
+# 2. The stick let go at 8400 with a text up or not; A at 8420 and 8460.
+# 3. The stick held again from 8500; at 8540 the game is asked for an item's pick-up bend (gesture 5, as a floor item's
+#    pick-up does), at 8700 for standing up (6), at 8800 none (0); the stick let go at 8760. With 0.1.8 her walk waits
+#    for the gesture and the bend reaches its grab ("grab 1"); 0.1.7's way (SH3_NO_GESTURE_HOLD=1) is the comparison.
+#    Pictures from the eyes and close from the left during the bend.
+7740 left_y 1
+7820 a 1
+7826 a 0
+7880 a 1
+7886 a 0
+7940 a 1
+7946 a 0
+8000 a 1
+8006 a 0
+8030 shot w08030-text
+8060 a 1
+8066 a 0
+8090 shot w08090-text
+8120 a 1
+8126 a 0
+8150 shot w08150-text
+8180 a 1
+8186 a 0
+8240 a 1
+8246 a 0
+8270 shot w08270-text
+8400 left_y 0
+8420 a 1
+8426 a 0
+8460 a 1
+8466 a 0
+8500 left_y 1
+8560 shot w08560-bend
+8600 shot w08600-bend
+8640 shot w08640-bend
+8680 view_free 1
+8680 view_x -0.6
+8680 view_y -0.4
+8680 view_z 0
+8680 view_yaw -90
+8690 shot w08690-bend-left
+8696 view_free 0
+8760 left_y 0
+8780 shot w08780-up
+8900 quit 0

@@ -1,3 +1,36 @@
+0.1.8:
+
+- Keys no longer used up at their doors without the door opening (the bookstore's key gone from the inventory): the
+  checks VR makes only to look (a hand reaching out, the hints, A looking where you look) used a key the game's way
+  the moment they found its door. They now only look; the key is used once, when the door opens.
+- She no longer keeps walking after you use something with the stick held (or the Sprint toggle's run on): she stands
+  while the game's event runs (a message, a door, an item), as on a PC, and walks again as soon as it is over.
+- The item you take, turning in its box by its message, no longer shows double: it is on the message's panel.
+- A pick-up from the floor whose bend was cut short no longer leaves the game waiting for good: the bend is asked
+  again.
+- Her trigger finger on the trigger, pulling it: on the handgun, shotgun and submachine gun her index finger lies on
+  the trigger while your finger rests on the controller's trigger, and along the frame, clear of the guard, when it is
+  off. As you pull, the gun's own trigger swings back about its pin and her finger closes with it, its pad on it the
+  whole way. The flamethrower and the stun gun have no trigger in their models: the finger closes round the grip.
+- Every weapon gripped properly, both hands: each hand's place on each weapon was fitted against the weapon's own
+  shape (her palm against it, every finger closing round it with its pad on it). The second hand wraps the support
+  grip, pump or handle; the knife, steel pipe, katana, maul and beam saber are in her own hand too, fingers closed on
+  each handle.
+- The steel pipe, katana, maul and beam saber held in both hands: your other hand holds the handle as your main
+  hand does, its mirror image, beside it on the handle. Each melee weapon still sits in your hand where it did on
+  0.1.7, so its reach and the beam saber's beam are where they were.
+- Her thumb swings at its root as well as curling, so it lies along a pistol's frame or round a grip or handle.
+- Her fingers stop on the weapon in her hand and on the other hand's, using the weapon's own mesh as drawn.
+- A gun still aims where it aimed: the hand moves on the gun, the gun keeps 0.1.7's way in your hand.
+- Hold weapons anywhere (Hands and weapons, off): your other hand takes hold wherever you grip the weapon, wrapped
+  round that part. Off, it takes each weapon's two-hand grip as before.
+- Swing strength needed (Hands and weapons: Light, Normal, Hard; Normal): Normal asks a firm swing, so moving the
+  weapon or your arm about never attacks; Light is 0.1.7's.
+- Fixed: the shotgun's pump slid forward past the muzzle as you pumped it (it now goes back with your hand), and a
+  piece of the handgun's trigger moved with the slide.
+- A 0.1.7 weapon file's moves and turns for the guns and the stun gun, and every Two-hand grip spot, are put back once,
+  as the hands now sit differently on them; the melee weapons' moves are kept.
+
 0.1.7:
 
 - A opens what you look at: the game's action button looks about a metre along the way Heather faces, and in first

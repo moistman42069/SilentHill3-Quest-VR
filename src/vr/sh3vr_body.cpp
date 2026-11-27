@@ -31,6 +31,13 @@
 #include <cstdlib>
 #include <cstring>
 
+#if !defined(__ANDROID__)
+#include <atomic>
+namespace quest {
+extern std::atomic<int> sim_shot_hands;  // the rig's pictures: set with each shot (xr_sim.cpp), both hands logged
+}
+#endif
+
 namespace sh3q {
 
 HandState hands[2];
@@ -64,15 +71,22 @@ Vec3 rot_axis(Vec3 v, Vec3 axis, float angle) {
 // The joints of hand h's finger `f` (0 thumb) at curl `c`, in that hand's own grip space: 4 points from the knuckle to
 // the tip. Her own fingers (their rest shape and bend axes, as sh3vr_ik.cpp poses them) once read; else the average
 // right hand, mirrored for the left. A curl below 0 bends the finger back (kFingerBack, as pose_fingers does).
-void finger_points(int h, int f, float c, Vec3 out[4]) {
+// Session 31 (vr381: the shotgun's and submachine gun's triggers sit higher than her straight index reaches with her other
+// fingers round the grip): `spread` (degrees) swings the whole finger sideways at its knuckle, about the axis across its
+// bend there (cross(bend axis, first segment): a finger spread from or toward its neighbour), as pose_fingers draws it
+// (index_spread; the thumb's swing at its root, thumb_spread, alike).
+void finger_points(int h, int f, float c, Vec3 out[4], float spread = 0.0f) {
     const HerHand& hh = her_hands[h];
+    const float sr = spread * kPi / 180.0f;
     if (hh.valid) {
         const FingerGeo& g = hh.f[f];
+        const Vec3 n = sr != 0.0f ? normalized(cross(g.axis, g.seg[0])) : Vec3{};
         out[0] = g.knuckle;
         float angle = 0;
         for (int j = 0; j < 3; j++) {
             angle += c * g.joint[j] * (c < 0 ? kFingerBack[f == kThumb ? 0 : 1][j] : 1.0f);
-            out[j + 1] = out[j] + rot_axis(g.seg[j], g.axis, angle);
+            const Vec3 d = rot_axis(g.seg[j], g.axis, angle);
+            out[j + 1] = out[j] + (sr != 0.0f ? rot_axis(d, n, sr) : d);
         }
         return;
     }
@@ -91,10 +105,12 @@ void finger_points(int h, int f, float c, Vec3 out[4]) {
     }
     Vec3 p = s.knuckle;
     out[0] = {p.x * mx, p.y, p.z};
+    const Vec3 n = sr != 0.0f ? normalized(cross(axis, dir)) : Vec3{};
     float angle = 0;
     for (int j = 0; j < 3; j++) {
         angle += c * joint[j] * (c < 0 ? kFingerBack[f == kThumb ? 0 : 1][j] : 1.0f) * kPi / 180.0f;
-        p = p + rot_axis(dir, axis, angle) * s.len[j];
+        const Vec3 d = rot_axis(dir, axis, angle);
+        p = p + (sr != 0.0f ? rot_axis(d, n, sr) : d) * s.len[j];
         out[j + 1] = {p.x * mx, p.y, p.z};
     }
 }
@@ -736,6 +752,21 @@ void wanted_curls(int h, float out[5]) {
 float weapon_free = 1.0f;     // the free part of the weapon's line (its probes): 1 nothing in the way
 bool weapon_touch[2]{};       // a free hand's finger on the weapon (its tick when it starts)
 float finger_target[2][5]{};  // the curls body_fingers chose (the crash log)
+float trigger_shown[2]{};     // session 31: how far each hand's trigger finger, drawn, pushes the trigger (0..1)
+
+// Session 31: the trigger finger's curl at pull t (0..1) between its pull curls (body_trigger_pull_curls), and how far
+// a finger drawn at curl c has pushed the trigger (the same, inverted: 0 short of the trigger, 1 past the end).
+float curl_of_pull(const float pc[5], float t) {
+    t = std::clamp(t, 0.0f, 1.0f) * 4.0f;
+    const int i = std::min(3, (int)t);
+    return pc[i] + (pc[i + 1] - pc[i]) * (t - (float)i);
+}
+float pull_of_curl(const float pc[5], float c) {
+    if (!(c > pc[0])) return 0.0f;
+    for (int i = 0; i < 4; i++)
+        if (c <= pc[i + 1]) return ((float)i + (c - pc[i]) / std::max(pc[i + 1] - pc[i], 1e-5f)) * 0.25f;
+    return 1.0f;
+}
 
 // The closest distance between segments p1-q1 and p2-q2.
 float seg_dist(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2) {
@@ -760,10 +791,10 @@ float seg_dist(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2) {
 
 // Whether finger f of hand h (drawn at `pose`, tracking) at curl c touches the part it holds (`part`: capsules in its
 // grip space) or the weapon (its capsules, sh3vr_combat.cpp weapon_clearance).
-bool finger_touches(int h, int f, float c, const Pose& pose, const PartCaps* part, bool weapon) {
+bool finger_touches(int h, int f, float c, const Pose& pose, const PartCaps* part, bool weapon, float spread = 0.0f) {
     const float r = f == kThumb ? 0.0095f : 0.0085f;  // her finger's half thickness
     Vec3 p[4];
-    finger_points(h, f, c, p);
+    finger_points(h, f, c, p, spread);
     for (int j = 0; j < 3; j++) {
         if (part)
             for (int k = 0; k < part->n; k++)
@@ -776,19 +807,21 @@ bool finger_touches(int h, int f, float c, const Pose& pose, const PartCaps* par
 // The curl (0..upto) where the finger closing first meets what it holds or touches: the last curl free of it (found
 // between two steps by halving). -1: it meets nothing; `free_from` then says from which curl it is clear (0 always clear,
 // above 0 it begins inside the shape, as a thumb laid along a slide does, and comes out of it there; -1 never clear).
-float finger_contact(int h, int f, const Pose& pose, const PartCaps* part, bool weapon, float upto, float& free_from) {
+// (session 31: `spread` as finger_points')
+float finger_contact(int h, int f, const Pose& pose, const PartCaps* part, bool weapon, float upto, float& free_from,
+                     float spread = 0.0f) {
     constexpr int kSteps = 10;
-    bool was = finger_touches(h, f, 0.0f, pose, part, weapon);
+    bool was = finger_touches(h, f, 0.0f, pose, part, weapon, spread);
     free_from = was ? -1.0f : 0.0f;
     float prev = 0;
     for (int i = 1; i <= kSteps; i++) {
         const float c = upto * i / kSteps;
-        const bool now_touching = finger_touches(h, f, c, pose, part, weapon);
+        const bool now_touching = finger_touches(h, f, c, pose, part, weapon, spread);
         if (now_touching != was) {
             float lo = prev, hi = c;  // `was` holds at lo, the other at hi
             for (int k = 0; k < 6; k++) {
                 const float m = (lo + hi) * 0.5f;
-                if (finger_touches(h, f, m, pose, part, weapon) == was) lo = m;
+                if (finger_touches(h, f, m, pose, part, weapon, spread) == was) lo = m;
                 else hi = m;
             }
             if (!was) return lo;  // closed onto it
@@ -798,6 +831,104 @@ float finger_contact(int h, int f, const Pose& pose, const PartCaps* part, bool 
         prev = c;
     }
     return -1.0f;
+}
+
+// 0.1.8 (vr371: her straight thumb stands up into a gun's frame, so finger_contact finds it in the weapon at every curl
+// or out of it only past half): the thumb's curl resting on the weapon held: of the curls where it is clear of it (every
+// 0.05), the one nearest a relaxed thumb's 0.65 among those lying on it (`rests`), else the one nearest 0.65. -1: in it
+// at every curl. vr373's record: her thumb's sweep runs across the grip, so it touches it at every curl; it rests on it
+// as a real thumb presses on a grip, its pad up to 4 mm into its skin, its root (the palm's) clear of it by 2 mm at its
+// middle. vr374: her thumb only curls (it cannot swing out to the side), so with her fingers round a gun's grip its sweep
+// crosses the gun at every curl: then the curl it goes in least (`depth`: how far past that, metres; the fit weighs it).
+// vr376 (the guns' own shapes): with her fist round a pistol grip her curled thumb meets the frame's side at every curl;
+// a shooter's thumb lies straight along it: so the curls tried run from bent back (-0.4, as a hand laid flat has it) to 1.
+// Session 31 (vr384, the handgun from the eyes: her thumb met the frame with its root at 0.65 and stood out to the left at
+// about 45 degrees, its tip 1.5 cm off the gun; owner message 151 "PERFECT as can be"): the thumb also swings sideways at
+// its root (`swing`, degrees, finger_points' spread: up to 45 each way, as a real thumb's root moves it towards or away
+// from the palm), and it rests ON the weapon only with its pad lying on it (the pad's skin within 4 mm, the middle
+// segment's within 8: lying along the frame, or round a handle), not with its root or a knuckle only. Every curl (0.1 apart) at every
+// swing (15 apart), then the best one's neighbours (0.05, 7.5); the least swung and nearest 0.65 of those lying on it.
+namespace {
+constexpr float kThumbSwings[7] = {0, 15, -15, 30, -30, 45, -45};
+}
+float thumb_rest(int h, const Pose& pose, bool* rests, float* depth, float* swing) {
+    float best = -1.0f, best_key = 1e9f, best_sw = 0.0f, most = -1e9f, most_c = -1.0f, most_sw = 0.0f;
+    bool best_on = false;
+    auto one = [&](float c, float sw) {
+        Vec3 p[4];
+        finger_points(h, kThumb, c, p, sw);
+        if (weapon_clearance(h, grip_point(pose, p[0]), grip_point(pose, p[1])) < 0.002f) return;
+        const float d1 = weapon_clearance(h, grip_point(pose, p[1]), grip_point(pose, p[2]));
+        const float d2 = weapon_clearance(h, grip_point(pose, p[2]), grip_point(pose, p[3]));
+        const float clear = std::min(d1, d2);
+        // (vr388: a thumb bent back, below 0, is the last a hand does: one clear of the weapon with a segment near it
+        // comes first; straight along a pistol's frame, 0 to 0.2, is a shooter's)
+        auto pref_of = [](float cc, float s) {
+            return std::fabs(cc - 0.65f) + std::fabs(s) / 45.0f * 0.6f + (cc < -0.01f ? 1.5f : 0.0f);
+        };
+        const float pref = pref_of(c, sw);
+        if (clear > most + 0.0005f || (std::fabs(clear - most) <= 0.0005f && pref < pref_of(most_c, most_sw)))
+            most = clear, most_c = c, most_sw = sw;
+        if (clear < 0.0055f) return;
+        // (vr386: the stun gun's thumb "rested" bent back, -0.3, its last joint at the box's corner and its tip pointing
+        // away: the pad itself, 55% along the last segment, must be on it)
+        const Vec3 pad = grip_point(pose, p[2] + (p[3] - p[2]) * 0.55f);
+        const float dp = weapon_clearance(h, pad, pad);
+        const bool on = dp < 0.0135f && d1 < 0.0175f;
+        const float key = pref * 0.5f + (on ? 0.0f : dp < 0.0135f || d1 < 0.0175f ? 1.0f : 2.0f);
+        if (key < best_key) best_key = key, best = c, best_sw = sw, best_on = on;
+    };
+    for (const float sw : kThumbSwings)
+        for (int i = -4; i <= 10; i++) one(i * 0.1f, sw);
+    if (best > -0.5f) {
+        const float c0 = best, s0 = best_sw;
+        for (const float dc : {-0.05f, 0.0f, 0.05f})
+            for (const float ds : {-7.5f, 0.0f, 7.5f})
+                if ((dc != 0.0f || ds != 0.0f) && c0 + dc >= -0.4f && c0 + dc <= 1.0f && std::fabs(s0 + ds) <= 45.0f)
+                    one(c0 + dc, s0 + ds);
+    }
+    if (depth) *depth = 0.0f;
+    if (best < -0.5f && most_c > -0.5f) {  // (-1: none; a curl is -0.4 .. 1)
+        best = most_c, best_sw = most_sw, best_on = true;
+        if (depth) *depth = 0.0055f - most;
+    }
+    if (rests) *rests = best_on;
+    if (swing) *swing = best < -0.5f ? 0.0f : best_sw;
+    return best;
+}
+
+// Session 31: thumb_rest for the hand as drawn (body_fingers), kept while the hand stays where it is on the weapon
+// (its middle and two points 5 cm along its axes, in the weapon's model, within 1 mm; the weapon and the pump's draw
+// the same) and searched again at least every 30 frames (the main hand's fingers, which the other hand's thumb is
+// clear of, move with the trigger): the search is 113 tries of three segments against the weapon's own shape.
+struct ThumbKeep {
+    bool known = false;
+    Vec3 at[3];
+    int weapon = -1, frame = 0;
+    float pump = 0, curl = -1, swing = 0;
+} thumb_keep[2];
+
+float thumb_resting(int h, const Pose& pose, float& swing) {
+    ThumbKeep& k = thumb_keep[h];
+    Vec3 at[3];
+    const Vec3 tp[3] = {pose.position, pose.position + rotate(pose.orientation, Vec3{0.05f, 0, 0}),
+                        pose.position + rotate(pose.orientation, Vec3{0, 0.05f, 0})};
+    for (int i = 0; i < 3; i++)
+        if (!weapon_model_point(tp[i], at[i])) {
+            k.known = false;
+            swing = 0.0f;
+            return -1.0f;
+        }
+    const float pump = reload_pump_back();
+    bool same = k.known && k.weapon == game.weapon && std::fabs(k.pump - pump) < 0.001f && rt_frame - k.frame < 30;
+    for (int i = 0; i < 3 && same; i++) same = length(at[i] - k.at[i]) < 0.001f * kUnitsPerMetre;
+    if (!same) {
+        k.curl = thumb_rest(h, pose, nullptr, nullptr, &k.swing);
+        k.known = true, k.weapon = game.weapon, k.frame = rt_frame, k.pump = pump;
+        for (int i = 0; i < 3; i++) k.at[i] = at[i];
+    }
+    swing = k.curl > -0.5f ? k.swing : 0.0f;
+    return k.curl;
 }
 
 // The flashlight in a hand (session 7; the owner: "make sure hand/finger grip pose for flashlight is proper and not
@@ -1917,6 +2048,10 @@ void body_fingers() {
         HandState& s = hands[h];
         if (!s.valid) {
             weapon_touch[h] = false;
+            index_spread[h] = 0.0f;
+            thumb_spread[h] = 0.0f;
+            thumb_keep[h].known = false;
+            trigger_shown[h] = 0.0f;
             continue;
         }
         const int role = weapon_hand_role(h);
@@ -1956,17 +2091,66 @@ void body_fingers() {
             palm_side = most < (palm_faces[h] ? -0.34f : -0.5f) && palm_clear > -0.05f && palm_clear < 0.06f;
         }
         palm_faces[h] = palm_side;
+        float spread_target = 0.0f;  // (session 31: the trigger finger's sideways spread, degrees: index_spread)
+        float pull_c[5]{};           // (session 31: its curls along the trigger's pull, body_trigger_pull_curls)
+        bool pulls = false;
+        float thumb_target = 0.0f;   // (session 31: the thumb's swing at its root, degrees: thumb_spread)
+        if (role != 1 && role != 2) thumb_keep[h].known = false;
+        trigger_shown[h] = 0.0f;
         for (int f = 0; f < 5; f++) {
             float target = s.want[f], free_from = 0;
             if (role == 1 || role == 2) {
                 const float hold = weapon_hold_curl(h);
-                if (role == 1 && f == kIndex && weapon_is_gun()) {
-                    target = trig > 0.05f || first ? 0.42f + 0.33f * trig : 0.10f;
+                // 0.1.8 (owner message 146): a gun's trigger finger lays its pad on the trigger itself (its blade from
+                // the model) while the player's finger rests on the controller's trigger, following it as it is pulled
+                // (session 31); off it, straight beside the frame. A gun without a trigger in its model (the flamethrower):
+                // the finger closes on its grip with the others.
+                const GripTrigger tg = role == 1 && f == kIndex && weapon_is_gun() ? weapon_trigger() : GripTrigger{};
+                if (tg.on) {
+                    // (session 31: spread sideways as far as it takes to reach the trigger, body_trigger_curl; off the
+                    // trigger, where it lies clear of the gun: beside the frame or above the guard)
+                    float sp_on = 0.0f, sp_off = 0.0f;
+                    const float ct = body_trigger_curl(h, s.shown, tg, nullptr, &sp_on);
+                    const float rest = body_trigger_rest(h, s.shown, sp_on, &sp_off);
+                    const bool on_it = trig > 0.05f || first;
+                    if (ct >= 0) {
+                        // (session 31, owner message 151: pulled, the trigger turns back about its pin and her finger
+                        // follows it closing, its pad on the blade the whole pull, body_trigger_pull_curls; the trigger
+                        // is drawn as far as her finger, drawn, has pushed it: trigger_shown, below)
+                        const bool exact = body_trigger_pull_curls(h, s.shown, ct, sp_on, pull_c);
+                        pulls = true;
+                        static int told = 0;
+                        static bool was_on[2]{};
+                        if (on_it && !was_on[h] && told < 24) {
+                            told++;
+                            rt_log("VR: frame %d: the %s hand's trigger finger on the trigger (curl %.2f, spread %.0f "
+                                   "degrees); pulled a quarter at a time it closes to %.2f %.2f %.2f %.2f, %s",
+                                   rt_frame, h == kLeft ? "left" : "right", ct, sp_on, pull_c[1], pull_c[2], pull_c[3],
+                                   pull_c[4], exact ? "its pad on the blade the whole way"
+                                                    : "its pad losing the blade somewhere (evenly from there)");
+                        }
+                        was_on[h] = on_it;
+                        target = on_it ? curl_of_pull(pull_c, trig) : rest > -0.5f ? rest : std::min(0.06f, ct);
+                        spread_target = on_it || rest < -0.5f ? sp_on : sp_off;
+                    } else {
+                        // (the trigger out of its reach, as where the player has moved the gun in the hand: 0.1.7's
+                        // curls, no farther than where it meets the gun)
+                        const float c = finger_contact(h, kIndex, s.shown, nullptr, true, 1.0f, free_from);
+                        target = std::min(on_it ? 0.42f + 0.33f * trig : 0.10f, c >= 0 ? c : 1.0f);
+                    }
                 } else {
                     const float c = finger_contact(h, f, s.shown, nullptr, true, 1.0f, free_from);
                     const float th = f == kThumb ? weapon_hold_thumb(h) : -1.0f;
                     const float base = f == kThumb ? (th >= 0 ? th : std::min(hold, 0.7f)) : hold;
                     target = c >= 0 ? c : std::max(base, free_from);
+                    // 0.1.8 (vr371): her thumb in the weapon at every curl, or out of it only past half: it rests
+                    // where it is clear of it (thumb_rest, along the frame or round the grip), as the grips were fitted.
+                    // Session 31 (vr384): always so, swung at its root, its pad's segment on the weapon (thumb_resting)
+                    if (f == kThumb && grip_fit_mode_on()) {
+                        float sw = 0.0f;
+                        const float tr = thumb_resting(h, s.shown, sw);
+                        if (tr > -0.5f) target = tr, thumb_target = sw;  // (-1: none)
+                    }
                 }
             } else if (role == 3 || part) {
                 const float c = finger_contact(h, f, s.shown, part ? &pc : nullptr, role == 3, 1.0f, free_from);
@@ -2001,7 +2185,10 @@ void body_fingers() {
             }
             finger_target[h][f] = target;
             s.curl[f] += (target - s.curl[f]) * ease(22.0f);
+            if (f == kIndex && pulls) trigger_shown[h] = pull_of_curl(pull_c, s.curl[f]);
         }
+        index_spread[h] += (spread_target - index_spread[h]) * ease(22.0f);
+        thumb_spread[h] += (thumb_target - thumb_spread[h]) * ease(22.0f);
         solved_was[h] = world;
         if (touched && !weapon_touch[h] && opt.haptic_surfaces) buzz(h, 0.15f, 0.012f, 220.0f);
         weapon_touch[h] = touched;
@@ -2042,7 +2229,31 @@ void body_fingers() {
             rest_frames[h] = grip_frames[h] = 0;
         }
     }
+#if !defined(__ANDROID__)
+    // The rig's pictures (session 32): both hands as drawn for each shot, each finger's curl and the curl it closes to,
+    // the thumb's swing, the trigger finger's spread and the trigger as drawn, and a hand on the weapon's report (each
+    // finger's knuckle clearance, the curl it meets the weapon at, the thumb's rest, the palm), so every picture is
+    // read against numbers.
+    if (quest::sim_shot_hands.exchange(0) != 0) {
+        static char line[1800];
+        for (int h = 0; h < 2; h++) {
+            const HandState& s = hands[h];
+            if (!s.valid) continue;
+            const int role = weapon_hand_role(h);
+            line[0] = 0;
+            if (role == 1 || role == 2) body_grip_report(h, s.shown, line, sizeof line);
+            rt_log("VR: frame %d: the %s hand drawn for the picture: on the weapon as %d, curls %.2f %.2f %.2f %.2f %.2f "
+                   "(closing to %.2f %.2f %.2f %.2f %.2f), thumb swung %.1f, trigger finger spread %.1f, the trigger "
+                   "drawn %.2f%s%s",
+                   rt_frame, h == kLeft ? "left" : "right", role, s.curl[0], s.curl[1], s.curl[2], s.curl[3], s.curl[4],
+                   finger_target[h][0], finger_target[h][1], finger_target[h][2], finger_target[h][3],
+                   finger_target[h][4], thumb_spread[h], index_spread[h], trigger_shown[h], line[0] ? "; " : "", line);
+        }
+    }
+#endif
 }
+
+float body_trigger_shown(int h) { return h >= 0 && h < 2 && hands[h].valid ? trigger_shown[h] : 0.0f; }
 
 bool body_light_place(int h, Vec3& centre, Vec3& lens) {
     if (h < 0 || h > 1 || !hands[h].valid) return false;
@@ -2057,6 +2268,423 @@ bool hand_finger_tip(int h, int f, float c, Vec3& tip) {
     finger_points(h, f, c, p);
     tip = p[3];
     return true;
+}
+
+// 0.1.8 (owner message 146): hand h's palm and fingers as drawn this frame, as capsules (tracking, metres; kept for the
+// frame): the other hand on the second grip wraps the main hand's fingers and never goes through them (0.1.7 had a
+// fist-sized rod round the grip stand for them, so the second hand's fingers stopped short of them or sank into them).
+int body_hand_capsules(int h, Vec3* a, Vec3* b, float* r, int max) {
+    static int count[2] = {-1, -1};
+    static float key[2][14];
+    static Vec3 ca[2][18], cb[2][18];
+    static float cr[2][18];
+    if (h < 0 || h > 1 || !hands[h].valid) return 0;
+    // (kept while the hand's pose, curls and spreads stay the same: the hand is posed in combat_frame, after some callers)
+    const HandState& hs = hands[h];
+    const float now_key[14] = {hs.shown.position.x, hs.shown.position.y, hs.shown.position.z, hs.shown.orientation.x,
+                               hs.shown.orientation.y, hs.shown.orientation.z, hs.shown.orientation.w, hs.curl[0],
+                               hs.curl[1], hs.curl[2], hs.curl[3], hs.curl[4], index_spread[h], thumb_spread[h]};
+    if (count[h] < 0 || std::memcmp(key[h], now_key, sizeof now_key) != 0) {
+        std::memcpy(key[h], now_key, sizeof now_key);
+        const HandState& s = hs;
+        int n = 0;
+        for (int f = 0; f < 5; f++) {
+            Vec3 p[4];
+            finger_points(h, f, s.curl[f], p, f == kIndex ? index_spread[h] : f == kThumb ? thumb_spread[h] : 0.0f);
+            for (int j = 0; j < 3; j++, n++) {
+                ca[h][n] = grip_point(s.shown, p[j]);
+                cb[h][n] = grip_point(s.shown, p[j + 1]);
+                cr[h][n] = f == kThumb ? 0.0095f : 0.0085f;
+            }
+        }
+        // The palm: the knuckles' row, and the row 6.5 cm back towards the wrist (palm_points' heel), 2.6 cm thick.
+        Vec3 pi[4], pp[4], pm[4];
+        finger_points(h, kIndex, 0, pi);
+        finger_points(h, kPinky, 0, pp);
+        finger_points(h, kMiddle, 0, pm);
+        const Vec3 along = normalized(pm[3] - pm[0]);
+        ca[h][n] = grip_point(s.shown, pi[0]), cb[h][n] = grip_point(s.shown, pp[0]), cr[h][n++] = 0.011f;
+        ca[h][n] = grip_point(s.shown, pi[0] - along * 0.065f), cb[h][n] = grip_point(s.shown, pp[0] - along * 0.065f);
+        cr[h][n++] = 0.013f;
+        count[h] = n;
+    }
+    const int n = std::min(count[h], max);
+    for (int i = 0; i < n; i++) a[i] = ca[h][i], b[i] = cb[h][i], r[i] = cr[h][i];
+    return n;
+}
+
+// 0.1.8: hand h at `pose` against the weapon: her palm's skin's nearest (metres), and a knuckle or her palm in it (the
+// other hand laid on a part of the weapon where it takes hold: sh3vr_combat.cpp surface_hold_at).
+void body_palm_touch(int h, const Pose& pose, float& palm_clear, bool& inside) {
+    palm_clear = 1e9f;
+    inside = false;
+    if (h < 0 || h > 1) return;
+    for (int f = 0; f < 5; f++) {
+        Vec3 p[4];
+        finger_points(h, f, 0.0f, p);
+        const Vec3 k = grip_point(pose, p[0]);
+        if (weapon_clearance(h, k, k) < 0.002f) inside = true;
+    }
+    Vec3 pp[18];
+    const int np = palm_points(h, pp);
+    for (int i = 0; i < np; i++) {
+        const Vec3 q = grip_point(pose, pp[i]);
+        const float d = weapon_clearance(h, q, q);
+        if (d < -0.002f) inside = true;
+        if (i % 2 == 0) palm_clear = std::min(palm_clear, d);
+    }
+}
+
+// 0.1.8 (owner message 146: "the fuckin finger isnt even on the trigger"): the trigger finger closing on the gun's
+// trigger (its blade as a capsule) from straight along the frame: the curl where it first meets it, kept only where it
+// meets it with its pad (the end segment's middle on the blade; err: how far off, metres), not with its root.
+// Session 31 (session 30's vr380: her straight index runs across the gun, so where her other fingers wrap the grip its
+// sweep passes beside the trigger's blade, never meeting it): when the sweep does not meet the blade, the pad's nearest
+// pass is taken if its skin comes within 3 mm of the blade (err: that gap), as a finger laid on a trigger's side.
+// Session 31 (vr381: on the shotgun and the submachine gun the trigger sits above where her straight index reaches with
+// her other fingers round the grip, so no place was found for either): the finger may also spread sideways at its
+// knuckle, as a real index does reaching for a trigger (up to 16 degrees each way, the least that works taken: 0, 4, -4,
+// 8, ...; `spread`, degrees, finger_points'); a pad more than 10 mm off the blade where the sweep meets it (its root or
+// middle on it instead), a curl outside 0.12-0.85, or one that would lay the finger more than 3 mm into the gun itself,
+// is passed over.
+namespace {
+constexpr float kTriggerSpreads[9] = {0, 4, -4, 8, -8, 12, -12, 16, -16};
+// The index at curl c and spread sp no more than 3 mm into the weapon (its skin).
+bool index_clear(int h, const Pose& pose, float c, float sp) {
+    Vec3 p[4];
+    finger_points(h, kIndex, c, p, sp);
+    for (int j = 0; j < 3; j++)
+        if (weapon_clearance(h, grip_point(pose, p[j]), grip_point(pose, p[j + 1])) < 0.0085f - 0.003f) return false;
+    return true;
+}
+}  // namespace
+// The trigger finger at spread sp on the blade `trig`: the curl where it closing meets it with its pad (its skin within
+// 10 mm of it there), else where its pad passes nearest it (within 3 mm); -1 neither, or straight it starts in it.
+// gap: the pad's skin's distance from the blade there (metres).
+static float pad_on_blade(int h, const Pose& pose, const GripTrigger& trig, float sp, float& gap) {
+    gap = 1.0f;
+    const Quat inv = conjugate(pose.orientation);
+    PartCaps pc;
+    pc.n = 1;
+    pc.a[0] = rotate(inv, trig.a - pose.position);
+    pc.b[0] = rotate(inv, trig.b - pose.position);
+    pc.r[0] = trig.r;
+    auto pad_gap = [&](float cc) {
+        Vec3 p[4];
+        finger_points(h, kIndex, cc, p, sp);
+        const Vec3 pad = p[2] + (p[3] - p[2]) * 0.55f;
+        return seg_dist(pad, pad, pc.a[0], pc.b[0]) - pc.r[0] - 0.0085f;
+    };
+    float free_from = 0;
+    const float c = finger_contact(h, kIndex, pose, &pc, false, 1.0f, free_from, sp);
+    if (free_from != 0.0f) return -1.0f;  // (straight, it starts in the blade)
+    if (c >= 0) {
+        gap = std::max(0.0f, pad_gap(c));
+        return gap <= 0.010f ? c : -1.0f;
+    }
+    float best = 1e9f, best_c = -1.0f;
+    for (int i = 0; i <= 40; i++) {
+        const float g = pad_gap(i * 0.025f);
+        if (g < best) best = g, best_c = i * 0.025f;
+    }
+    if (best_c >= 0 && best <= 0.003f) {
+        gap = std::max(0.0f, best);
+        return best_c;
+    }
+    return -1.0f;
+}
+float body_trigger_curl(int h, const Pose& pose, const GripTrigger& trig, float* err, float* spread) {
+    if (err) *err = 1.0f;
+    if (spread) *spread = 0.0f;
+    if (!trig.on || h < 0 || h > 1) return -1.0f;
+    for (const float sp : kTriggerSpreads) {
+        float gap = 1.0f;
+        const float got = pad_on_blade(h, pose, trig, sp, gap);
+        // (a natural trigger finger's curl: 0.12 to 0.85, as the fit asks, body_grip_fit)
+        if (got < 0.12f || got > 0.85f || !index_clear(h, pose, got, sp)) continue;
+        if (err) *err = gap;
+        if (spread) *spread = sp;
+        return got;
+    }
+    return -1.0f;
+}
+
+// Session 31 (owner message 151: "make sure the fingers can actually be seen properly pulling the triggers"): as the
+// trigger turns back about its pin (sh3vr_combat.cpp kTriggers), her finger follows it closing, its pad on the blade at
+// each quarter of the pull (at the spread it has on it); between them, in proportion. Where the pad would lose the blade
+// (its middle meeting it first, or no pass near it), the curls from there rise evenly to 0.1 more (0.1.8's first pull).
+bool body_trigger_pull_curls(int h, const Pose& pose, float ct, float sp, float out[5]) {
+    out[0] = ct;
+    bool ok = h >= 0 && h < 2;
+    for (int i = 1; i <= 4; i++) {
+        float gap = 1.0f;
+        const GripTrigger t = ok ? weapon_trigger_at(i * 0.25f) : GripTrigger{};
+        const float c = t.on ? pad_on_blade(h, pose, t, sp, gap) : -1.0f;
+        if (!(c >= out[i - 1] + 1e-4f && c <= 1.0f)) ok = false;
+        out[i] = ok ? c : out[i - 1] + 0.025f;
+    }
+    return ok;
+}
+
+// Session 31 (session 30's list): the trigger finger off the trigger: straight beside the frame (curl 0.06), else
+// lifted off the trigger guard (0, -0.1, -0.2: a shooter's finger laid along the frame above the guard), the first whose
+// skin is no more than 3 mm into the gun; -1 when each is deeper. Unspread first, then at `prefer` (the spread it has on
+// the trigger); `spread`: the one taken.
+float body_trigger_rest(int h, const Pose& pose, float prefer, float* spread) {
+    if (spread) *spread = 0.0f;
+    if (h < 0 || h > 1) return -1.0f;
+    for (const float sp : {0.0f, prefer}) {
+        for (const float c : {0.06f, 0.0f, -0.1f, -0.2f})
+            if (index_clear(h, pose, c, sp)) {
+                if (spread) *spread = sp;
+                return c;
+            }
+        if (prefer == 0.0f) break;
+    }
+    return -1.0f;
+}
+
+// 0.1.8 (owner message 146: "by default though, make ALL guns and weapons/melee etc, grip properly and accurately"):
+// hand h's hold on the weapon at `pose`, for the grips' fit (sh3vr_combat.cpp fit_step), as the flashlight's is scored
+// (hold_score) and as VR games pose a hand on a grab point (its fingers closing until they meet the object's shape, the
+// trigger finger on its own trigger pose): her knuckles and palm out of the weapon, her palm against it, every finger
+// starting clear of it and closing onto it (the main hand's index onto the trigger, when the gun has one), scored by
+// how much of her palm lies on it, how many of her finger joints lie along it, the trigger finger's pad on the trigger
+// and the fingers' curls near a natural grip's.
+void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, GripFit& out) {
+    out = GripFit{};
+    if (h < 0 || h > 1) return;
+    auto clear = [&](Vec3 l) {
+        const Vec3 p = grip_point(pose, l);
+        return weapon_clearance(h, p, p);
+    };
+    auto seg_clear = [&](Vec3 la, Vec3 lb) { return weapon_clearance(h, grip_point(pose, la), grip_point(pose, lb)); };
+    for (int f = 0; f < 5; f++) {
+        Vec3 p[4];
+        finger_points(h, f, 0.0f, p);
+        if (clear(p[0]) < 0.004f) {
+            out.why = 1;
+            return;
+        }
+    }
+    Vec3 pp[18];
+    const int np = palm_points(h, pp);
+    int near_palm = 0, faces = 0;
+    for (int i = 0; i < np; i++) {
+        const float d = clear(pp[i]);
+        if (d < -0.002f) {
+            out.why = 2;
+            return;
+        }
+        if (i % 2 == 0) faces++, near_palm += d < 0.012f;  // palm_points: the palm's side first, then the back's
+    }
+    const bool trigger = main && trig.on;
+    // vr370 (every place turned away, a finger in): a hand laid on a grip has its fingers in it when straight, as a real
+    // one would; what counts is that each comes out of it early as it opens (a third of its curl at most, the thumb
+    // half), never buried at every curl, and then closes onto it from outside (body_fingers takes that curl, as here).
+    // vr371 (the thumb turned away most places, 2932 of the handgun's 4102): her thumb straight stands up into a gun's
+    // frame, and a thumb on a gun lies along the frame or round the grip: it rests where it is clear (thumb_rest), as
+    // body_fingers draws it.
+    // Session 31 (vr384: the handgun's thumb closing met the frame with its root and stood out, its tip 1.5 cm off): the
+    // thumb always rests as thumb_rest lays it (swung at its root, its pad's segment on the weapon), as drawn.
+    for (int f = 0; f < 5; f++) {
+        if (f == kIndex && trigger) continue;
+        float free_from = 0;
+        if (f == kThumb) {
+            bool rests = false;
+            out.curl[f] = thumb_rest(h, pose, &rests, &out.thumb_in, &out.thumb_swing);
+            if (out.curl[f] < -0.5f || out.thumb_in > 0.006f) {  // (its root in the weapon, or its pad 6 mm past resting)
+                out.why = 3;
+                out.finger = f;
+                return;
+            }
+            if (!rests) out.curl[f] = -1.0f;  // (clear of it, not on it: no thumb's share in the score)
+            continue;
+        }
+        out.curl[f] = finger_contact(h, f, pose, nullptr, true, 1.0f, free_from);
+        if (free_from < 0 || free_from > 0.5f) {
+            out.why = 3;
+            out.finger = f;
+            return;
+        }
+        out.opened += free_from;
+        const bool needed = f >= kMiddle || (f == kIndex && main);
+        // (vr371: the pipe's other hand "fitted" lying along it, its fingers meeting it at 0.1 to 0.2, nearly straight:
+        // a hand round a part curls a third of the way at least)
+        if (needed && !(out.curl[f] >= 0.3f && out.curl[f] <= 0.95f)) {
+            out.why = 4;
+            out.finger = f;
+            return;
+        }
+    }
+    if (trigger) {
+        float err = 1.0f, sp = 0.0f;
+        out.trig_curl = body_trigger_curl(h, pose, trig, &err, &sp);
+        out.trig_err = err;
+        out.trig_spread = sp;
+        // (session 31, vr388: a finger meeting the blade with its middle "fitted" with its pad 5.6 mm off it, a gap seen
+        // between them: the pad itself on the trigger, within 2.5 mm)
+        if (out.trig_curl < 0.12f || out.trig_curl > 0.85f || err > 0.0025f) {
+            out.why = 6;
+            return;
+        }
+        // On the trigger, and off it lying straight beside the frame or lifted off the guard (body_trigger_rest):
+        // never more than 3 mm into the gun.
+        float rest_sp = 0.0f;
+        const float rest = body_trigger_rest(h, pose, sp, &rest_sp);
+        if (rest < -0.5f) {
+            out.why = 6;
+            return;
+        }
+        // Session 31 (vr382: the submachine gun's hand "fitted" 4 cm down its grip, holding the magazine, her index rising
+        // steeply up to the trigger): a shooter's hand sits high on the grip, its trigger finger running along the gun to
+        // the trigger, so from its knuckle to its pad it rises no more than 25 degrees up the gun (nor falls more than 35,
+        // the hand over the frame).
+        {
+            Vec3 p[4];
+            finger_points(h, kIndex, out.trig_curl, p, sp);
+            const Vec3 v = grip_point(pose, p[2] + (p[3] - p[2]) * 0.55f) - grip_point(pose, p[0]);
+            const float L = length(v);
+            out.trig_rise = L > 1e-4f && length(trig.up) > 0.5f
+                                ? std::asin(std::clamp(dot(v, trig.up) / L, -1.0f, 1.0f)) * 180.0f / kPi
+                                : 0.0f;
+            if (out.trig_rise > 25.0f || out.trig_rise < -35.0f) {
+                out.why = 6;
+                return;
+            }
+        }
+        const float tried[2][2] = {{out.trig_curl, sp}, {rest, rest_sp}};
+        for (const auto& t : tried) {
+            Vec3 p[4];
+            finger_points(h, kIndex, t[0], p, t[1]);
+            for (int j = 0; j < 3; j++)
+                if (seg_clear(p[j], p[j + 1]) < 0.0085f - 0.003f) {
+                    out.why = 6;
+                    return;
+                }
+        }
+        // Session 31 (vr386; owner message 151: "make sure the fingers can actually be seen properly pulling the
+        // triggers"): the shotgun's finger lay nearly straight along the blade (curl 0.16, closing only 0.05 over the
+        // whole pull) and the submachine gun's lost the blade part of the way. A finger pulls a trigger: its pad, closing,
+        // goes the way the blade goes as it is pulled (`trig_push`, the cosine between the two at the blade's point
+        // nearest the pad: none under 0.3), and stays on it the whole pull (`trig_whole`, body_trigger_pull_curls); the
+        // score below asks those, a shooter's hooked finger (about 0.4: its joints 32, 38 and 26 degrees) and the finger
+        // near level from its knuckle (8 degrees free).
+        {
+            Vec3 a[4], b[4];
+            finger_points(h, kIndex, out.trig_curl, a, sp);
+            finger_points(h, kIndex, std::min(out.trig_curl + 0.05f, 1.0f), b, sp);
+            const Vec3 pa = grip_point(pose, a[2] + (a[3] - a[2]) * 0.55f);
+            const Vec3 pb = grip_point(pose, b[2] + (b[3] - b[2]) * 0.55f);
+            const GripTrigger t1 = weapon_trigger_at(1.0f);
+            const Vec3 ab = trig.b - trig.a;
+            const float t = std::clamp(dot(pa - trig.a, ab) / std::max(dot(ab, ab), 1e-12f), 0.0f, 1.0f);
+            const Vec3 m = (t1.a + (t1.b - t1.a) * t) - (trig.a + ab * t), v = pb - pa;
+            const float lm = length(m), lv = length(v);
+            out.trig_push = t1.on && lm > 1e-6f && lv > 1e-6f ? dot(v, m) / (lm * lv) : 0.0f;
+            if (out.trig_push < 0.3f) {
+                out.why = 6;
+                return;
+            }
+            float pc[5];
+            out.trig_whole = body_trigger_pull_curls(h, pose, out.trig_curl, sp, pc);
+        }
+        out.curl[kIndex] = out.trig_curl;
+    }
+    // (session 31, vr386: the submachine gun's other hand "fitted" its palm on the receiver's side, its fingers meeting
+    // the top edge with their roots and standing 2 cm above it: a finger round a part has its pad on it, or near it.
+    // `pads`: how far each finger's pad, 55% along its last segment, is off the weapon past 1 cm (metres, summed; the
+    // trigger finger on the trigger is the trigger's). vr388 asked them within 3 mm: her fingers close with every joint
+    // together, so one meeting a grip's edge with its middle first keeps its pad a few millimetres off, and the fit
+    // then laid the handgun's hand flat along the grip, its fingers barely curled)
+    int along = 0, joints = 0;
+    for (int f = kIndex; f <= kPinky; f++) {
+        if (out.curl[f] < 0) continue;
+        Vec3 p[4];
+        finger_points(h, f, out.curl[f], p, f == kIndex && trigger ? out.trig_spread : 0.0f);
+        for (int j = 1; j < 4; j++, joints++) along += clear(p[j]) < 0.012f;
+        if (!(f == kIndex && trigger)) out.pads += std::max(0.0f, clear(p[2] + (p[3] - p[2]) * 0.55f) - 0.0085f - 0.010f);
+    }
+    out.palm = faces ? near_palm / (float)faces : 0.0f;
+    out.wrap = joints ? along / (float)joints : 0.0f;
+    if (out.palm < (main ? 0.3f : 0.25f)) {
+        out.why = 7;
+        return;
+    }
+    float natural = 0;
+    for (int f = kMiddle; f <= kPinky; f++) natural += std::fabs(out.curl[f] - 0.62f);
+    // (session 31: a spread trigger finger weighs a little against the place, so the least spread hand wins; and the
+    // trigger finger pulling it as a shooter's does, above)
+    const float pulling = trigger ? std::fabs(out.trig_curl - 0.4f) * 1.5f + (1.0f - out.trig_push) * 1.5f +
+                                        (out.trig_whole ? 0.0f : 0.8f) +
+                                        std::max(0.0f, std::fabs(out.trig_rise) - 8.0f) * 0.03f
+                                  : 0.0f;
+    out.score = 4.0f + out.palm * 3.0f + out.wrap * 3.0f + (out.curl[kThumb] > -0.5f ? 0.4f : 0.0f) -
+                out.trig_err * 60.0f - natural * 1.5f - out.opened * 1.5f - out.thumb_in * 300.0f -
+                std::fabs(out.trig_spread) * 0.02f - pulling - out.pads * 100.0f;
+}
+
+// The rig's record of a hand's place on the weapon (the grips' fit, SH3_GRIP_FIT=1): each finger's knuckle clearance
+// (mm), its curl meeting the weapon and the curl it comes out of it from, the thumb's rest; the palm's nearest and
+// farthest skin (mm).
+void body_grip_report(int h, const Pose& pose, char* out, int size) {
+    int n = 0;
+    for (int f = 0; f < 5 && n < size; f++) {
+        Vec3 p[4];
+        finger_points(h, f, 0.0f, p);
+        const Vec3 k = grip_point(pose, p[0]);
+        float free_from = 0;
+        const float c = finger_contact(h, f, pose, nullptr, true, 1.0f, free_from);
+        // (vr377: and each segment's skin from the weapon at curls 0 and 0.6, mm: which part of it is in)
+        float sg[2][3];
+        for (int q = 0; q < 2; q++) {
+            Vec3 s[4];
+            finger_points(h, f, q ? 0.6f : 0.0f, s);
+            for (int j = 0; j < 3; j++)
+                sg[q][j] = (weapon_clearance(h, grip_point(pose, s[j]), grip_point(pose, s[j + 1])) -
+                            (f == kThumb ? 0.0095f : 0.0085f)) * 1000.0f;
+        }
+        // (vr380: the curls where it is out of the weapon, its skin at most 1 mm in: the first such run)
+        float w0 = -1, w1 = -1;
+        for (int i = 0; i <= 20; i++) {
+            const float cc = i * 0.05f;
+            Vec3 s[4];
+            finger_points(h, f, cc, s);
+            float most_in = 1e9f;
+            for (int j = 0; j < 3; j++)
+                most_in = std::min(most_in, weapon_clearance(h, grip_point(pose, s[j]), grip_point(pose, s[j + 1])));
+            const bool out_of = most_in >= (f == kThumb ? 0.0095f : 0.0085f) - 0.001f;
+            if (out_of) {
+                if (w0 < 0) w0 = cc;
+                w1 = cc;
+            } else if (w0 >= 0) break;
+        }
+        n += std::snprintf(out + n, size - n, "%s%c k%.0f c%.2f o%.2f w%.2f-%.2f [%.0f %.0f %.0f | %.0f %.0f %.0f]",
+                           f ? ", " : "", "TIMRL"[f], weapon_clearance(h, k, k) * 1000.0f, c, free_from, w0, w1, sg[0][0],
+                           sg[0][1], sg[0][2], sg[1][0], sg[1][1], sg[1][2]);
+    }
+    bool rests = false;
+    float tin = 0;
+    float tsw = 0;
+    const float tr = thumb_rest(h, pose, &rests, &tin, &tsw);
+    Vec3 pp[18];
+    const int np = palm_points(h, pp);
+    float lo = 1e9f, hi = -1e9f;
+    for (int i = 0; i < np; i += 2) {
+        const Vec3 q = grip_point(pose, pp[i]);
+        const float d = weapon_clearance(h, q, q);
+        lo = std::min(lo, d), hi = std::max(hi, d);
+    }
+    if (n < size)
+        std::snprintf(out + n, size - n, "; thumb rest %.2f swung %.1f%s (in %.1f mm); palm %.0f..%.0f mm", tr, tsw,
+                      rests ? " on it" : "", tin * 1000.0f, lo * 1000.0f, hi * 1000.0f);
+}
+
+Vec3 body_finger_joint(int h, const Pose& pose, int f, float c, int j) {
+    if (h < 0 || h > 1 || f < 0 || f > 4) return pose.position;
+    Vec3 p[4];
+    finger_points(h, f, c, p);
+    return grip_point(pose, p[std::clamp(j, 0, 3)]);
 }
 
 float weapon_wall_free() { return answer.valid && answer.age <= 3 ? weapon_free : 1.0f; }

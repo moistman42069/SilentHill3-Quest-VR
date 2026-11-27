@@ -91,6 +91,41 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       drawn, their lines; the flashlight; health under half, her watch and the supplies; each gun's first reload, its
       steps. Then never again (a new run too: sh3quest_tips.ini). "Hints" off: none, the reload steps too. VR menu,
       Hints page: every line readable, none cut; "Show every hint again" brings them back.
+- [ ] 0.1.8 the trigger finger (owner 146, 151), the handgun, shotgun and submachine gun: rest your finger on the
+      controller's trigger: her index lies on the gun's own trigger, its pad on the blade; lift it off: her finger lies
+      straight along the frame, clear of the guard. Pull slowly: the gun's trigger swings back about its pin as far as
+      you pull and her finger closes with it, its pad on it the whole way, never apart and never through it; all the
+      way, it fires. sh3.log once a touch: "the right hand's trigger finger on the trigger (curl ..., spread ...);
+      pulled a quarter at a time it closes to ..., its pad on the blade the whole way". The flamethrower and the stun
+      gun (no trigger in their models): the index closes round the grip with the others.
+- [ ] 0.1.8 every weapon gripped (owner 146-148): each gun and melee weapon from the eyes, looking down and close
+      (turn it in your hand): her knuckles and palm out of it, her palm against it, every finger closed round it and
+      stopping on it (none through it), her thumb lying along the frame or round the grip, never standing out to the
+      side; the knife, steel pipe, katana, maul and beam saber in her own hand too. A gun aims where 0.1.7's aimed (the
+      guide dot and the shots).
+- [ ] 0.1.8 the second hand: on every two-hand weapon the other hand wraps the support grip, the pump or the handle;
+      on the handgun it wraps your main hand's fingers, never through them. Pump the shotgun: the pump goes back with
+      your hand, to the receiver (0.1.7 slid it forward). Rack the empty handgun: its trigger stays with the gun.
+- [ ] 0.1.8 Hold weapons anywhere (Hands and weapons, off to start): on, grip a gun's barrel or slide or a pipe's
+      shaft with the other hand: it takes hold there, wrapped round that part; off, it takes each weapon's two-hand
+      grip. A Two-hand grip spot moved 2 cm or more off the natural grip wraps the part there too.
+- [ ] 0.1.8 Swing strength needed (Hands and weapons, Normal to start): moving a melee weapon or a gun about, or
+      walking with it, never attacks; a firm swing does. Light attacks as 0.1.7 did; Hard asks a full swing.
+- [ ] 0.1.8 updating from 0.1.7 with a weapon moved and a two-hand grip spot set: sh3.log "sh3quest_weapons.ini was
+      0.1.7's: the guns' and stun gun's moves and turns (N set) and the two-hand grip spots (N set) put back for
+      0.1.8's fitted hands; sizes, aims, guide dots and the melee weapons' kept", once; a melee weapon's move and a size
+      changed stay.
+- [ ] 0.1.8 Left-handed (Hands and weapons): all of the above mirrored, the left hand on each grip and trigger.
+- [ ] 0.1.8 the beam saber: lit, the beam leaves the emitter along the hilt's line, held, swung, forward and up and
+      across, as on 0.1.7; held in both hands, the other hand on the hilt beside the main hand, its mirror image.
+- [ ] 0.1.8 a key kept until its door opens (a player's report): with a key in the inventory, come up to its door,
+      reach a hand toward it, look at it, let a hint show: the key stays in the inventory; press A at the door: it opens
+      and only then is the key used. The bookstore's key and one other door's key.
+- [ ] 0.1.8 standing through an event (a player's report): hold the stick (and once with Sprint toggled on) and use
+      something with a message (a door, an item, a note): she stands while the message shows and walks again with the
+      stick as soon as it is closed; the Sprint run ended.
+- [ ] 0.1.8 the item taken: as you take an item, it turns in its box on the message's panel, once, never double in
+      the eyes.
 
 ## View and comfort
 - [ ] New Game: the opening movie plays on the big cinema screen in front of you (sharp, 4:3, no stutter), with its

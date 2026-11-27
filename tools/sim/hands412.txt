@@ -1,0 +1,73 @@
+# SH3 Quest VR, the PC rig (session 33, 0.1.8): Hold weapons anywhere on the handgun (hands407's handgun hand sat 5 cm
+# under the slide, out of the 5 cm reach, and took nothing): the other hand at three places along and over the slide,
+# each taken with the grip and seen from the eyes and close from both sides. sh3.log: "took hold of handgun away from
+# its second grip". Run with grip_anywhere = 1 in the rig's sh3vr.ini (put back after) and pics383's environment with
+# SH3_EQUIP="1" (the handgun about 7316).
+7320 right_first_touch 1
+7330 rh_x -0.12
+7330 rh_y 0.22
+7330 rh_z 0.05
+# --- b0: the other hand at 0 0.04 -0.08 from the natural spot
+7420 lh_at_second 1
+7420 lh_x 0
+7420 lh_y 0.04
+7420 lh_z -0.08
+7430 left_grip 1
+7510 shot b0-handgun-anywhere-eyes
+7515 view_free 1
+7515 view_x 0.26
+7515 view_y -0.12
+7515 view_z -0.27
+7515 view_yaw 90
+7525 shot b0-handgun-anywhere-close
+7530 view_x -0.12
+7530 view_z -0.30
+7530 view_yaw -90
+7540 shot b0-handgun-anywhere-closeleft
+7545 view_free 0
+7545 view_yaw 0
+7555 left_grip 0
+7560 lh_at_second 0
+# --- b1: the other hand at 0 0.06 -0.10 from the natural spot
+7620 lh_at_second 1
+7620 lh_x 0
+7620 lh_y 0.06
+7620 lh_z -0.10
+7630 left_grip 1
+7710 shot b1-handgun-anywhere-eyes
+7715 view_free 1
+7715 view_x 0.26
+7715 view_y -0.12
+7715 view_z -0.27
+7715 view_yaw 90
+7725 shot b1-handgun-anywhere-close
+7730 view_x -0.12
+7730 view_z -0.30
+7730 view_yaw -90
+7740 shot b1-handgun-anywhere-closeleft
+7745 view_free 0
+7745 view_yaw 0
+7755 left_grip 0
+7760 lh_at_second 0
+# --- b2: the other hand at 0 0.03 -0.12 from the natural spot
+7820 lh_at_second 1
+7820 lh_x 0
+7820 lh_y 0.03
+7820 lh_z -0.12
+7830 left_grip 1
+7910 shot b2-handgun-anywhere-eyes
+7915 view_free 1
+7915 view_x 0.26
+7915 view_y -0.12
+7915 view_z -0.27
+7915 view_yaw 90
+7925 shot b2-handgun-anywhere-close
+7930 view_x -0.12
+7930 view_z -0.30
+7930 view_yaw -90
+7940 shot b2-handgun-anywhere-closeleft
+7945 view_free 0
+7945 view_yaw 0
+7955 left_grip 0
+7960 lh_at_second 0
+8030 quit 0

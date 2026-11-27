@@ -422,7 +422,11 @@ int native_group_of(int profile, int h) {
 // finger hand (her fist closed round the grip, the trigger finger at the trigger; the game's own has it straight past the
 // trigger and the other fingers loose); the knife keeps the game's hand (her fingers splayed through its thin handle),
 // and the pipe, katana, maul and beam saber too (alike either way, the game's made for them).
-bool kFingerHandOn[kProfiles] = {true, true, true, true, false, false, false, false, false, true};
+// 0.1.8 (owner messages 146-148: "by default though, make ALL guns and weapons/melee etc, grip properly and accurately",
+// the fingers' collision "guns/weapons/melee weapons, etc."): every weapon in her finger hand, each finger closing on the
+// weapon's own shape (sh3vr_shape.cpp) at its fitted place (the game's rigid hands do not close on the weapon in VR:
+// the knife's fingers stood through its handle, the katana's past its grip, as the rig's pictures showed).
+bool kFingerHandOn[kProfiles] = {true, true, true, true, true, true, true, true, true, true};
 int grip_hand_test() {
     static int t = -2;
     if (t == -2) t = getenv("SH3_GRIP_HAND") ? atoi(getenv("SH3_GRIP_HAND")) : -1;
@@ -438,13 +442,149 @@ const NativeGrip* native_of(int profile, int h) {
     if (opt.left_handed || native_group_of(profile, h) < 0 || grip_hand_test() == 0) return nullptr;
     return native[profile][h].have ? &native[profile][h] : nullptr;
 }
+// 0.1.8: the main hand's own grip, the game's (its right hand's, read once it holds still). A left-handed player's main
+// hand holds each weapon as the mirror image of it across the weapon's middle (main_hand_pose, build_frame: the game's
+// hands are a right-handed player's, the weapon itself is never mirrored), so a left hand sits on every weapon as the
+// right hand does, its trigger finger on the trigger; before 0.1.8 it kept the measured hold (3 cm off the grip).
+int grip_fit_mode();
+const NativeGrip* main_native(int profile) {
+    if (!opt.left_handed) return native_of(profile, kRight);
+    if (grip_fit_mode() == 0 || native_group_of(profile, kRight) < 0 || grip_hand_test() == 0) return nullptr;
+    return native[profile][kRight].have ? &native[profile][kRight] : nullptr;
+}
 // The second hand moved by the hold's second_nudge, which is set for the main hand at the game's own place (its fist
-// there lies about 3 cm behind the measured hold's): a left-handed player's main hand keeps the measured hold, and the
-// second hand its own point.
+// there lies about 3 cm behind the measured hold's; mirrored for a left-handed player, main_native).
 Vec3 second_nudge(int profile) {
     if (profile < 0 || profile >= kProfiles) return Vec3{};
     if (const SecondTest* t = second_test(profile)) return t->shift;
-    return native_of(profile, main_hand()) ? kHolds[profile].second_nudge : Vec3{};
+    return main_native(profile) ? kHolds[profile].second_nudge : Vec3{};
+}
+
+// ---------------------------------------------------------------- the hands' fitted places (0.1.8)
+//
+// Owner message 146 ("why is the default grip positions not actually perfect off the bat? ... the fuckin finger isnt
+// even on the trigger and two hand grip hand is still a bit off"): 0.1.7 drew her finger hand where the game holds each
+// gun (its own rigid hand's bone), but that hand is made for the third-person view. At its place her fist's centre lies
+// on the handgun's back strap, so her fingers closed inside the grip (none came round its front), her palm stood behind
+// it and her trigger finger stopped behind the trigger (the 0.1.7 rig's own pictures, vr309 and vr313, show it, as the
+// owner's video does: the hand low on the grip). VR games pose a hand on a grab point and close each finger until it
+// meets the object's shape, the trigger finger on its own trigger pose (HurricaneVR's grab points, Auto Hand's grab
+// solver, Meta's hand grabs): so each gun's hands here are placed by a fit of her own hand (her fingers and palm as
+// drawn, sh3vr_body.cpp body_grip_fit) against the weapon's own shape (its mesh as drawn, sh3vr_shape.cpp; kShapes'
+// capsules only where that is not built) and its trigger (kTriggers): her knuckles
+// and palm out of it, her palm against it, every finger starting clear and closing round it, the trigger finger's pad
+// on the trigger's blade, the other hand's fingers round the weapon and the main hand's fingers. The search
+// (SH3_GRIP_FIT=1 on the PC rig, fit_step: about 64,000 places and turns a hand) found the places below; the game uses
+// them as they are, with no search on the headset. A place: the hand moved (model units) and turned (degrees about the
+// weapon's right, then about the grip's own line) from where 0.1.7 put it, about its fist's centre. The main hand's
+// fist's centre stays at the controller's grip point (the weapon moved against it by the shift); the turn turns the
+// hand on the weapon, which keeps 0.1.7's way on the controller (build_frame): a gun aims where it aimed.
+struct GripPlace {
+    Vec3 shift;
+    float pitch = 0, roll = 0;
+};
+// By profile: the main hand from the game's own place (once read; mirrored for a left-handed player). Baked from the
+// search's lines (SH3_GRIP_FIT=1, build 266, run vr400; score: body_grip_fit's, palm and wrap and every finger's pad on
+// the weapon); the weapons held in the fist keep 0.1.7's place along their handle (main_fit).
+GripPlace fit_main[kProfiles] = {
+    {{25.5f, -3.5f, -8.0f}, -4.0f, -52.0f},   // handgun (score 7.05)
+    {{-3.5f, 5.5f, 14.0f}, -4.0f, -32.0f},    // shotgun (score 5.21)
+    {{15.0f, 0.0f, -9.0f}, -8.0f, -44.0f},    // submachine gun (score 6.81)
+    {{31.9f, 20.9f, 0.8f}, -16.0f, 12.0f},    // stun gun (score 7.55)
+    {{1.4f, -15.6f, 0.1f}, -16.0f, 4.0f},     // knife (score 7.25)
+    {{9.4f, 23.6f, -3.7f}, -12.0f, 20.0f},    // steel pipe (score 6.37)
+    {{7.1f, 21.9f, -3.3f}, -8.0f, 12.0f},     // katana (score 6.74)
+    {{-12.4f, -22.2f, -3.8f}, -20.0f, -28.0f},  // maul (score 6.58)
+    {{-13.4f, -24.1f, 1.7f}, -16.0f, 40.0f},  // beam saber (score 6.50)
+    {{10.0f, -19.5f, -3.0f}, 0.0f, 36.0f},    // flamethrower (score 5.83)
+};
+// By profile: the other hand on the second grip (mirrored for a left-handed player), baked as fit_main. The shotgun's
+// pump: none found within its cup's limits, so 0.1.7's place (its pictures right, vr395/vr400); the two-handed melee
+// weapons' other hands are the main hand's mirrored (second_hand_pose), none fitted.
+GripPlace fit_second[kProfiles] = {
+    {{1.6f, -7.7f, -2.6f}, -16.0f, -24.0f},  // handgun (score 7.11)
+    {},                                      // shotgun (none: 0.1.7's)
+    {{0.5f, 10.0f, 5.0f}, -48.0f, 8.0f},     // submachine gun (score 7.14)
+    {}, {}, {}, {}, {}, {},                  // stun gun, knife (one hand); steel pipe, katana, maul, beam saber (mirrored)
+    {{-7.5f, 8.0f, -1.5f}, 28.0f, 12.0f},    // flamethrower (score 5.68)
+};
+// Testing: SH3_GRIP_FIT=0 no fitted places (0.1.7's), 1 the search (fit_step) on each weapon drawn, its places taken.
+int grip_fit_mode() {
+    static int m = -2;
+    if (m == -2) m = std::getenv("SH3_GRIP_FIT") ? std::atoi(std::getenv("SH3_GRIP_FIT")) : -1;
+    return m;
+}
+// Each gun's trigger: its blade's middle line and half its thickness (model units, the held bone), from the mesh dumps
+// (tools/grip_fit.py points, scratchpad pictures an146): the handgun's from (70.3, 21.5) under the frame down to its
+// curled tip at (76.1, 11.1), z -9.8 to -14.9; the shotgun's (bone 1, y down) a thin blade at x -232 from y 23.5 to its
+// tip at 31.3; the submachine gun's from (65.4, 24.5) to its tip at (70.9, 11.4). The flamethrower's model has no
+// trigger: its trigger finger closes on the grip's front with the others, as the stun gun's.
+// Session 31 (owner message 151: "make sure the fingers can actually be seen properly pulling the triggers"): each
+// trigger also turns about its pin as it is pulled, its blade swinging back towards the grip as a real one does
+// (sh3vr_parts.cpp draws its own faces turned; the finger's pad stays on it, body_trigger_pull_curls). The pin: just
+// above the blade's front top corner, inside the frame (from the dumps: the handgun's blade's top runs from (68.6,
+// 21.7) to (74.1, 23.6), the submachine gun's from (63.8, 25.2) to (67.1, 24.9), the shotgun's (y down) from (-230.8,
+// 20.7) to (-226.8, 20.8)), so the blade's top turns up into the frame and no gap opens under it. The turn all the way:
+// the pad's travel about 6 to 7 mm (a pistol trigger's travel), the tip well clear of the guard.
+struct TriggerBlade {
+    bool on;
+    Vec3 a, b;
+    float r;
+    Vec3 pin;    // model units, the held bone
+    float turn;  // degrees, pulled all the way
+};
+const TriggerBlade kTriggers[kProfiles] = {
+    {true, {70.3f, 21.5f, -12.8f}, {72.2f, 13.5f, -12.8f}, 1.6f, {74.2f, 24.0f, -12.3f}, 24.0f},
+    {true, {-231.7f, 23.5f, 0.0f}, {-232.0f, 30.5f, 0.0f}, 1.0f, {-227.2f, 20.3f, 0.0f}, 22.0f},
+    {true, {65.4f, 24.5f, -10.8f}, {67.2f, 15.0f, -10.8f}, 1.5f, {67.1f, 25.4f, -10.7f}, 26.0f},
+    {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0},
+    {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0},
+};
+// The trigger of profile p turned by `pull` (0 at rest .. 1 all the way) about its pin: the turn (model units), its
+// axis such that the blade's tip swings back, against the weapon's forward (`fwd`, model: the frame's).
+Quat trigger_turn(int p, Vec3 fwd, float pull) {
+    const TriggerBlade& k = kTriggers[p];
+    const Vec3 n = cross(k.b - k.pin, Vec3{} - fwd);
+    if (dot(n, n) < 1e-8f) return Quat{};
+    return quat_axis(normalized(n), std::clamp(pull, 0.0f, 1.0f) * k.turn * kPi / 180.0f);
+}
+Vec3 trigger_moved(int p, Quat q, Vec3 x) { return kTriggers[p].pin + rotate(q, x - kTriggers[p].pin); }
+// The main hand's fitted place on the weapon of `profile` (held in hand h, the main hand): from the game's own place
+// once it is read (before that, the first frames after the draw, 0.1.7's), mirrored for a left-handed player
+// (main_native); none where the game's own rigid hand is drawn (SH3_GRIP_HAND=1, the rig's comparisons).
+// 0.1.8 (vr400; owner: "regress nothing", "make sure beam saber is still alligned and looks right"): a weapon held in
+// the fist (the knife, stun gun, steel pipe, katana, maul, beam saber) keeps 0.1.7's place ALONG its handle in the main
+// hand; only its place round it (across the handle) and its turn are the fit's. Along a plain handle every place grips
+// alike, so the fit's choice there was chance (vr400: the maul's 4.5 cm and the beam saber's 4.9 cm towards the pommel,
+// the pipe's and katana's 4.8 cm towards the head, the stun gun's 6.7 cm up to its prongs); it moved the weapon in the
+// hand by as much (its reach, the beam's, the prongs') and left the maul's other hand no room on its shaft (its fingers
+// past the end, vr400's g7-maul-2close). 0.1.7's place is the game's own fist's, with room for both hands. (The search,
+// SH3_GRIP_FIT=1, works on the full place.)
+const GripPlace* main_fit(int profile, int h) {
+    (void)h;
+    if (profile < 0 || profile >= kProfiles || grip_fit_mode() == 0) return nullptr;
+    if (!main_native(profile) || !finger_drawn(profile)) return nullptr;
+    if (kHolds[profile].fist && kShapes[profile].n > 0 && grip_fit_mode() != 1) {
+        static GripPlace kept[kProfiles];
+        const Cap& c0 = kShapes[profile].c[0];
+        const Vec3 u = normalized(c0.b - c0.a);
+        kept[profile] = fit_main[profile];
+        kept[profile].shift = fit_main[profile].shift - u * dot(fit_main[profile].shift, u);
+        return &kept[profile];
+    }
+    return &fit_main[profile];
+}
+// The other hand's fitted place on the second grip (her finger hand there; mirrored for a left-handed player by
+// second_natural and second_hand_pose; the game's own left hand keeps its place where it is drawn, SH3_GRIP_HAND=1).
+const GripPlace* second_fit(int profile) {
+    if (profile < 0 || profile >= kProfiles || grip_fit_mode() == 0) return nullptr;
+    if (native_of(profile, kLeft) && !opt.left_handed && main_hand() == kRight && !finger_drawn(profile)) return nullptr;
+    // the handgun's other hand wraps the main fist: its place was fitted with the main hand at its own (the game's place
+    // read); before that, none
+    if (native_group_of(profile, kRight) >= 0 && !main_native(profile)) return nullptr;
+    // (0.1.8, vr395: a two-handed melee weapon's other hand is its main hand's mirrored, second_hand_pose: no fit)
+    if (kHolds[profile].fist && kHolds[profile].second) return nullptr;
+    return &fit_second[profile];
 }
 
 struct WeaponFrame {
@@ -467,7 +607,8 @@ WeaponFrame wf, wf_one_hand;   // this frame's, and the main hand's alone (the s
 Vec3 frame_local(const WeaponFrame& f, Vec3 v) { return {dot(v, f.right), dot(v, f.up), -dot(v, f.fwd)}; }
 Vec3 mirrored_dir(const WeaponFrame& f, Vec3 v) { return f.mirror ? v - f.right * (2.0f * dot(v, f.right)) : v; }
 Vec3 mirrored_point(const WeaponFrame& f, Vec3 p) {
-    return f.mirror ? p - f.right * (2.0f * dot(p - f.palm, f.right)) : p;
+    // (0.1.8: across the measured hold's plane, the weapon's middle: the fitted main hand may sit off it)
+    return f.mirror ? p - f.right * (2.0f * dot(p - f.hold->palm, f.right)) : p;
 }
 Vec3 frame_point(const WeaponFrame& f, Vec3 model) {
     return f.base + rotate(f.turn, frame_local(f, model - f.palm) * f.scale);
@@ -477,13 +618,17 @@ Vec3 frame_dir(const WeaponFrame& f, Vec3 model) { return normalized(rotate(f.tu
 // shotgun's pump, ...), else the hold's (mirrored for a left-handed player); 0.1.7: moved by the player's own two-hand
 // grip spot (second_offset, "Two-hand grip spot").
 Vec3 second_offset(const WeaponFrame& f);
-Vec3 second_natural(const WeaponFrame& f) {
+// 0.1.8: moved by its fitted place (second_fit; the fit search's candidates by `trial`).
+Vec3 second_natural(const WeaponFrame& f, const GripPlace* trial = nullptr) {
     const NativeGrip* ng = native_of(f.profile, kLeft);
     const Vec3 nudge = second_nudge(f.profile);
-    if (ng && !f.mirror && main_hand() == kRight) return ng->palm + nudge;
-    return mirrored_point(f, f.hold->second_at + nudge);
+    // (0.1.8: her finger hand on the second grip takes the hold's point and its fitted place, every time: the game's own
+    // left hand, read only in some of its poses, moved it between the two from one draw to the next)
+    if (ng && !f.mirror && main_hand() == kRight && !finger_drawn(f.profile)) return ng->palm + nudge;
+    const GripPlace* g = trial ? trial : second_fit(f.profile);
+    return mirrored_point(f, f.hold->second_at + nudge + (g ? g->shift : Vec3{}));
 }
-Vec3 second_point(const WeaponFrame& f) { return second_natural(f) + second_offset(f); }
+Vec3 second_point(const WeaponFrame& f);  // (0.1.8: below, after the holds where the hand took hold)
 
 // A hand's pose round a grip of the weapon: its fist's centre at `at` (tracking), its rod along `rod`, its palm facing
 // `palm` (tracking, unit) — OpenXR's grip pose: -Z the rod, +X out of the palm on the left hand and into it on the right.
@@ -501,7 +646,10 @@ Pose hand_round(int h, Vec3 at, Vec3 rod, Vec3 palm) {
 
 // The player's adjustments (sh3quest_weapons.ini, written with the defaults on the first run): each weapon moved and
 // turned from its natural place in the hand, in its own axes; the hand follows it.
-constexpr int kCalibVersion = 2;
+// 3 (0.1.8): the guns' hands fitted to them anew (owner message 146), so a 0.1.7 file's gun moves and turns and every
+// two-hand grip spot (made against 0.1.7's hand places) are put back once; its sizes, aims and guide dots are kept, and
+// the melee weapons' moves and turns (their hands as before).
+constexpr int kCalibVersion = 3;
 struct Calib {
     float scale = 1.0f;
     float move_cm[3]{};      // right, up, forward
@@ -604,6 +752,31 @@ void load_calibration() {
         else if (k == "SecondGripForwardCm") c.second_cm[2] = std::clamp(v, -kSecondMostCm[2], kSecondMostCm[2]);
     }
     std::fclose(f);
+    if (version == 2) {
+        int moved = 0, spots = 0;
+        for (int s = 0; s < kProfiles; s++) {
+            Calib& c = calib[s];
+            // The guns and the stun gun (0.1.7's finger hand, now at their fitted places); the knife, steel pipe,
+            // katana, maul and beam saber keep 0.1.7's place along the handle (main_fit), so their moves stay.
+            // (Session 33, vr408: this tested kFingerHandOn, which 0.1.8 turned on for every weapon, so the melee
+            // weapons' moves were put back too, against the log line and the notes.)
+            if (kWeapons[s].kind == kGun || kWeapons[s].kind == kStun) {
+                for (int k = 0; k < 3; k++) {
+                    moved += c.move_cm[k] != 0.0f || c.turn_deg[k] != 0.0f;
+                    c.move_cm[k] = c.turn_deg[k] = 0.0f;
+                }
+            }
+            for (int k = 0; k < 3; k++) {
+                spots += c.second_cm[k] != 0.0f;
+                c.second_cm[k] = 0.0f;
+            }
+        }
+        write_default_calibration();
+        rt_log("VR: sh3quest_weapons.ini was 0.1.7's: the guns' and stun gun's moves and turns (%d set) and the two-hand "
+               "grip spots (%d set) put back for 0.1.8's fitted hands; sizes, aims, guide dots and the melee weapons' "
+               "kept", moved, spots);
+        return;
+    }
     if (version != kCalibVersion) {
         // The old file (the PC mod's angles about the controller, which held every gun backwards): written again.
         default_calibration();
@@ -773,6 +946,10 @@ bool pending_put_away = false;  // an extra weapon holstered: the game puts it a
 int awaiting_draw = -1;         // ... until its weapon shows
 double awaiting_until = 0;
 bool weapon_draw_now = false;   // the draw being set up is the weapon's
+// 0.1.8: the last weapon draw moved to the hand: its held palette slot (-1: not moved) and which of the weapon's draws
+// it is (its signature, kWeapons' nv/np); the weapon placed for how many frames running (its own shape: once settled).
+int mesh_slot = -1, mesh_sig = -1;
+int placed_frames = 0, placed_weapon = -1;
 uint32_t skinned_strides[4]{};  // the vertex strides seen on the weapons' skinned draws
 int n_strides = 0;
 float kick = 0;                 // degrees, decaying
@@ -998,6 +1175,94 @@ Quat q_mix(Quat a, Quat b, float t) {
     return n > 1e-6f ? Quat{q.x / n, q.y / n, q.z / n, q.w / n} : a;
 }
 
+// 0.1.8: a fitted place's turn (model space): about the weapon's right, then about the grip's own line `rod`.
+Quat place_turn(const WeaponFrame& f, Vec3 rod, const GripPlace* g) {
+    if (!g || (g->pitch == 0.0f && g->roll == 0.0f)) return Quat{};
+    return quat_axis(f.right, rad(g->pitch)) * quat_axis(normalized(rod), rad(g->roll));
+}
+// 0.1.8: a right hand's pose (tracking) mirrored across the weapon's middle (the measured hold's plane, mirrored_point's)
+// into the left hand's: OpenXR's two grip poses are mirror images of each other with their x the other way.
+Pose mirrored_pose(const WeaponFrame& f, const Pose& r) {
+    const Vec3 n = frame_dir(f, f.right), c = frame_point(f, f.hold->palm);
+    auto M = [&](Vec3 v) { return v - n * (2.0f * dot(v, n)); };
+    const Vec3 x = M(rotate(r.orientation, Vec3{1, 0, 0})) * -1.0f, y = M(rotate(r.orientation, Vec3{0, 1, 0})),
+               z = M(rotate(r.orientation, Vec3{0, 0, 1}));
+    return {r.position - n * (2.0f * dot(r.position - c, n)), quat_of_axes(x, y, z)};
+}
+// The main hand's pose (tracking) round the weapon's grip at place g (null: 0.1.7's): the game's own hand's bone moved
+// and turned about its fist's centre (a left-handed player's: the right hand's there, mirrored), else the measured
+// hold's fist.
+bool main_hand_pose(const WeaponFrame& f, int h, const GripPlace* g, Pose& out) {
+    const Hold& hd = *f.hold;
+    const Quat R = place_turn(f, hd.rod, g);
+    const Vec3 shift = g ? g->shift : Vec3{};
+    if (const NativeGrip* ng = f.mirror ? main_native(f.profile) : native_of(f.profile, h)) {
+        Vec3 axes[3];
+        for (int i = 0; i < 3; i++) axes[i] = frame_dir(f, rotate(R, ng->ax[i]));
+        const Vec3 o = frame_point(f, ng->palm + rotate(R, ng->o - ng->palm) + shift);
+        if (!f.mirror) return ik_pose_for_hand_bone(h, axes, o, out);
+        Pose r;
+        if (!ik_pose_for_hand_bone(kRight, axes, o, r)) return false;
+        out = mirrored_pose(f, r);
+        return true;
+    }
+    const float mx = h == kLeft ? -1.0f : 1.0f;
+    out = hand_round(h, frame_point(f, hd.palm + shift), frame_dir(f, rotate(R, hd.rod)),
+                     frame_dir(f, rotate(R, f.right * -mx)));
+    return true;
+}
+// The other hand's pose (tracking) on the second grip at its natural spot, at place g (the fitted one; the search's
+// candidates), her finger hand: the hold's second rod and palm turned by the place, mirrored for a left-handed player.
+Pose second_hand_pose(const WeaponFrame& f, int h, const GripPlace* g) {
+    const Hold& hd = *f.hold;
+    // 0.1.8 (owner 147: "every second hand wrapped properly"; vr395's pictures): the steel pipe's, katana's, maul's and
+    // beam saber's other hands, fitted on their own, lay under the handle palm up with a third of the palm on it and
+    // their fingers closing in the air below it, while each main hand's fist (fitted, its fingers closed round the
+    // handle) was right. Two hands on one handle hold it alike, each the mirror image of the other across the plane of
+    // the handle and the blade's back (the right hand's palm on the handle's right, the left's on its left, both thumbs
+    // over the top): the other hand is the main hand's grip, as drawn, mirrored across that plane through the handle's
+    // own line (its first capsule, kShapes) and slid along that line to where the other hand takes hold (the second
+    // grip's spot, the player's Two-hand grip spot with it), so it closes round the handle as the main hand does.
+    // vr400: slid along the weapon's forward instead (the katana's 6 degrees off its handle's line) and by the hold's
+    // spacing from a main hand the fit had moved, the maul's other hand closed on air past its shaft's end: the slide is
+    // now along the handle itself, the hand kept on it (its centre 3.5 cm in from either end, so its little finger stays
+    // on the pommel) and a fist's width (8.5 cm) from the main hand, on the main hand's other side where that side has
+    // no room. SH3_GRIP_FIT=0 (the rig): 0.1.7's.
+    if (hd.fist && hd.second && f.shape && f.shape->n > 0 && grip_fit_mode_on()) {
+        const int mh = main_hand();
+        Pose m;
+        if (h != mh && main_hand_pose(f, mh, main_fit(f.profile, mh), m)) {
+            const Cap& c0 = f.shape->c[0];
+            const float len = length(c0.b - c0.a);
+            const Vec3 u = (c0.b - c0.a) * (1.0f / std::max(len, 1e-4f));
+            const float per_m = 1.0f / std::max(f.scale, 1e-6f);  // model units a metre
+            const float end = 0.035f * per_m, apart = 0.085f * per_m;
+            const float dm = dot(f.palm - c0.a, u);  // the main fist's centre along the handle
+            float d2 = std::clamp(dot(second_natural(f) + second_offset(f) - c0.a, u), end, std::max(end, len - end));
+            if (std::fabs(d2 - dm) < apart) {
+                const float side = d2 < dm ? -1.0f : 1.0f;
+                d2 = dm + side * apart;
+                if (d2 < end || d2 > len - end) d2 = dm - side * apart;
+                d2 = std::clamp(d2, end, std::max(end, len - end));
+            }
+            // the mirror's plane: through the handle's line, square to the weapon's right made square to that line
+            const Vec3 r_model = normalized(f.right - u * dot(f.right, u));
+            const Vec3 n = frame_dir(f, r_model), c = frame_point(f, c0.a + u * dm);
+            auto M = [&](Vec3 v) { return v - n * (2.0f * dot(v, n)); };
+            const Vec3 x = M(rotate(m.orientation, Vec3{1, 0, 0})) * -1.0f, y = M(rotate(m.orientation, Vec3{0, 1, 0})),
+                       z = M(rotate(m.orientation, Vec3{0, 0, 1}));
+            const Vec3 slide = frame_point(f, u * (d2 - dm)) - frame_point(f, Vec3{});
+            return {m.position - n * (2.0f * dot(m.position - c, n)) + slide, quat_of_axes(x, y, z)};
+        }
+    }
+    const Quat R = place_turn(f, hd.second_rod, g);
+    Vec3 at = second_natural(f, g) + second_offset(f);
+    const float pump = reload_pump_back();
+    if (pump > 0) at = at - f.fwd * (pump * kUnitsPerMetre);
+    return hand_round(h, frame_point(f, at), frame_dir(f, mirrored_dir(f, rotate(R, hd.second_rod))),
+                      frame_dir(f, mirrored_dir(f, rotate(R, hd.second_palm))));
+}
+
 // The weapon's frame from the main hand (and the other hand on its second grip, `two_hands`): the hold's axes on the
 // controller's (the aim pose for guns, the grip pose along the fist for the rest), the player's adjustments, two hands
 // turning a long weapon so its second grip lies towards the other controller, and the recoil's kick.
@@ -1021,15 +1286,31 @@ bool build_frame(WeaponFrame& f, bool two_hands) {
     Quat q0 = hd->fist ? m.grip.orientation : m.aim.orientation;
     // The game's own grip read: the controller's grip point is its fist's centre on the weapon; a melee weapon (and the
     // stun gun) is turned in her hand as the game holds it (her hand bone at the controller, hand_at's way).
-    if (const NativeGrip* ng = native_of(p, mh)) {
-        f.palm = ng->palm;
+    // 0.1.8: the main hand's fitted place (main_fit): the controller's grip point is its fist's centre there, so the
+    // weapon moves against the hand by the place's shift. Its turn turns the hand on the weapon about that centre
+    // (main_hand_pose), never the weapon against the controller (session 31: the fits turn a gun's main hand up to 32
+    // degrees about its grip, which turning the gun instead would have swung its barrel, and so every shot, off where the
+    // controller points): each weapon keeps 0.1.7's way on the controller, its aim and the melee weapons' feel.
+    const GripPlace* g = main_fit(p, mh);
+    if (g) f.palm = f.palm + g->shift;
+    // (a left-handed player: main_native, the right hand's grip mirrored across the weapon's middle: its fist's centre
+    // mirrored; a fist hold's weapon axes in the right grip's own space as the right hand holds it, mirrored into the
+    // left grip's, x the other way and the weapon's right the other way again, then turned with the left controller)
+    if (const NativeGrip* ng = f.mirror ? main_native(p) : native_of(p, mh)) {
+        f.palm = mirrored_point(f, ng->palm + (g ? g->shift : Vec3{}));
         Vec3 axes[3], origin;
-        if (hd->fist && ik_hand_bone_for_pose(mh, Pose{body_shown[mh].position, m.grip.orientation}, axes, origin)) {
+        const Pose at = f.mirror ? Pose{} : Pose{body_shown[mh].position, m.grip.orientation};
+        if (hd->fist && ik_hand_bone_for_pose(f.mirror ? kRight : mh, at, axes, origin)) {
             Vec3 col[3];
             const Vec3 model_axes[3] = {f.right, f.up, f.fwd * -1.0f};
             for (int k = 0; k < 3; k++) {
                 col[k] = {};
                 for (int i = 0; i < 3; i++) col[k] = col[k] + axes[i] * dot(model_axes[k], ng->ax[i]);
+                if (f.mirror) {
+                    col[k].x = -col[k].x;
+                    if (k == 0) col[k] = col[k] * -1.0f;
+                    col[k] = rotate(m.grip.orientation, col[k]);
+                }
             }
             col[0] = normalized(col[0]);
             col[1] = normalized(col[1] - col[0] * dot(col[1], col[0]));
@@ -1097,6 +1378,142 @@ int shape_caps(const WeaponFrame& f, Cap* out) {
         for (int i = 0; i < f.shape->n; i++) out[n++] = f.shape->c[i];
     else out[n++] = {f.hold->palm - f.hold->rod * 10.0f, f.hold->tip, 9.0f};
     return n;
+}
+
+// ---------------------------------------------------------------- the other hand wrapped where it takes hold (0.1.8)
+//
+// Owner message 146 ("even when trying the mode where you can grip anywhere on the gun, it doesnt really look good since
+// it isnt exactly wrapping the hand on the gun naturally. theres games in vr that have different gun grab points that
+// keep it natural and dynamic ... the grip gun anywhere mode should be a seperate toggle"): 0.1.7's Adjust only moved
+// the second hand's natural pose (its fist turned as on the natural grip) to the spot. Now a hand taking hold away from
+// the natural grip (Hold weapons anywhere, or a Two-hand grip spot moved there) takes the part of the weapon there as
+// Auto Hand's grab solver does: the nearest part thick enough to hold (a capsule of the weapon's shape, 1 cm round or
+// more, not the main hand's grip), its fist along that part (the way nearest the hand's own), on the side the hand is,
+// her palm laid on it (moved in until her palm's skin meets it, never a knuckle or the palm in it), and her fingers
+// closing round it until they meet it (sh3vr_body.cpp, as on every grip).
+struct SurfaceHold {
+    bool on = false;
+    int profile = -1;
+    Vec3 at, rod, palm;  // model: her fist's centre, its rod (little finger to thumb), the way her palm faces
+    float key[4]{};      // the spot it was made for (the moved spot's: its cm, left-handed)
+};
+SurfaceHold anywhere_hold;  // taken by Hold weapons anywhere, for the hold
+SurfaceHold moved_hold;     // the Two-hand grip spot's, when moved off the natural grip
+struct AnywhereAsk {
+    bool on = false;
+    Vec3 spot, rod, palm;   // model: the controller's grip point and its rod and palm, when it took hold
+} anywhere_ask;
+
+// A tracking direction in the weapon's model (unit).
+Vec3 model_dir(const WeaponFrame& f, Vec3 t) {
+    const Vec3 l = rotate(conjugate(f.turn), t);
+    return normalized(f.right * l.x + f.up * l.y - f.fwd * l.z);
+}
+
+// The part of the weapon nearest `spot` (model units) that a hand can take: its capsule, the point on its line, how far
+// the spot is from its surface (units). -1: none (only the main hand's grip, or none 1 cm round).
+int part_near(const WeaponFrame& f, Vec3 spot, Vec3& on_line, float& surface) {
+    Cap caps[kCapMax];
+    const int nc = shape_caps(f, caps);
+    int best = -1;
+    surface = 1e9f;
+    for (int i = 0; i < nc; i++) {
+        const Cap& c = caps[i];
+        if (c.r < 5.0f || seg_seg(f.palm, f.palm, c.a, c.b) < 20.0f) continue;  // too thin, or the main hand's grip
+        const Vec3 ab = c.b - c.a;
+        const float L2 = dot(ab, ab);
+        const float t = L2 > 1e-6f ? std::clamp(dot(spot - c.a, ab) / L2, 0.0f, 1.0f) : 0.0f;
+        const Vec3 p = c.a + ab * t;
+        const float d = length(spot - p) - c.r;
+        if (d < surface) surface = d, best = i, on_line = p;
+    }
+    return best;
+}
+
+// Hand h's hold on the part nearest `spot` (within `reach` units of its surface), the fist's rod the way nearest
+// `ref_rod` (model, unit), on the spot's side of it (else the side `ref_palm` faces from). Needs this frame's weapon
+// placed (wf) and the main hand posed: her palm is laid on the part against both.
+bool surface_hold_at(const WeaponFrame& f, int h, Vec3 spot, Vec3 ref_rod, Vec3 ref_palm, float reach, SurfaceHold& out) {
+    Vec3 p;
+    float surface = 0;
+    const int ci = part_near(f, spot, p, surface);
+    if (ci < 0 || surface > reach) return false;
+    Cap caps[kCapMax];
+    shape_caps(f, caps);
+    const Cap& c = caps[ci];
+    const Vec3 ab = c.b - c.a;
+    const float L = length(ab);
+    const Vec3 axis = L > 1e-3f ? ab * (1.0f / L) : f.fwd;
+    // (her hand kept on the part: its middle at least 3 cm from either end, or the part's middle)
+    const float margin = std::min(15.0f, L * 0.5f);
+    p = c.a + axis * std::clamp(dot(spot - c.a, axis), margin, std::max(margin, L - margin));
+    Vec3 n = spot - p;
+    n = n - axis * dot(n, axis);
+    if (length(n) < 0.5f) n = ref_palm * -1.0f - axis * dot(ref_palm * -1.0f, axis);
+    if (length(n) < 1e-3f) n = cross(axis, f.right);
+    n = normalized(n);
+    out.rod = dot(axis, ref_rod) < 0 ? axis * -1.0f : axis;
+    out.palm = n * -1.0f;
+    out.profile = f.profile;
+    // Her palm laid on it: from 6 cm out, in 2 mm steps, until her palm's skin is within 3 mm of the weapon (or the
+    // step before a knuckle or her palm would go in).
+    const float step = 0.002f / f.scale;
+    float last_ok = -1e9f;
+    for (float D = c.r + 0.06f / f.scale; D >= 0.0f; D -= step) {
+        const Vec3 at = p + n * D;
+        const Pose pose = hand_round(h, frame_point(f, at), frame_dir(f, out.rod), frame_dir(f, out.palm));
+        float palm_clear = 0;
+        bool inside = false;
+        body_palm_touch(h, pose, palm_clear, inside);
+        if (inside) break;
+        last_ok = D;
+        if (palm_clear <= 0.003f) break;
+    }
+    if (last_ok < -1e8f) return false;
+    out.at = p + n * last_ok;
+    out.on = true;
+    return true;
+}
+
+// The other hand's hold where it took hold, for the weapon of frame f: taken anywhere, else at its moved Two-hand grip
+// spot (resolve_moved_hold); null: the natural grip.
+const SurfaceHold* other_surface(const WeaponFrame& f) {
+    if (anywhere_hold.on && anywhere_hold.profile == f.profile) return &anywhere_hold;
+    if (moved_hold.on && moved_hold.profile == f.profile) return &moved_hold;
+    return nullptr;
+}
+Vec3 second_point(const WeaponFrame& f) {
+    if (const SurfaceHold* s = other_surface(f)) return s->at;
+    return second_natural(f) + second_offset(f);
+}
+
+// 0.1.8: the Two-hand grip spot moved 2 cm or more off the natural grip: the other hand wraps the part there (once a
+// spot, a weapon, a hand: kept until any of them changes). Nearer, the natural grip's pose moved there (0.1.7's way).
+// The game's own left hand (the steel pipe's, the maul's) keeps 0.1.7's way.
+void resolve_moved_hold(const WeaponFrame& f, int h) {
+    if (!f.placed || !f.hold->second || f.profile < 0) return;
+    const float* cm = calib[f.profile].second_cm;
+    const float key[4] = {cm[0], cm[1], cm[2], (f.mirror ? 1.0f : 0.0f) + (her_hands[h].valid ? 2.0f : 0.0f) +
+                                                   (shape_ready(f.profile) ? 4.0f : 0.0f)};  // (again on its own shape)
+    if (moved_hold.profile == f.profile && std::memcmp(moved_hold.key, key, sizeof key) == 0) return;
+    moved_hold = SurfaceHold{};
+    moved_hold.profile = f.profile;
+    std::memcpy(moved_hold.key, key, sizeof key);
+    if (std::sqrt(cm[0] * cm[0] + cm[1] * cm[1] + cm[2] * cm[2]) < 2.0f || grip_fit_mode() == 0) return;
+    if (native_of(f.profile, kLeft) && !f.mirror && main_hand() == kRight && !finger_drawn(f.profile)) return;
+    const Hold& hd = *f.hold;
+    SurfaceHold s;
+    if (surface_hold_at(f, h, second_natural(f) + second_offset(f), mirrored_dir(f, hd.second_rod),
+                        mirrored_dir(f, hd.second_palm), 0.08f / f.scale, s)) {
+        std::memcpy(s.key, key, sizeof key);
+        moved_hold = s;
+        rt_log("VR: frame %d: %s's moved two-hand grip spot (%.1f %.1f %.1f cm): the %s hand wraps its part there, its "
+               "fist at %.1f %.1f %.1f along %.2f %.2f %.2f, its palm toward %.2f %.2f %.2f (model)", rt_frame,
+               weapon_name(game.weapon), cm[0], cm[1], cm[2], h == kLeft ? "left" : "right", s.at.x, s.at.y, s.at.z,
+               s.rod.x, s.rod.y, s.rod.z, s.palm.x, s.palm.y, s.palm.z);
+    } else
+        rt_log("VR: frame %d: %s's moved two-hand grip spot (%.1f %.1f %.1f cm): no part of it within 8 cm to wrap; the "
+               "natural grip's pose moved there", rt_frame, weapon_name(game.weapon), cm[0], cm[1], cm[2]);
 }
 
 // The other hand on the weapon's second grip, or reaching for it (LIST 26). Weapons with a measured hold: the second
@@ -1179,6 +1596,26 @@ void update_two_hand() {
         if (length(nat - tip) > length(back - tip)) back = nat;
         back = back + normalized(back - tip) * 0.10f;
         away = seg_seg(body_shown[oh].position, body_shown[oh].position, back, tip), limit = 0.10f;
+    } else if (wf_one_hand.placed && opt.grip_anywhere && !o.on_foregrip) {
+        // 0.1.8 (owner message 146): Hold weapons anywhere. Within 6 cm of the natural grip (its fitted place): that grip;
+        // else the part of the weapon nearest the hand, within 5 cm of its surface, wrapped where the hand is
+        // (surface_hold_at, done in place_weapon this frame with the hand's own turn as it took hold).
+        const WeaponFrame& f = wf_one_hand;
+        const Vec3 nat = frame_point(f, second_natural(f) + second_offset(f));
+        Vec3 on_line;
+        float surface = 0;
+        const Vec3 spot = model_of(f, body_shown[oh].position);
+        const int part = part_near(f, spot, on_line, surface);
+        anywhere_hold.on = false;
+        if (length(body_shown[oh].position - nat) < 0.06f) away = length(body_shown[oh].position - nat), limit = 0.12f;
+        else if (part >= 0 && surface * f.scale < 0.05f) {
+            away = 0, limit = 1.0f;
+            const float px = oh == kLeft ? 1.0f : -1.0f;
+            anywhere_ask.on = true;
+            anywhere_ask.spot = spot;
+            anywhere_ask.rod = model_dir(f, rotate(o.grip.orientation, Vec3{0, 0, -1}));
+            anywhere_ask.palm = model_dir(f, rotate(o.grip.orientation, Vec3{px, 0, 0}));
+        } else away = 1.0f, limit = 0.0f;
     } else if (wf_one_hand.placed) {
         const Vec3 spot = second_spot(wf_one_hand);
         if (o.on_foregrip && w->aims_two_handed) {
@@ -1218,6 +1655,222 @@ void update_two_hand() {
     o.on_foregrip = on;
 }
 
+// ---------------------------------------------------------------- the grips' fit (0.1.8: SH3_GRIP_FIT=1, the PC rig)
+//
+// Each weapon drawn: its main hand's place searched once the game's own place is read, then, with the other hand held on
+// the second grip (and the main hand's fingers closed round its grip at its new place), the other hand's. Each place
+// tried: her hand posed there (main_hand_pose, second_hand_pose) and scored by body_grip_fit. Three rounds a hand:
+// turned and moved together (session 31: turned 8 degrees at a time, up to 32 each way about the grip's own line and 16
+// about the weapon's right, and moved 5 units at a time, 25 each way along the weapon and up, 12.5 to its sides in
+// 2.5s: session 30's vr380 showed her straight index running 27 degrees across a pistol grip, so with turns only round a
+// place first found unturned, the guns' main hands found none), then round the best turned 4 degrees at a time (8 each
+// way) and moved 2.5 units at a time (5 each way), again round the new best while it lies on that round's edge (up to 3
+// times more), then moved 0.5 units at a time round that. The best is taken at once and logged as its table's line
+// (fit_main, fit_second).
+struct FitRun {
+    int weapon = -1, stage = 0, round = 0, next = 0, wait = 0, tried = 0, climbs = 0;
+    GripPlace from, best, ref;  // ref: the round's middle (the best when it began; vr371: not the best as it moves)
+    float best_score = -1, start_score = -1;
+    GripFit best_fit, start_fit;
+    int why[8]{};
+    int in_by[5]{}, curl_by[5]{};  // why 3 and why 4, by finger (thumb, index, middle, ring, little)
+} fit_run;
+int fit_round_size(int round) { return round == 0 ? 9 * 5 * 11 * 11 * 11 : round == 1 ? 25 * 125 : 9 * 9 * 9; }
+GripPlace fit_candidate(const WeaponFrame& f, const FitRun& r, int i) {
+    const GripPlace ref = r.ref;
+    GripPlace g = ref;
+    auto move = [&](float x, float y, float z) { g.shift = ref.shift + f.fwd * x + f.up * y + f.right * z; };
+    if (r.round == 0) {
+        const int t = i / 1331, j = i % 1331;
+        g.roll = ref.roll + (t % 9 - 4) * 8.0f;
+        g.pitch = ref.pitch + (t / 9 - 2) * 8.0f;
+        move((j / 121 - 5) * 5.0f, (j / 11 % 11 - 5) * 5.0f, (j % 11 - 5) * 2.5f);
+    } else if (r.round == 1) {
+        const int t = i / 125, j = i % 125;
+        g.pitch = ref.pitch + (t / 5 - 2) * 4.0f;
+        g.roll = ref.roll + (t % 5 - 2) * 4.0f;
+        move((j / 25 - 2) * 2.5f, (j / 5 % 5 - 2) * 2.5f, (j % 5 - 2) * 2.5f);
+    } else move((i / 81 - 4) * 0.5f, (i / 9 % 9 - 4) * 0.5f, (i % 9 - 4) * 0.5f);
+    // 0.1.8 (owner 147: "every second hand wrapped properly"; vr388's pictures): the second hands and the melee
+    // weapons' main hands kept on their grip's line. The search scores the fingers' and the palm's touch, and a fist
+    // moved off the line with the grip at its finger tips scored about as well as one round it: the katana's other hand
+    // 5.8 cm across its handle (its index straight along it), the submachine gun's up its receiver's side (its thumb
+    // standing over the top, vr388 g2-smg). Each place keeps its fist's centre within 1.2 cm of the grip's line through
+    // its first place (the hold's own, on that line), moving freely along it. The hands that cup a gun's body from below,
+    // palm up (the shotgun's pump, the submachine gun's and the flamethrower's front: their holds' second palm up), may
+    // rise 2 cm to it (0.1.7's palms lay up to 1.2 cm under it) and sink 0.8 cm, and turn 12 degrees about the line, so
+    // the palm stays under the gun. The guns' main hands stay free: their place is the game's own hand's, moved for the
+    // trigger finger.
+    // vr395: the stun gun's fist (its body a 6 cm box, the fist round it with its centre off the box's line) found no
+    // place within 1.2 cm of that line: its main hand is left free, as vr388's was. The guns' other hands slid along
+    // their grips' lines freely and the submachine gun's left its front block 4.7 cm back, beside the trigger guard, its
+    // fingers standing up the receiver's side with nothing to close round: a gun's other hand moves at most 2 cm along
+    // its grip from the hold's place (the pump, the front block, the grip's front).
+    if (f.hold && (r.stage == 1 || (f.hold->fist && f.profile != 3))) {
+        const Hold& h = *f.hold;
+        const Vec3 rod_m = r.stage == 1 ? h.second_rod : h.rod;
+        // (the rod in the weapon's frame as placed, from its parts along the hold's barrel or blade and its top; its
+        // part across them is 0.11 at most, on the beam saber, and left out)
+        Vec3 rod = f.fwd * dot(rod_m, h.fwd) + f.up * dot(rod_m, h.up);
+        const float rl = length(rod);
+        if (rl > 1e-4f) {
+            rod = rod * (1.0f / rl);
+            const GripPlace& o = r.from;
+            const Vec3 d = g.shift - o.shift;
+            const float run = dot(d, rod);
+            const Vec3 along = rod * (r.stage == 1 && !h.fist ? std::clamp(run, -10.0f, 10.0f) : run);
+            Vec3 across = d - rod * run;
+            const bool cup = r.stage == 1 && dot(h.second_palm, h.up) > 0.9f;
+            if (cup) {
+                const float up = std::clamp(dot(across, f.up), -4.0f, 10.0f);
+                const float side = std::clamp(dot(across, f.right), -6.0f, 6.0f);
+                across = f.up * up + f.right * side;
+                g.roll = std::clamp(g.roll, o.roll - 12.0f, o.roll + 12.0f);
+            } else {
+                const float al = length(across);
+                if (al > 6.0f) across = across * (6.0f / al);
+            }
+            g.shift = o.shift + along + across;
+        }
+    }
+    return g;
+}
+void fit_log(const FitRun& r, const char* which, int h) {
+    const GripPlace& b = r.best_score > 0 ? r.best : r.from;
+    const GripFit& t = r.best_score > 0 ? r.best_fit : r.start_fit;
+    rt_log("VR: grip fit: %s, the %s hand (%s): {{%.1ff, %.1ff, %.1ff}, %.0ff, %.0ff}, score %.2f (its place before: "
+           "%.2f, why %d finger %d): palm %.2f, wrap %.2f, curls %.2f %.2f %.2f %.2f %.2f (opened %.2f, pads off %.1f "
+           "mm, thumb swung %.1f, in %.1f mm), trigger %.2f (its pad %.1f mm off, spread %.0f, rising %.0f degrees, "
+           "pushing it %.2f along its pull, %s); %d tried (round 1 %d times more); turned away: knuckles in %d, palm in "
+           "%d, a finger in %d (by finger %d %d %d %d %d), a curl off %d (%d %d %d %d %d), the trigger %d, the palm off "
+           "%d",
+           weapon_name(game.weapon), h == kLeft ? "left" : "right", which, b.shift.x, b.shift.y, b.shift.z, b.pitch,
+           b.roll, r.best_score, r.start_score, r.start_fit.why, r.start_fit.finger, t.palm, t.wrap, t.curl[0],
+           t.curl[1], t.curl[2], t.curl[3], t.curl[4], t.opened, t.pads * 1000.0f, t.thumb_swing, t.thumb_in * 1000.0f,
+           t.trig_curl, t.trig_err * 1000.0f, t.trig_spread, t.trig_rise, t.trig_push,
+           t.trig_whole ? "on it the whole pull" : "off it part of the pull", r.tried, r.climbs, r.why[1], r.why[2],
+           r.why[3], r.in_by[0], r.in_by[1], r.in_by[2], r.in_by[3], r.in_by[4], r.why[4], r.curl_by[0], r.curl_by[1],
+           r.curl_by[2], r.curl_by[3], r.curl_by[4], r.why[6], r.why[7]);
+}
+// Testing: SH3_WEAPON_MESH=0 her fingers on the capsules alone (0.1.7's), for the rig's comparisons.
+bool weapon_mesh_on() {
+    static int m = -2;
+    if (m == -2) m = std::getenv("SH3_WEAPON_MESH") ? std::atoi(std::getenv("SH3_WEAPON_MESH")) : 1;
+    return m != 0;
+}
+void fit_step() {
+    if (grip_fit_mode() != 1 || !wf.placed || wf.profile < 0) return;
+    FitRun& r = fit_run;
+    const int p = wf.profile, mh = main_hand(), oh = off_hand();
+    if (game.weapon != r.weapon) {
+        r = FitRun{};
+        r.weapon = game.weapon;
+    }
+    if (r.stage >= 2) return;
+    const int h = r.stage == 0 ? mh : oh;
+    GripPlace* slot = r.stage == 0 ? const_cast<GripPlace*>(main_fit(p, mh)) : const_cast<GripPlace*>(second_fit(p));
+    const bool ready = r.stage == 0 ? slot != nullptr
+                                    : slot && wf.hold->second && hands[oh].on_foregrip && two_w >= 0.999f &&
+                                          hand_role[oh] == 2 && !other_surface(wf) && native_shown[oh] < 0;
+    const bool shaped = !weapon_mesh_on() || shape_ready(p);  // (0.1.8: fitted against the weapon's own shape)
+    if (!ready || !shaped) {
+        // (the main hand: waits for the game's place to be read, however long; none for a melee weapon in the game's
+        // own hands: vr370's handgun was drawn long before its place was read. The other hand: waits for it on the
+        // grip, the whole time the weapon is drawn)
+        if (r.stage == 0 && !finger_drawn(p)) r.stage = 1;
+        r.wait = 0;
+        return;
+    }
+    if (r.round == 0 && r.next == 0 && r.tried == 0) {
+        if (++r.wait < (r.stage == 0 ? 10 : 30)) return;  // (the other hand: its fingers and the main hand's settled)
+        r.from = *slot;
+        Pose pose;
+        if (r.stage == 0) main_hand_pose(wf, mh, &r.from, pose);
+        else pose = second_hand_pose(wf, oh, &r.from);
+        body_grip_fit(h, pose, r.stage == 0, r.stage == 0 ? weapon_trigger() : GripTrigger{}, r.start_fit);
+        r.start_score = r.start_fit.score;
+        // (the rig's record: how her hand meets the weapon along it and up it from there, each finger's knuckle
+        // clearance, the curl it meets it at and the curl it comes out of it from)
+        static char line[1800];
+        for (int iy = -2; iy <= 1; iy++)
+            for (int ix = -2; ix <= 6; ix++) {
+                GripPlace g = r.from;
+                g.shift = r.from.shift + wf.fwd * (ix * 5.0f) + wf.up * (iy * 10.0f);
+                if (r.stage == 0) main_hand_pose(wf, mh, &g, pose);
+                else pose = second_hand_pose(wf, oh, &g);
+                body_grip_report(h, pose, line, sizeof line);
+                // (vr380: the trigger finger's pad's nearest pass by the trigger's blade, its curl and where the pad is
+                // from the blade then, and the finger's root and straight tip: model units)
+                if (r.stage == 0 && kTriggers[p].on) {
+                    const TriggerBlade& k = kTriggers[p];
+                    float best = 1e9f, best_c = -1;
+                    Vec3 off{};
+                    for (int i = 0; i <= 40; i++) {
+                        const float c = i * 0.025f;
+                        const Vec3 j2 = body_finger_joint(h, pose, kIndex, c, 2), j3 = body_finger_joint(h, pose, kIndex, c, 3);
+                        const Vec3 pm = model_of(wf, j2 + (j3 - j2) * 0.55f);
+                        const Vec3 ab = k.b - k.a;
+                        const float t = std::clamp(dot(pm - k.a, ab) / std::max(dot(ab, ab), 1e-6f), 0.0f, 1.0f);
+                        const Vec3 near = k.a + ab * t;
+                        const float d = length(pm - near) - k.r;
+                        if (d < best) best = d, best_c = c, off = pm - near;
+                    }
+                    const Vec3 root = model_of(wf, body_finger_joint(h, pose, kIndex, 0, 0));
+                    const Vec3 tip = model_of(wf, body_finger_joint(h, pose, kIndex, 0, 3));
+                    const size_t used = std::strlen(line);
+                    std::snprintf(line + used, sizeof line - used,
+                                  "; trigger pad nearest %.1f mm (skin) at curl %.3f, pad-blade %.1f %.1f %.1f; index root "
+                                  "%.1f %.1f %.1f, straight tip %.1f %.1f %.1f",
+                                  (best * wf.scale - 0.0085f) * 1000.0f, best_c, off.x, off.y, off.z, root.x, root.y,
+                                  root.z, tip.x, tip.y, tip.z);
+                }
+                GripFit gf;
+                body_grip_fit(h, pose, r.stage == 0, r.stage == 0 ? weapon_trigger() : GripTrigger{}, gf);
+                rt_log("VR: grip fit record: %s, the %s hand %+d forward %+d up: %s; fit %.2f why %d finger %d trigger "
+                       "%.2f (%.1f mm off, spread %.0f)", weapon_name(game.weapon), r.stage == 0 ? "main" : "other",
+                       ix * 5, iy * 10, line, gf.score, gf.why, gf.finger, gf.trig_curl, gf.trig_err * 1000.0f,
+                       gf.trig_spread);
+            }
+    }
+    const GripTrigger trig = r.stage == 0 ? weapon_trigger() : GripTrigger{};
+    for (int k = 0; k < 1200 && r.round < 3; k++) {  // (session 31: round 0 is 59,895 places, about 50 frames)
+        if (r.next == 0) r.ref = r.round == 0 || r.best_score < 0 ? r.from : r.best;
+        const GripPlace g = fit_candidate(wf, r, r.next);
+        Pose pose;
+        bool ok = true;
+        if (r.stage == 0) ok = main_hand_pose(wf, mh, &g, pose);
+        else pose = second_hand_pose(wf, oh, &g);
+        GripFit fit;
+        if (ok) body_grip_fit(h, pose, r.stage == 0, trig, fit);
+        r.tried++;
+        if (fit.score > r.best_score) r.best_score = fit.score, r.best = g, r.best_fit = fit;
+        else if (fit.score < 0 && fit.why > 0 && fit.why < 8) {
+            r.why[fit.why]++;
+            if (fit.finger >= 0 && fit.finger < 5) (fit.why == 3 ? r.in_by : r.curl_by)[fit.finger]++;
+        }
+        if (++r.next >= fit_round_size(r.round)) {
+            // (session 31, vr384 and vr386: the handgun's hands were best at the turns' very edge, 40 degrees: round 1
+            // again round its best while that lies on its edge, a turn of 8 or a move of 5, up to 3 times more)
+            const Vec3 d = r.best.shift - r.ref.shift;
+            const bool edge = r.round == 1 && r.best_score > 0 && r.climbs < 3 &&
+                              (std::fabs(r.best.roll - r.ref.roll) > 7.9f || std::fabs(r.best.pitch - r.ref.pitch) > 7.9f ||
+                               std::fabs(dot(d, wf.fwd)) > 4.9f || std::fabs(dot(d, wf.up)) > 4.9f ||
+                               std::fabs(dot(d, wf.right)) > 4.9f);
+            if (edge) r.climbs++;
+            else r.round++;
+            r.next = 0;
+        }
+    }
+    if (r.round < 3) return;
+    if (r.best_score > 0) *slot = r.best;
+    fit_log(r, r.stage == 0 ? "main, on its grip" : "other, on the second grip", h);
+    const int stage = r.stage + 1;
+    const int weapon = r.weapon;
+    r = FitRun{};
+    r.weapon = weapon;
+    r.stage = stage;
+}
+
 // The weapon placed for this frame: its frame, held back from walls (its probes, sh3vr_body.cpp), and the hands posed
 // round it (the owner: "the hand positions and grip points on weapons should feel natural and native").
 void place_weapon() {
@@ -1225,6 +1878,9 @@ void place_weapon() {
     hand_role[0] = hand_role[1] = 0;
     native_shown[0] = native_shown[1] = -1;
     build_frame(wf, two_w > 0.001f);
+    // (0.1.8: how long it has been in the hand, for its own shape: combat_weapon_mesh)
+    if (wf.placed && game.weapon == placed_weapon) placed_frames++;
+    else placed_frames = 0, placed_weapon = wf.placed ? game.weapon : -1;
     // The weapon's line as the controller holds it: the probes look along it for the world.
     reach_valid = false;
     if (wf.placed) {
@@ -1297,11 +1953,38 @@ void place_weapon() {
     };
     Pose np;
     const NativeGrip* nm = native_of(wf.profile, mh);
-    if (nm && native_pose(mh, *nm, Vec3{}, np)) {
+    // (0.1.8: at its fitted place, main_fit; the game's own rigid hand on a melee weapon as before)
+    if (main_hand_pose(wf, mh, main_fit(wf.profile, mh), np)) {
         hands[mh].shown = np;
-        if (!finger_drawn(wf.profile)) native_shown[mh] = native_group_of(wf.profile, mh);
+        if (nm && !finger_drawn(wf.profile)) native_shown[mh] = native_group_of(wf.profile, mh);
     } else hands[mh].shown = hand_round(mh, wf.base, frame_dir(wf, hd.rod), right_t * -mxm);
     hand_role[mh] = 1;
+    // 0.1.8 (owner message 146): Hold weapons anywhere: the other hand took hold away from the natural grip this frame
+    // (update_two_hand): its hold on the part there, laid on it against the main hand as just posed. Should none fit
+    // (a knuckle in the weapon even 6 cm out), the hand stays as it took hold, its fingers closing on what they meet.
+    if (anywhere_ask.on) {
+        anywhere_ask.on = false;
+        SurfaceHold s;
+        if (surface_hold_at(wf, oh, anywhere_ask.spot, anywhere_ask.rod, anywhere_ask.palm, 0.07f / wf.scale, s)) {
+            anywhere_hold = s;
+            rt_log("VR: frame %d: the %s hand took hold of %s away from its second grip: its fist at %.1f %.1f %.1f "
+                   "along %.2f %.2f %.2f, its palm toward %.2f %.2f %.2f (model; it took hold at %.1f %.1f %.1f)",
+                   rt_frame, oh == kLeft ? "left" : "right", weapon_name(game.weapon), s.at.x, s.at.y, s.at.z, s.rod.x,
+                   s.rod.y, s.rod.z, s.palm.x, s.palm.y, s.palm.z, anywhere_ask.spot.x, anywhere_ask.spot.y,
+                   anywhere_ask.spot.z);
+        } else {
+            anywhere_hold = SurfaceHold{};
+            anywhere_hold.on = true;
+            anywhere_hold.profile = wf.profile;
+            anywhere_hold.at = anywhere_ask.spot;
+            anywhere_hold.rod = anywhere_ask.rod;
+            anywhere_hold.palm = anywhere_ask.palm;
+            rt_log("VR: frame %d: the %s hand took hold of %s away from its second grip, where it is (no part there to "
+                   "lay its palm on)", rt_frame, oh == kLeft ? "left" : "right", weapon_name(game.weapon));
+        }
+    }
+    if (!hands[oh].on_foregrip && two_w <= 0.001f) anywhere_hold.on = false;
+    resolve_moved_hold(wf, oh);
     // The other hand on the second grip: there, posed as that grip is held (the game's own left hand on it, else her
     // finger hand round it, mirrored for the left hand's).
     // Taking and letting go eased (two_w): the hand from its controller's place onto the grip and back.
@@ -1311,14 +1994,19 @@ void place_weapon() {
     Vec3 pull_want{};
     float past = 0;
     if (two) {
-        const NativeGrip* no = mh == kRight ? native_of(wf.profile, oh) : nullptr;
+        const NativeGrip* no = mh == kRight && !finger_drawn(wf.profile) ? native_of(wf.profile, oh) : nullptr;
         const float pump = reload_pump_back();
         // (0.1.7, owner message 124: the game's own other hand follows the player's two-hand grip spot too)
-        if (no && native_pose(oh, *no, wf.fwd * -(pump * kUnitsPerMetre) + second_offset(wf) + second_nudge(wf.profile), np))
+        // 0.1.8: where it took hold (Hold weapons anywhere) or at its moved spot: her finger hand wrapping the part there;
+        // else at the natural grip, at its fitted place (second_fit).
+        if (const SurfaceHold* sh = other_surface(wf)) {
+            Vec3 at = sh->at;
+            if (pump > 0) at = at - wf.fwd * (pump * kUnitsPerMetre);
+            on = hand_round(oh, frame_point(wf, at), frame_dir(wf, sh->rod), frame_dir(wf, sh->palm));
+        } else if (no && native_pose(oh, *no, wf.fwd * -(pump * kUnitsPerMetre) + second_offset(wf) + second_nudge(wf.profile), np))
             on = np, native_on = true;
         else
-            on = hand_round(oh, second_spot(wf), frame_dir(wf, mirrored_dir(wf, hd.second_rod)),
-                            frame_dir(wf, mirrored_dir(wf, hd.second_palm)));
+            on = second_hand_pose(wf, oh, second_fit(wf.profile));
         // Her other hand's bone on the grip past her arm's reach from her shoulder (the arm as last solved): the weapon
         // and both hands held back toward that shoulder by what the arm lacks (at most 20 cm), in with the take, so the
         // hand closes on the grip instead of staying at the arm's end beside it.
@@ -1385,7 +2073,8 @@ void place_weapon() {
             rt_log("VR: frame %d: %s's second grip held (%s): the palm toward %.2f %.2f %.2f, the fist along %.2f %.2f "
                    "%.2f (little finger to thumb); the weapon's top %.2f %.2f %.2f, forward %.2f %.2f %.2f; the "
                    "controller's palm toward %.2f %.2f %.2f", rt_frame, weapon_name(game.weapon),
-                   native_on ? "the game's own hand" : "her finger hand", palm.x, palm.y, palm.z, rod.x, rod.y, rod.z,
+                   native_on ? "the game's own hand" : other_surface(wf) ? "her finger hand where it took hold"
+                                                                         : "her finger hand", palm.x, palm.y, palm.z, rod.x, rod.y, rod.z,
                    up.x, up.y, up.z, fwd.x, fwd.y, fwd.z, cpalm.x, cpalm.y, cpalm.z);
         }
         if (!hands[oh].on_foregrip) settled_for = -1;  // letting go: the next take is logged again
@@ -1398,6 +2087,7 @@ void place_weapon() {
         native_shown[oh] = -1;
         if (reload_held_part(oh) < 0) hand_role[oh] = 3;
     }
+    fit_step();  // (the PC rig's grip fit, SH3_GRIP_FIT=1; nothing otherwise)
 }
 
 void request_equip(int slot) {
@@ -1563,7 +2253,7 @@ void update_holsters() {
 struct Thresholds {
     float speed, travel, net, cooldown;
 };
-Thresholds thresholds(int what) {
+Thresholds thresholds(int what, bool as_asked = true) {
     // 0.1.3 (owner 84: "physical melee seems to sensitive. im just simply moving the knife arm gently/arm in general,
     // and melee animation/sound happens"): every swing asks more than 0.1.2's (knife 1.75 m/s, 0.14 m; stun gun 1.40,
     // 0.10; heavy 2.80, 0.30; gun 2.60, 0.26; a punch 2.20, 0.18), on top of the speeds now taken over the real time
@@ -1572,13 +2262,23 @@ Thresholds thresholds(int what) {
     // travel let a 40 cm swing at 5.8 m/s (the pipe, katana, maul) miss by a hair, so a heavy weapon and a gun as a club
     // ask a shorter fast path; the speed (twice 0.1.2's in real time, never reached by a gentle or moderate move) is
     // what keeps an arm that only moves from swinging.
+    // 0.1.8 (owner message 146: "make sure the melee isnt too senstiive off the bat either"; his 0.1.7 log counted a
+    // knife swing at 2.88 m/s, a gun clubbing at 2.96 while it was only moved about): "Swing strength needed". Light is
+    // 0.1.7's; Normal (to start) asks a fifth more speed (the knife 2.88 m/s, a punch or a gun 3.36, a heavy weapon
+    // 3.60), so only a firm swing counts; Hard asks half as much again and a tenth more of the fast path. The fast path
+    // is measured above the speed asked, so a higher speed already asks a longer firm stretch of the swing.
+    Thresholds t;
     switch (what) {
-    case kLight: return {2.40f, 0.20f, 0.14f, 0.22f};  // the knife
-    case kStun: return {2.00f, 0.14f, 0.10f, 0.30f};   // a jab with the stun gun's prongs
-    case kHeavy: return {3.00f, 0.26f, 0.20f, 0.38f};  // the steel pipe, katana, maul, beam saber
-    case kGun: return {2.80f, 0.24f, 0.18f, 0.45f};    // a gun as a club
-    default: return {2.80f, 0.22f, 0.15f, 0.30f};      // a punch
+    case kLight: t = {2.40f, 0.20f, 0.14f, 0.22f}; break;  // the knife
+    case kStun: t = {2.00f, 0.14f, 0.10f, 0.30f}; break;   // a jab with the stun gun's prongs
+    case kHeavy: t = {3.00f, 0.26f, 0.20f, 0.38f}; break;  // the steel pipe, katana, maul, beam saber
+    case kGun: t = {2.80f, 0.24f, 0.18f, 0.45f}; break;    // a gun as a club
+    default: t = {2.80f, 0.22f, 0.15f, 0.30f}; break;      // a punch
     }
+    if (!as_asked) return t;  // (0.1.7's: a harder swing's damage stays measured from them, swing_speed_factor)
+    if (opt.swing_needed == 1) t.speed *= 1.2f;
+    else if (opt.swing_needed == 2) t.speed *= 1.5f, t.travel *= 1.1f;
+    return t;
 }
 
 // The hand's weapon segment in the world (grip and tip, game units): a weapon placed by its hold from its palm point to
@@ -1909,6 +2609,26 @@ void combat_frame() {
         if (std::fabs(want - two_w) < 0.01f) two_w = want;
         if (!in_hand || view_mode != ViewMode::kFirstPerson || !hands[off_hand()].valid) two_w = 0;
     }
+    {   // 0.1.8: the weapons' own shapes (sh3vr_shape.cpp): built once their faces are taken; one just ready is checked
+        // against its measured points (the grips' and capsules' lines lie inside it, the trigger's blade in or on it)
+        static const char* names[kProfiles];
+        for (int i = 0; i < kProfiles; i++) names[i] = kWeapons[i].name;
+        const int p = shape_frame(names);
+        if (p >= 0 && p < kProfiles) {
+            const Hold& hd = kHolds[p];
+            const Shape& sp = kShapes[p];
+            char line[700];
+            int at = std::snprintf(line, sizeof line, "palm point %.1f, second point %.1f; capsules' ends and middles:",
+                                   shape_point(p, hd.palm), hd.second ? shape_point(p, hd.second_at) : 0.0f);
+            for (int i = 0; i < sp.n && at < (int)sizeof line - 40; i++)
+                at += std::snprintf(line + at, sizeof line - at, " %.1f/%.1f/%.1f (r %.1f)", shape_point(p, sp.c[i].a),
+                                    shape_point(p, (sp.c[i].a + sp.c[i].b) * 0.5f), shape_point(p, sp.c[i].b), sp.c[i].r);
+            if (kTriggers[p].on && at < (int)sizeof line - 40)
+                std::snprintf(line + at, sizeof line - at, "; the trigger's blade %.1f/%.1f (r %.1f)",
+                              shape_point(p, kTriggers[p].a), shape_point(p, kTriggers[p].b), kTriggers[p].r);
+            rt_log("VR: %s's own shape against its measured points (units, negative inside): %s", kWeapons[p].name, line);
+        }
+    }
     place_weapon();
     update_swings();
     if (hand_action.frames > 0 && --hand_action.frames == 0 && !hand_action.found && hand_action.hand >= 0) {
@@ -1943,7 +2663,12 @@ Pose hand_pose_round(int hand, Vec3 at, Vec3 rod, Vec3 palm) { return hand_round
 // check can put the other controller there (its lh_x/lh_y/lh_z then offsets from it) on every weapon alike.
 bool sim_second_spot(float out[3]) {
     if (!wf_one_hand.placed || !wf_one_hand.hold || !wf_one_hand.hold->second) return false;
-    const Vec3 s = second_spot(wf_one_hand);
+    // (0.1.8: the natural spot as moved by the player's own, not where the hand wrapped it: the hand is put where a
+    // player's would be)
+    Vec3 at = second_natural(wf_one_hand) + second_offset(wf_one_hand);
+    const float pump = reload_pump_back();
+    if (pump > 0) at = at - wf_one_hand.fwd * (pump * kUnitsPerMetre);
+    const Vec3 s = frame_point(wf_one_hand, at);
     out[0] = s.x, out[1] = s.y, out[2] = s.z;
     return true;
 }
@@ -2019,17 +2744,74 @@ int weapon_capsules(Capsule* out, int max, bool with_flash) {
 }
 float weapon_clearance(int hand, Vec3 a, Vec3 b) {
     if (!wf.placed) return 1e9f;
-    const Vec3 ma = model_of(wf, a), mb = model_of(wf, b);
-    Cap caps[kCapMax];
-    const int nc = shape_caps(wf, caps);
+    Vec3 ma = model_of(wf, a), mb = model_of(wf, b);
     float best = 1e9f;
-    for (int i = 0; i < nc; i++) best = std::min(best, seg_seg(ma, mb, caps[i].a, caps[i].b) - caps[i].r);
-    if (hand != main_hand()) {
+    const int mh = main_hand();
+    if (weapon_mesh_on() && shape_ready(wf.profile)) {
+        // 0.1.8: the weapon's own shape (sh3vr_shape.cpp); the other hand on the shotgun's pump as it is drawn back
+        // meets the pump where it is (the shape at rest, the hand's query moved forward with it)
+        const float pump = hand != mh && hand_role[hand] == 2 ? reload_pump_back() : 0.0f;
+        if (pump > 0) ma = ma + wf.fwd * (pump * kUnitsPerMetre), mb = mb + wf.fwd * (pump * kUnitsPerMetre);
+        best = shape_segment(wf.profile, ma, mb);
+    } else {
+        Cap caps[kCapMax];
+        const int nc = shape_caps(wf, caps);
+        for (int i = 0; i < nc; i++) best = std::min(best, seg_seg(ma, mb, caps[i].a, caps[i].b) - caps[i].r);
+    }
+    if (hand != mh && hand_role[mh] == 1 && native_shown[mh] < 0 && grip_fit_mode() != 0) {
+        // 0.1.8: her main hand's own fingers and palm as drawn round the grip (the other hand wraps them, never through)
+        Vec3 ha[18], hb[18];
+        float hr[18];
+        const int nh = body_hand_capsules(mh, ha, hb, hr, 18);
+        float closest = best * wf.scale;
+        for (int i = 0; i < nh; i++) closest = std::min(closest, seg_seg(a, b, ha[i], hb[i]) - hr[i]);
+        return closest;
+    }
+    if (hand != mh) {
         // The main hand's fist round the grip (its fingers about 1.8 cm over the grip's surface).
         const Hold& hd = *wf.hold;
         best = std::min(best, seg_seg(ma, mb, wf.palm - hd.rod * 24.0f, wf.palm + hd.rod * 24.0f) - 20.0f);
     }
     return best * wf.scale;
+}
+bool grip_fit_mode_on() { return grip_fit_mode() != 0; }
+GripTrigger weapon_trigger_at(float pull) {
+    GripTrigger t;
+    if (!wf.placed || wf.profile < 0 || !kTriggers[wf.profile].on || !weapon_is_gun()) return t;
+    const int p = wf.profile;
+    const TriggerBlade& k = kTriggers[p];
+    const Quat q = trigger_turn(p, wf.fwd, pull);
+    t.on = true;
+    t.a = frame_point(wf, trigger_moved(p, q, k.a));
+    t.b = frame_point(wf, trigger_moved(p, q, k.b));
+    t.r = k.r * wf.scale;
+    t.up = frame_dir(wf, wf.up);
+    return t;
+}
+GripTrigger weapon_trigger() { return weapon_trigger_at(0.0f); }
+// Session 31: how far (degrees) the trigger of the gun in the main hand is turned as drawn: as far as her trigger
+// finger, drawn, has pushed it (body_trigger_shown); 0 in the third-person view (the game's own hands).
+float weapon_trigger_turn() {
+    if (!wf.placed || !in_hand || wf.profile < 0 || !kTriggers[wf.profile].on || !weapon_is_gun() ||
+        view_mode != ViewMode::kFirstPerson)
+        return 0.0f;
+    return body_trigger_shown(main_hand()) * kTriggers[wf.profile].turn;
+}
+bool weapon_trigger_place(uint32_t nv, uint32_t np, float m[12]) {
+    for (int i = 0; i < 12; i++) m[i] = i % 5 == 0 ? 1.0f : 0.0f;
+    const WeaponInfo* w = info_of(game.weapon);
+    if (!w || weapon_trigger_turn() <= 0.0f) return false;
+    bool same = false;
+    for (int s = 0; s < w->sigs && s < 4; s++) same |= w->nv[s] == nv && w->np[s] == np;
+    if (!same) return false;  // (not the gun in her hand)
+    const int p = wf.profile;
+    const Quat q = trigger_turn(p, wf.fwd, weapon_trigger_turn() / kTriggers[p].turn);
+    const Vec3 X = rotate(q, Vec3{1, 0, 0}), Y = rotate(q, Vec3{0, 1, 0}), Z = rotate(q, Vec3{0, 0, 1});
+    const Vec3 t = kTriggers[p].pin - rotate(q, kTriggers[p].pin);
+    const float r[3][4] = {{X.x, Y.x, Z.x, t.x}, {X.y, Y.y, Z.y, t.y}, {X.z, Y.z, Z.z, t.z}};
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 4; j++) m[i * 4 + j] = r[i][j];
+    return true;
 }
 int weapon_hand_role(int hand) { return hand >= 0 && hand < 2 ? hand_role[hand] : 0; }
 // The other hand's share of the second grip (0 at its controller .. 1 on the grip; 0 for the main hand): letting go it
@@ -2486,6 +3268,7 @@ bool saber_blade_draw(uint32_t nv, uint32_t np, int pal_count, const int* pal_bo
 
 int combat_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count, const int* pal_bone, float vsc[96][4]) {
     weapon_draw_now = false;
+    mesh_slot = mesh_sig = -1;
     diag_draw(nv, np, stride, pal_count, pal_bone, vsc);
     {
         // testing (session 15, owner 61): SH3_SABER_BONES=F logs, at frames F and F+30, every skinned draw while the
@@ -2601,11 +3384,93 @@ int combat_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count,
                     if (k == held ? bone_affine(vsc, k) : bone_finite(vsc, k))
                         write_bone(vsc, k, k == held ? H : mul(rel, read_bone(vsc, k)));
                 changed = true;
+                // (0.1.8: this draw's held slot and which of the weapon's draws it is, for its own shape)
+                mesh_slot = held;
+                for (int i = 0; i < w->sigs; i++)
+                    if (w->nv[i] == nv && w->np[i] == np) mesh_sig = i;
             }
         }
     }
     changed |= apply_pass(vsc, slots);
     return changed ? 1 : 0;
+}
+
+// 0.1.8 (owner messages 146-148: the fingers' collision on the weapons too, "guns/weapons/melee weapons"): the weapon's
+// faces for its own shape (sh3vr_shape.cpp), from a draw of it just made in the hand (d3d8.c her_shadow_capture, by
+// sh3vr_shadow_part): each vertex skinned as the game's vertex shader skins it (sh3vr_ik.cpp shadow_part's way: three
+// weights and a fourth, each a palette slot) with the constants it was drawn with, then into the held bone's model units
+// by the inverse of the held slot as drawn, each face wound to its vertices' normals' side (outward). Taken once the
+// weapon has been in the hand for 36 frames running, whole and at rest: no reload under way (no part out of it or in a
+// hand, the slide or pump forward), no shot within 0.3 s of its flash; its own moving part at rest, its trigger not
+// pulled.
+void combat_weapon_mesh(const uint8_t* v48, int nv, const uint16_t* tris, int nt, const float* c, uint32_t key) {
+    const WeaponInfo* w = info_of(game.weapon);
+    if (!w || !wf.placed || !in_hand || mesh_slot < 0 || mesh_slot >= kBones || mesh_sig < 0 || !v48 || !tris || !c ||
+        nv <= 0 || nt <= 0 || wf.profile < 0)
+        return;
+    const int p = wf.profile;
+    if (!shape_wanted(p) || placed_frames < 36 || placed_weapon != game.weapon || now < flash_until + 0.3f ||
+        reload_blocks_fire() || reload_owns_hand(kLeft) || reload_owns_hand(kRight) || reload_pump_back() > 0.0f)
+        return;
+    // (session 31: every pass of it at rest in the frame taken, as the shape takes one frame's draws: its moving part
+    // forward and its trigger not pulled past 2 degrees (one turned less is taken where it is drawn, a fraction of a
+    // millimetre off); before, a frame with the slide held back took the frame without the slide)
+    if (weapon_trigger_turn() > 2.0f) return;
+    for (int k = 1; k < 8; k++) {
+        PassPlace pp;
+        if (!parts_pass_place(k, pp)) break;
+        if (pp.kind != 1) continue;
+        const float id[12] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+        for (int i = 0; i < 12; i++)
+            if (std::fabs(pp.m[i] - id[i]) > (i % 4 == 3 ? 0.01f : 1e-4f)) return;  // the moving part not at rest
+    }
+    if (const int pass = parts_pass()) {
+        PassPlace pp;
+        if (!parts_pass_place(pass, pp) || pp.kind == 2) return;  // a part in a hand or falling: not the weapon
+    }
+    Aff H, iH;
+    for (int r = 0; r < 3; r++) {
+        const float* row = c + (kPaletteStart + mesh_slot * 3 + r) * 4;
+        H.r.m[r][0] = row[0], H.r.m[r][1] = row[1], H.r.m[r][2] = row[2];
+        (&H.t.x)[r] = row[3];
+    }
+    if (!inverse(H, iH)) return;
+    static std::vector<Vec3> pos, nrm;
+    static std::vector<float> faces;
+    pos.resize((size_t)nv);
+    nrm.resize((size_t)nv);
+    const float one = c[0], scale = c[3] / 255.0f;
+    for (int i = 0; i < nv; i++) {
+        const uint8_t* x = v48 + (size_t)i * 48;
+        float f[12];
+        std::memcpy(f, x, sizeof f);
+        const float wt[4] = {f[3], f[4], f[5], one - one * (f[3] + f[4] + f[5])};
+        Vec3 q{}, n{};
+        for (int k = 0; k < 4; k++) {
+            if (wt[k] == 0.0f) continue;
+            const int a0 = (int)std::floor((float)x[24 + k] * scale + 1e-3f);
+            if (a0 < 0 || a0 > 45) continue;
+            const float* r = c + (48 + a0) * 4;
+            q = q + Vec3{r[0] * f[0] + r[1] * f[1] + r[2] * f[2] + r[3], r[4] * f[0] + r[5] * f[1] + r[6] * f[2] + r[7],
+                         r[8] * f[0] + r[9] * f[1] + r[10] * f[2] + r[11]} * wt[k];
+            n = n + Vec3{r[0] * f[7] + r[1] * f[8] + r[2] * f[9], r[4] * f[7] + r[5] * f[8] + r[6] * f[9],
+                         r[8] * f[7] + r[9] * f[8] + r[10] * f[9]} * wt[k];
+        }
+        pos[(size_t)i] = mul(iH.r, q) + iH.t;
+        nrm[(size_t)i] = mul(iH.r, n);
+        if (!std::isfinite(pos[(size_t)i].x) || !std::isfinite(pos[(size_t)i].y) || !std::isfinite(pos[(size_t)i].z)) return;
+    }
+    faces.clear();
+    faces.reserve((size_t)nt * 9);
+    for (int t = 0; t < nt; t++) {
+        int a = tris[t * 3], b = tris[t * 3 + 1], cc = tris[t * 3 + 2];
+        if (a >= nv || b >= nv || cc >= nv) continue;
+        const Vec3 g = cross(pos[(size_t)b] - pos[(size_t)a], pos[(size_t)cc] - pos[(size_t)a]);
+        if (dot(g, g) < 1e-10f) continue;  // no area
+        if (dot(g, nrm[(size_t)a] + nrm[(size_t)b] + nrm[(size_t)cc]) < 0) std::swap(b, cc);
+        for (int v : {a, b, cc}) faces.push_back(pos[(size_t)v].x), faces.push_back(pos[(size_t)v].y), faces.push_back(pos[(size_t)v].z);
+    }
+    if (!faces.empty()) shape_add(p, mesh_sig, w->sigs, key, faces.data(), (int)(faces.size() / 9));
 }
 
 // LIST 24 (session 13): the extra weapons (unlimited submachine gun, flamethrower, beam saber...: slots 9, 10, 13, 14,
@@ -2847,7 +3712,7 @@ struct MeleeHit {
 };
 MeleeHit melee_hits[4];
 float swing_speed_factor(int what, float speed) {
-    const float ask = thresholds(what).speed;
+    const float ask = thresholds(what, false).speed;
     if (!(ask > 0.0f) || !std::isfinite(speed)) return 1.0f;
     return 1.0f + 0.5f * std::clamp(speed / ask - 1.0f, 0.0f, 1.0f);
 }

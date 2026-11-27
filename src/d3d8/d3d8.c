@@ -891,11 +891,18 @@ static int vr_route(uint32_t va, uint32_t stride, uint32_t count) {
     }
     if ((at >= 0 && rt_frame >= at && rt_frame <= at + 2) || (at2 >= 0 && rt_frame == at2)) {
         Res *t0 = res_of(dev->tex[0]), *rt = res_of(dev->rt);
-        rt_log("route: frame %d: %d (views %d, into the back buffer %d, target %ux%u layers %d; vs %08X count %u, "
-               "blend %u, texture 0 %ux%u layers %d, z %u, world %d; from %08X, nv %u np %u, beam mesh %d)", rt_frame, r,
+        /* (session 32: whether the draw came inside the event dispatch, sh3.c sh3_in_dispatch, and with the frame's own
+         * camera: the item an event shows) */
+        extern int sh3_in_dispatch(void);
+        const int is_main = dev->vs < 0xF0000000u ? sh3vr_is_main_proj(dev->proj)
+                                                  : sh3vr_is_main_vp_constants(&dev->vsc[2][0]);
+        rt_log("route: frame %d: %d (dispatch %d, main camera %d; views %d, into the back buffer %d, target %ux%u layers "
+               "%d; vs %08X count %u, blend %u, texture 0 %ux%u layers %d, z %u, world %d; from %08X, nv %u np %u, beam "
+               "mesh %d; viewport %.0f %.0f %.0f %.0f of %ux%u)", rt_frame, r, sh3_in_dispatch(), is_main,
                dev->views, dev->rt == dev->backbuffer, rt ? rt->w : 0, rt ? rt->h : 0, rt ? res_layers(rt) : 0, dev->vs,
                count, dev->rs[27], t0 ? t0->w : 0, t0 ? t0->h : 0, t0 ? res_layers(t0) : 0, dev->rs[7], world_last,
-               MEM32(g_esp), dev->draw_nv, dev->draw_np, dev->beam_mesh);
+               MEM32(g_esp), dev->draw_nv, dev->draw_np, dev->beam_mesh, dev->vp_x, dev->vp_y, dev->vp_w,
+               dev->vp_h, dev->bb_w, dev->bb_h);
         /* (session 16, owner 79: a screen-space draw's place: its box and depths, and whether it went in the world) */
         const int rhw = dev->vs < 0xF0000000u && (dev->vs & 0xE) == 4;
         if (rhw && va && count) {
@@ -1045,6 +1052,24 @@ static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
             dev->beam_mesh = sh3vr_beam_mesh(dev->beam_map, count);
         }
         if (!to_backbuffer) return 0;
+        /* 0.1.8 (owner 152, a player: "When I took the key, I saw it double on my headset"): an item the game gives
+         * shows its model turning in a box by its message (0x599A60 opens it; 0x599EA0, which the event dispatch
+         * 0x4B9E70 calls as it returns, draws it through 0x599B70 with a projection of its own, off centre at the
+         * game's 256,304, 1.3 times its size: no viewport of its own). Drawn before the message's 2D, it went to the
+         * eyes: the same picture in both, so at no depth, seen double against the message 0.9 m off. A 3D draw of
+         * another camera made inside the dispatch (sh3.c sh3_in_dispatch) is that item: on the panel with its
+         * message, where the game put it. */
+        extern int sh3_in_dispatch(void);
+        if (!main && sh3_in_dispatch()) {
+            static int told, told_at = -100;
+            if (rt_frame - told_at > 60 && told < 40) {
+                told++;
+                rt_log("VR: frame %d: the item an event shows, drawn by its own camera in the game's dispatch: on the "
+                       "panel with its message (not in the eyes)", rt_frame);
+            }
+            told_at = rt_frame;
+            return 1;
+        }
         return !main && (panel_has_picture || full_screen) ? 1 : 0;
     }
     if (full_screen) {

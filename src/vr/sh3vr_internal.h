@@ -123,6 +123,10 @@ struct Options {
     int grip_spot = 0;           // 0.1.7 (owner message 124): the two-hand grip spot: 0 as saved, 1 adjust (taking hold
                                  // sets it), 2 the weapon in the hand reset, 3 every weapon reset (then 0 again;
                                  // sh3vr_combat.cpp update_two_hand)
+    bool grip_anywhere = false;  // 0.1.8 (owner message 146: "the grip gun anywhere mode should be a seperate toggle"):
+                                 // the other hand takes the weapon wherever it takes hold, wrapped round the part there
+    int swing_needed = 1;        // 0.1.8 (owner message 146: "make sure the melee isnt too senstiive off the bat"): how
+                                 // hard a real swing must be: 0 light (0.1.7's), 1 normal, 2 hard
     bool physical_melee = true;
     float melee_damage_pct = 200.0f;  // 0.1.7 (a player on 0.1.6: "The enemies seem to take an absurd amount of knifing to
                                       // kill"): physical melee and punches deal this much of the game's damage
@@ -303,6 +307,12 @@ struct HerHand {
     FingerGeo f[5];            // thumb, index, middle, ring, pinky
 };
 extern HerHand her_hands[2];   // the probes (sh3vr_body.cpp) use her own fingers' shapes
+// Session 31: each hand's index spread sideways at its knuckle as drawn (degrees: sh3vr_body.cpp finger_points' spread,
+// body_fingers sets it, the trigger finger reaching a gun's trigger; sh3vr_ik.cpp pose_fingers draws it).
+extern float index_spread[2];
+// Session 31: each hand's thumb swung sideways at its root as drawn (degrees, the same rotation; body_fingers sets it,
+// the thumb laid along a gun's frame or round a handle: sh3vr_body.cpp thumb_rest).
+extern float thumb_spread[2];
 // A finger bent back (a curl below 0: pressed flat on a surface, or poked at a wall, as Jak's and Ratchet's fingers
 // are): each joint by this share of its fist bend per unit of curl, most at the knuckle, down to kFingerBackMost.
 // sh3vr_body.cpp's finger_points and sh3vr_ik.cpp's pose_fingers bend them alike. Her model's open hand is a relaxed
@@ -383,6 +393,8 @@ bool melee_hold_still();
 const char* weapon_name(int slot);
 void combat_crash_info(FILE* f);
 int combat_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count, const int* pal_bone, float vsc[96][4]);
+// 0.1.8: a draw of the weapon just made in the hand (its vertices, faces and constants as drawn): its own shape's faces
+void combat_weapon_mesh(const uint8_t* v48, int nv, const uint16_t* tris, int nt, const float* c, uint32_t key);
 int combat_weapon_bones(float* bones, int n);  // LIST 24: the extras carried to her IK hand (sh3.c 0x45EC00 wrapper)
 // The weapon in the main hand (first person, drawn there): a point of its model (model units, the held bone's) in
 // tracking space, through the same frame the draw uses. false: no weapon placed in the hand.
@@ -419,6 +431,69 @@ float weapon_hold_thumb(int hand);  // 0.1.7: the second hand's thumb curl on it
 // The game's own gripping hand shown for hand h on the weapon held (its group in Heather's model), -1 her finger hand.
 int native_hand_group(int hand);
 bool weapon_is_gun();
+// 0.1.8 (owner message 146: "the fuckin finger isnt even on the trigger and two hand grip hand is still a bit off"):
+// how hand h would hold the weapon at `pose` (tracking), sh3vr_body.cpp: each finger closing until it meets the weapon
+// (the other hand: the main hand's fingers too), her palm against it, and a gun's main hand with its trigger finger's
+// pad on the trigger. score -1: it cannot hold there (why: 1 a knuckle in it, 2 the palm in it, 3 a finger starting in
+// it, 4 a finger's curl out of range, 6 the trigger out of reach, 7 the palm off it).
+struct GripTrigger {
+    bool on = false;
+    Vec3 a, b;   // the trigger's blade (tracking, metres)
+    float r = 0;
+    Vec3 up;     // session 31: the gun's top (tracking, unit): the trigger finger runs along it to the trigger
+};
+struct GripFit {
+    float score = -1, curl[5]{}, palm = 0, wrap = 0, trig_curl = -1, trig_err = 0;
+    float opened = 0;  // the fingers' curls (summed) where each, straight in the weapon, comes out of it
+    float thumb_in = 0;  // how far past resting the thumb goes into it at its least (metres; thumb_rest)
+    float thumb_swing = 0;  // session 31: the thumb's swing at its root resting (degrees; thumb_rest)
+    float trig_spread = 0;  // session 31: the trigger finger's sideways spread on the trigger (degrees)
+    float trig_rise = 0;    // session 31: how steeply it rises from its knuckle to the trigger (degrees, + up the gun)
+    float trig_push = 0;    // session 31: the pad's way closing against the trigger's way pulled (cosine; 1 the same)
+    bool trig_whole = false;  // session 31: its pad on the trigger the whole pull (body_trigger_pull_curls)
+    float pads = 0;         // session 31: the fingers' pads off the weapon past 3 mm, summed (metres)
+    int why = 0;
+    int finger = -1;   // the finger turned away for (why 3, 4)
+};
+void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, GripFit& out);
+// The trigger finger's curl that lays its pad on the trigger, hand h drawn at `pose` (-1: it cannot reach it); err: how
+// far the pad lies from it there (metres); spread: how far the finger is spread sideways for it (degrees, session 31).
+float body_trigger_curl(int h, const Pose& pose, const GripTrigger& trig, float* err = nullptr, float* spread = nullptr);
+// Session 31: the trigger finger's curl off the trigger (beside the frame, else lifted off the guard), -1: none clear;
+// unspread first, then at `prefer` (its spread on the trigger); spread: the one taken.
+float body_trigger_rest(int h, const Pose& pose, float prefer = 0.0f, float* spread = nullptr);
+GripTrigger weapon_trigger();  // the gun in the main hand's trigger this frame (on false: none, or no gun)
+// Session 31 (owner message 151): the trigger seen pulled. Its blade turned about its pin by `pull` (0 at rest .. 1 all
+// the way); how far it is turned as drawn (degrees: as far as her trigger finger, drawn, has pushed it; 0 in the
+// third-person view); its faces' turn for the trigger's pass of the gun drawn (nv, np: its signature), a row-major 3x4
+// in the held bone's model units (false: identity, the gun in her hand not drawn or its trigger at rest).
+GripTrigger weapon_trigger_at(float pull);
+float weapon_trigger_turn();
+bool weapon_trigger_place(uint32_t nv, uint32_t np, float m[12]);
+// Session 31: the trigger finger's curls with the trigger pulled 0, 1/4, 1/2, 3/4 and all the way, its pad kept on the
+// blade turned back (spread sp; out[0] = ct, its curl on the trigger at rest); false where the pad loses the blade along
+// the pull (the curls from there then rise 0.1 over the pull). How far the trigger is pushed (0..1) by hand h's trigger
+// finger as drawn this frame (0: off it, or not the main hand on a gun).
+bool body_trigger_pull_curls(int h, const Pose& pose, float ct, float sp, float out[5]);
+float body_trigger_shown(int h);
+bool grip_fit_mode_on();      // 0.1.8's fitted hands (SH3_GRIP_FIT=0 on the rig: 0.1.7's, for comparisons)
+void body_grip_report(int h, const Pose& pose, char* out, int size);  // the rig's record of a hand's place (the fit)
+Vec3 body_finger_joint(int h, const Pose& pose, int f, float c, int j);  // finger f's joint j (0 root .. 3 tip), tracking
+// 0.1.8 (owner messages 146-148): each weapon's own shape from its mesh as drawn in the hand (sh3vr_shape.cpp): its faces
+// taken once (model units of the held bone, wound outward; `sig` the weapon's draw, of `sigs`), made into a signed
+// distance field on a thread of its own; her fingers, palm and knuckles stop on it (weapon_clearance).
+bool shape_wanted(int profile);  // its faces still to take
+void shape_add(int profile, int sig, int sigs, uint32_t key, const float* tri9, int ntris);
+int shape_frame(const char* const* names);  // each frame: a shape whose faces are all taken starts building; the
+                                            // profile whose field just became ready (-1 none)
+bool shape_ready(int profile);
+float shape_point(int profile, Vec3 p);            // model units: its signed distance (negative: inside); 1e9 not ready
+float shape_segment(int profile, Vec3 a, Vec3 b);  // ... the least along a segment
+// Hand h's palm and fingers as drawn (tracking capsules, metres): the other hand's fingers stop on them.
+int body_hand_capsules(int h, Vec3* a, Vec3* b, float* r, int max);
+// Hand h at `pose` against the weapon (and the main hand): how near her palm's skin comes to it (metres), and whether a
+// knuckle or her palm is in it.
+void body_palm_touch(int h, const Pose& pose, float& palm_clear, bool& inside);
 // A hand's pose (OpenXR's grip pose, tracking) round a grip: its fist's centre at `at`, its rod (little finger to
 // thumb) along `rod`, its palm facing `palm` (unit).
 Pose hand_pose_round(int hand, Vec3 at, Vec3 rod, Vec3 palm);
@@ -496,7 +571,7 @@ void tips_crash_info(FILE* f);
 
 enum PartKind { kPartNone = -1, kPartHandgunMag = 0, kPartSmgMag, kPartShell, kPartBattery, kPartCount };
 // A pass's placement: 0 the gun's own palette; 1 every palette bone times `m` (model units: a moving part); 2 every
-// bone `m` (world: VR's own mesh). m: a row-major 3x4.
+// bone `m` (world: VR's own mesh); 3 as 1, the trigger turned about its pin (session 31). m: a row-major 3x4.
 struct PassPlace {
     int kind = 0;
     float m[12]{};

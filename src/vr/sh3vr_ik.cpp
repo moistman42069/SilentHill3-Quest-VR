@@ -58,6 +58,8 @@ int game_head_frame = -1;
 Vec3 game_head_fwd{0.0f, 0.0f, 1.0f};  // 0.1.5: where her face points as the game posed her head (world, unit) ...
 int game_head_fwd_frame = -1;           // ... in this frame (-1: not known, her rest pose not read yet)
 HerHand her_hands[2];
+float index_spread[2];  // session 31: the trigger finger's sideways spread as drawn (degrees; body_fingers)
+float thumb_spread[2];  // session 31: the thumb's sideways swing at its root as drawn (degrees; body_fingers)
 
 namespace {
 
@@ -668,12 +670,24 @@ Bone hand_at(int h, const Pose& pose) {
 
 // Her fingers below her hand, closed by `curl` (0 open .. 1 fist; thumb, index, middle, ring, pinky; below 0 bent back
 // against a surface, kFingerBack's share at each joint, as sh3vr_body.cpp's finger_points has them).
-void pose_fingers(Bone* B, int h, const float curl[5]) {
+// Session 31: the index spread sideways at its knuckle by `index_deg` (finger_points' spread): about the axis across its
+// bend (the bend axis crossed with its first segment, both as drawn: the same axis finger_points takes in the grip's
+// space), its bend about the spread axis from there on. The thumb swung at its root by `thumb_deg` alike (session 31:
+// laid along a gun's frame, thumb_rest).
+void pose_fingers(Bone* B, int h, const float curl[5], float index_deg = 0.0f, float thumb_deg = 0.0f) {
     const Bone& H = B[sk.hand[h]];
     for (int f = 0; f < 5; f++) {
-        const Vec3 axis = normalized(apply_dir(H, sk.bend[h][f]));
+        Vec3 axis = normalized(apply_dir(H, sk.bend[h][f]));
         const float* deg = f == kThumb ? kThumbDeg : kJointDeg;
         const float c = std::isfinite(curl[f]) ? std::clamp(curl[f], kFingerBackMost, 1.0f) : 0.0f;
+        const float sd = f == kIndex ? index_deg : f == kThumb ? thumb_deg : 0.0f;
+        const float lim = f == kThumb ? 50.0f : 20.0f;
+        const float sr = std::isfinite(sd) ? std::clamp(sd, -lim, lim) * kPi / 180.0f : 0.0f;
+        Quat qs{0, 0, 0, 1};
+        if (std::fabs(sr) > 1e-4f) {
+            const Vec3 n = cross(axis, normalized(apply_dir(H, sk.joint[h][f][1] - sk.joint[h][f][0])));
+            if (length(n) > 1e-3f) qs = axis_angle(normalized(n), sr);  // (as finger_points: any tilt of the axis)
+        }
         Bone parent = H;
         for (int j = 0; j < 3; j++) {
             const int b = sk.finger[h][f][j];
@@ -682,6 +696,10 @@ void pose_fingers(Bone* B, int h, const float curl[5]) {
             if (std::fabs(a) > 1e-4f) {
                 const Quat q = axis_angle(axis, a);
                 for (int i = 0; i < 3; i++) w.r[i] = rotate(q, w.r[i]);
+            }
+            if (j == 0 && qs.w < 1.0f) {
+                for (int i = 0; i < 3; i++) w.r[i] = rotate(qs, w.r[i]);
+                axis = rotate(qs, axis);  // (the joints past the knuckle bend in the spread finger's own plane)
             }
             B[b] = w;
             parent = w;
@@ -995,7 +1013,7 @@ void arm_to(Bone* B, int h, const Pose& pose, const float curl[5], bool ghost) {
     const Vec3 wrist = B[hd].o;
     B[hd] = want;
     if (opt.arms_follow && !ghost) B[hd].o = wrist;
-    if (!ik_off(512)) pose_fingers(B, h, curl);
+    if (!ik_off(512)) pose_fingers(B, h, curl, index_spread[h], thumb_spread[h]);
 }
 
 void footstep(int side, float strength) {

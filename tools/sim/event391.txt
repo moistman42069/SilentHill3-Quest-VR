@@ -1,0 +1,37 @@
+# SH3 Quest VR, the PC rig (session 32, 0.1.8 builds 263-265), about 2.5 minutes. Owner message 152: "she keeps walking
+# after interacting ... if you are moving at all when you interact"; the 0.1.7 player's video: "The lock is broken. I
+# can't open the door." up for 25 s while she walked about the hall. The start room's counter (events 8 and 12, about
+# -17773 21783, vr206): walked to with the stick held (SH3_STEER_TO's third point lies past them, so the steering keeps
+# walking her), the head turned (head_yaw 135: her facing -45 degrees, vr391) so her facing and the eyes point at them, A pressed once while she
+# walks (7890, the rabbit costume's three pages: A at 7990 and 8140 turns them, 8280 closes it), the stick held
+# until 8100 and again from 8200: with the fix she stands while the message is up (sh3.log "her walk:" lines: her place unchanged, the
+# game's event step 2), 0.1.7 (SH3_EVENT_HOLD=0 SH3_NO_GESTURE_HOLD=1) walks on; closed, the stick walks her again,
+# and the item display (SH3_ITEM_SHOW_TEST="8440:2,8620:-1", game frames: item 2's model in its box) with
+# the draws' routes logged (SH3_ROUTE_DUMP=8540): on the panel (1), not the eyes (0). (Sim frames run about 49 ahead of the game's.) Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-17386,21386;-17560,21570;-17950,21950" SH3_WALK_LOG=4 SH3_STATE_LOG=1
+# SH3_ITEM_SHOW_TEST="8440:2,8620:-1" SH3_ROUTE_DUMP=8540; SH3_SPEND_TEST="7700:8:69" makes the costume a key's door (item 69)
+7740 left_y 1
+7745 head_yaw 135
+7890 a 1
+7896 a 0
+7930 shot e07930-message
+7970 shot e07970-message-held
+7990 a 1
+7996 a 0
+8030 shot e08030-message
+8070 shot e08070-message-held
+8100 left_y 0
+8140 a 1
+8146 a 0
+8180 shot e08180-page3
+8200 left_y 1
+8260 shot e08260-page3-stick-held
+8280 a 1
+8286 a 0
+8340 shot e08340-closed-walking-again
+8370 left_y 0
+8590 shot e08590-item-display
+8610 head_yaw 160
+8640 shot e08640-item-display-turned
+8700 quit 0

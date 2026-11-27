@@ -193,11 +193,35 @@ static int playable_frame;
 /* session 11: whether this frame's update was play so far (d3d8.c vr_route: out of play, the game's full screens) */
 int sh3_playable_now(void) { return playable_frame; }
 static uint32_t last_game_mode = 0xFFFFFFFFu, frame_no;
+/* 0.1.8 (owner 152): the dispatch's own step after its call. 0x4B9E70 pushes a level on the game's step stack
+ * (0x5F1B50), keeps its step there (0x5F1B70 sets it, 0x5F1BC0 reads it) and pops the level as it returns, so its step
+ * stays at the depth + 1: 0 nothing running (free play: the stick and the button are the player's), 2 and 5 an
+ * event's script (a door, an examine's message, a scene played in the room), 3 a floor item's pick-up (0x4B8040),
+ * 6 her death's wait, 8 0x4B8540's. The game returns mode 5 (the playable update) through its scripts and pick-ups as
+ * well (0x4BA28A: mode 2 only when 0xBA974E asks for it), so mode 5 alone never told free play from an event. */
+static uint32_t event_state;
+static void pickup_watch(void);
+/* 0.1.8 (owner 152): 1 while the dispatch runs: as it returns it calls 0x599EA0, which draws the item an event gives
+ * (0x599B70, a projection of its own); d3d8.c puts the 3D drawn then on the panel with its message */
+static int in_dispatch;
+int sh3_in_dispatch(void) { return in_dispatch; }
 extern void sub_004B9E70_gen(void);
 void sub_004B9E70(void) {
+    in_dispatch = 1;
     sub_004B9E70_gen();
+    in_dispatch = 0;
     last_game_mode = g_eax;
     if (g_eax == 5) playable_frame = 1;
+    const uint32_t depth = MEM32(0xBCC658u), was = event_state;
+    event_state = depth < 15u ? MEM32(0xBCC65Cu + 4u * (depth + 1u)) : 0u;
+    if (event_state != was) {
+        static int told;
+        if (told++ < 600)
+            rt_log("VR: frame %d: the game's event step %u -> %u (event %d, mode %u; her action %u, movement %u)%s",
+                   rt_frame, was, event_state, (int)MEM32(0xBA9768u), (unsigned)g_eax, MEM32(0x712C18Cu),
+                   MEM32(0x712C190u), told == 600 ? "; no more of these lines" : "");
+    }
+    pickup_watch();
 }
 
 /* Heather's work struct (0x712C100 points at it; +0x80 == 0x0100 is her). */
@@ -695,9 +719,24 @@ static void event_table_log(void) {
  * 0x4B76B0, and the point regions the front point +0x20/+0x28, 0x4B7600, `front` or 150 units ahead): check 0 / 1 the
  * events' passes 0 / 1 (0x4B9940 mode 1), 2 the floor items (0x4B74B0). All only read; the record is set from
  * `saved` first (the caller puts it back), the arguments and the stack as they were after. */
+/* 0.1.8 (owner 152, a player: "I took the key for the bookstore. But when I went back to the book store, the key is
+ * not in my inventory"): 0x4B9940 SPENDS an item when it finds an event that uses one up: at its end (0x4B9CBF), with
+ * its fourth argument ("kind") 0, an event whose field d4 asks for an item (1: the item used from the inventory, 2: an
+ * item held, as a key at its door) and whose field dc is set has that item taken from the inventory (0x496A20: one
+ * fewer, or its bit cleared), because a found event always runs after it. VR's own checks (the hands' reach every
+ * frame, the hints', the button's along her facing and where the player looks, a closing hand's) only look, and ran
+ * with the game's kind 0: a hand reaching toward the bookstore's door, or A pressed at it, spent the key there and then,
+ * the door not opened, and the game's own check that followed found the door's locked event (its key not held). Every
+ * key's door could eat its key so. VR's checks now pass kind 1 (0x4B9940 reads it nowhere else: what is found is the
+ * same), and the inventory (its bits and counts, 0x712CA80-0x712CABF) is kept as it was across each of them, put back
+ * and logged if anything in the check changed it. */
 static int action_check_at(uint32_t rec, const float *saved, float px, float pz, float yaw, float reach,
                            const float *front, int check) {
-    const uint32_t sp = g_esp, mode = ARG(0), pass = ARG(4);
+    const uint32_t sp = g_esp, mode = ARG(0), pass = ARG(4), kind = ARG(3);
+    static int spends = -1;  /* testing: SH3_LOOK_SPENDS=1 as 0.1.7 (VR's looks spend items: the rig's comparison) */
+    if (spends < 0) spends = getenv("SH3_LOOK_SPENDS") ? 1 : 0;
+    uint8_t inv[0x40];
+    memcpy(inv, GPTR(0x712CA80u), sizeof inv);
     memcpy(GPTR(rec), saved, 15 * sizeof(float));
     MEMF(rec) = px;
     MEMF(rec + 8) = pz;
@@ -709,15 +748,33 @@ static int action_check_at(uint32_t rec, const float *saved, float px, float pz,
     int ev;
     if (check < 2) {
         ARG(0) = 1;
+        if (!spends) ARG(3) = 1;  /* (only looking: an item the found event uses is not spent) */
         ARG(4) = (uint32_t)check;
         sub_004B9940_gen();
         ev = (int)g_eax;
         g_esp = sp;
         ARG(0) = mode;
+        ARG(3) = kind;
         ARG(4) = pass;
     } else {
         ev = (int)guest_call(0x4B74B0u, 1, &rec, 0);
         g_esp = sp;
+    }
+    if (memcmp(inv, GPTR(0x712CA80u), sizeof inv) && spends) {
+        static int told;
+        if (told++ < 40)
+            rt_log("testing: frame %d: VR's look (check %d) found event %d and the game spent an item for it (0.1.7's "
+                   "way, SH3_LOOK_SPENDS=1)", rt_frame, check, ev);
+    } else if (memcmp(inv, GPTR(0x712CA80u), sizeof inv)) {
+        static int told;
+        if (told++ < 40) {
+            int item = -1;
+            for (int b = 0; b < 112 && item < 0; b++)
+                if (((inv[b >> 3] ^ MEM8(0x712CA80u + (uint32_t)(b >> 3))) >> (b & 7)) & 1) item = b;
+            rt_log("VR: frame %d: VR's look for what the button would use (check %d, event %d) changed the inventory "
+                   "(item %d first): put back as it was", rt_frame, check, ev, item);
+        }
+        memcpy(GPTR(0x712CA80u), inv, sizeof inv);
     }
     return ev;
 }
@@ -1308,6 +1365,65 @@ static int her_reacting(void) {
     const uint32_t m = MEM32(0x712C190u);
     return m == 34u || m == 35u || m == 36u ? (int)m : 0;
 }
+/* 0.1.8 (owner 152, a player: "I took the key for the bookstore. But when I went back to the book store, the key is
+ * not in my inventory"; another: "she keeps walking after interacting ... if you are moving at all when you
+ * interact"): the game's own gestures. A floor item's pick-up (0x4B8040) has her bend down (0x496240(5)), waits
+ * for that animation's grab frame (0x496440: her movement 0x28 with 0x712C19E set) before it shows the item's
+ * message and adds the item, then has her stand up (6); other events and the game's own reload (0x4979D0, gesture
+ * 0x0F) play theirs the same way: the request 0x712C64A, played as her action and movement 0x28. VR's walk wrote her
+ * velocity and walk factor (+0x11C) each frame it steered, and while that factor is not 0 the movement step
+ * re-times her animation from her walk's speed (0x474580: vr347's stalled grab, above). A walk into an item, the
+ * stick still held or just let go, could leave her bend never reaching its grab: the item never added and the
+ * event waiting on it. While a gesture plays VR neither walks nor turns her, and her walk's velocity and factor are
+ * cleared as it starts: the game plays it at its own pace, as on the PC, where the stick does not move her then. */
+static int her_gesture(void) {
+    static int off = -1;  /* testing: SH3_NO_GESTURE_HOLD=1 as 0.1.7 (the rig's comparison) */
+    if (off < 0) off = getenv("SH3_NO_GESTURE_HOLD") ? 1 : 0;
+    if (off) return 0;
+    return MEM32(0x712C18Cu) == 0x28u || MEM32(0x712C190u) == 0x28u ? 1 : 0;
+}
+/* 0.1.8 (owner 152; the 0.1.7 player's video: "The lock is broken. I can't open the door." stayed up for 25 s while
+ * she walked about the hall, and "she keeps walking after interacting ... if you are moving at all when you
+ * interact"): an event of the game's running (event_state not 0: an examine's message up, a door, a pick-up, a scene
+ * in the room) while the game does not walk her itself (her movement not its walk 0x0A or run 0x0E). The game takes
+ * the stick from her then (on the PC she stands through an examine's message, the stick held or not), but VR's walk
+ * wrote her velocity whenever the game's mode was 5, which it is through its scripts too. Now VR neither walks nor
+ * turns her then; the pad still carries the stick, so where the game lets her walk during an event of its own it
+ * walks her and VR steers as always. SH3_EVENT_HOLD=2 (testing) holds her through every event, walking or not;
+ * SH3_EVENT_HOLD=0 as 0.1.7 (the rig's comparison). */
+static int event_hold(void) {
+    static int how = -1;
+    if (how < 0) how = getenv("SH3_EVENT_HOLD") ? atoi(getenv("SH3_EVENT_HOLD")) : 1;
+    if (!how || !event_state) return 0;
+    const uint32_t m = MEM32(0x712C190u);
+    return how == 2 || (m != 0x0Au && m != 0x0Eu) ? 1 : 0;
+}
+/* 0.1.8 (owner 152, a player: "I took the key for the bookstore. But when I went back to the book store, the key is
+ * not in my inventory"): a floor item's pick-up (0x4B8040, the dispatch's step 3; its record at 0xBA95D0: +0x24 its
+ * own step, +0x2C set for an item low down) has her bend down (gesture 5) and waits for that animation's grab frame
+ * (0x496440: her movement 0x28 with 0x712C19E set) before it shows the item's message and adds the item; standing up
+ * (gesture 6) it waits the same way. An animation cut short before its grab frame (anything that changed her movement
+ * from the gesture's) left it waiting for good: no message, no item, the action button dead (the dispatch never back
+ * at step 0). If her movement has not been the gesture's for 90 of the dispatch's steps (1.25 s at 72) while the
+ * pick-up waits on it, the gesture is asked again (the game's own 0x496240), so the pick-up ends the game's way, the
+ * item in the inventory. */
+static void pickup_watch(void) {
+    static int stalled, told;
+    const uint32_t step = MEM32(0xBA95F4u);
+    const int waiting = event_state == 3u && MEM32(0xBA95FCu) && (step == 2u || step == 5u);
+    if (!waiting || MEM32(0x712C190u) == 0x28u || her_reacting()) {
+        stalled = 0;
+        return;
+    }
+    if (++stalled < 90) return;
+    stalled = 0;
+    uint32_t gesture = step == 2u ? 5u : 6u;
+    if (told++ < 20)
+        rt_log("VR: frame %d: a floor item's pick-up (item %u) waited 90 steps on her %s, her movement %u, not the "
+               "gesture's: the gesture asked again", rt_frame, MEM16(0xBA95D0u),
+               step == 2u ? "bending down" : "standing up", MEM32(0x712C190u));
+    guest_call(0x496240u, 1, &gesture, 0);
+}
 void sub_004D83B0(void) {
     Sh3VrMove mv;
     uint32_t p = sh3vr_active() ? vr_player() : 0;
@@ -1315,6 +1431,39 @@ void sub_004D83B0(void) {
         sh3vr_move(&mv);
         const int reacting = her_reacting();
         if (reacting) mv.steer = 0, mv.face = 0;
+        /* 0.1.8 (owner 152): her gesture (her_gesture) or an event of the game's holding her (event_hold): no walk, no
+         * turn; the start of either clears her walk once */
+        {
+            static int was_gesture, told_gesture, was_event, told_event;
+            const int gesture = her_gesture(), held = event_hold();
+            if (gesture || held) mv.steer = 0, mv.face = 0;
+            if ((gesture && !was_gesture) || (held && !was_event)) {
+                if (gesture && !was_gesture && told_gesture++ < 40)
+                    rt_log("VR: frame %d: her gesture (action %u, movement %u, request %u): VR's walk and turn wait, her "
+                           "walk's velocity %.2f %.2f and factor %.2f cleared", rt_frame, MEM32(0x712C18Cu),
+                           MEM32(0x712C190u), MEM16(0x712C64Au), MEMF(p + 0xF0), MEMF(p + 0xF8), MEMF(p + 0x11C));
+                if (held && !was_event && told_event++ < 200)
+                    rt_log("VR: frame %d: the game's event step %u (event %d) holds her (her movement %u): VR's walk "
+                           "and turn wait, her walk's velocity %.2f %.2f and factor %.2f cleared", rt_frame, event_state,
+                           (int)MEM32(0xBA9768u), MEM32(0x712C190u), MEMF(p + 0xF0), MEMF(p + 0xF8), MEMF(p + 0x11C));
+                MEMF(p + 0xF0) = 0.0f;
+                MEMF(p + 0xF8) = 0.0f;
+                MEMF(p + 0x11C) = 0.0f;
+                vr_walked = 0;
+            }
+            if (!gesture && was_gesture && told_gesture < 40) {
+                told_gesture++;
+                rt_log("VR: frame %d: her gesture over (action %u, movement %u)", rt_frame, MEM32(0x712C18Cu),
+                       MEM32(0x712C190u));
+            }
+            if (!held && was_event && told_event < 200) {
+                told_event++;
+                rt_log("VR: frame %d: the event's hold over (the game's event step %u, her movement %u)", rt_frame,
+                       event_state, MEM32(0x712C190u));
+            }
+            was_gesture = gesture;
+            was_event = held;
+        }
         const int rig = mv.steer ? steer_rig(p, &mv.heading) : 0;
         if (!mv.steer && vr_walked) {
             static int told_play, told_out, told_hit;
@@ -2350,6 +2499,147 @@ void sh3_vr_frame(void) {
         g.capacity = (int8_t)MEM8(0x6BDD17u + (uint32_t)g.gun_item);
     }
     g.reacting = p ? her_reacting() : 0;
+    g.gesture = p ? her_gesture() : 0;
+    g.event_hold = p && playable_frame ? event_hold() : 0;
+    {
+        /* 0.1.8 (owner 152, a player: "I took the key for the bookstore. But when I went back to the book store, the
+         * key is not in my inventory"): what the inventory gains and loses (its items' bits at 0x712CA80, which
+         * 0x4972B0 sets for each item the game gives; the counts follow from 0x712CA8E), each with the game's event
+         * step, its event and mode then: a player's log tells an item never given from one given and lost after.
+         * A load (more than 6 at once) is one line. */
+        static uint32_t inv[4];
+        static int inv_ready, told;
+        if (p && told < 400) {
+            uint32_t now[4], changed = 0;
+            for (uint32_t w = 0; w < 4; w++) {
+                now[w] = MEM32(0x712CA80u + 4u * w) & (w == 3u ? 0xFFFFu : 0xFFFFFFFFu);
+                uint32_t d = now[w] ^ inv[w];
+                for (; d; d &= d - 1u) changed++;
+            }
+            if (inv_ready && changed > 6u) {
+                told++;
+                rt_log("VR: frame %d: the inventory changed by %u items at once (a save loaded or a new game)", rt_frame,
+                       changed);
+            } else if (inv_ready && changed) {
+                for (uint32_t w = 0; w < 4; w++)
+                    for (uint32_t b = 0; b < 32u; b++) {
+                        const uint32_t bit = 1u << b;
+                        if ((now[w] ^ inv[w]) & bit) {
+                            told++;
+                            rt_log("VR: frame %d: item %u %s the inventory (the game's event step %u, event %d, mode "
+                                   "%d)", rt_frame, w * 32u + b, now[w] & bit ? "now in" : "no longer in", event_state,
+                                   (int)MEM32(0xBA9768u), (int)last_game_mode);
+                        }
+                    }
+            }
+            memcpy(inv, now, sizeof inv);
+            inv_ready = 1;
+        }
+    }
+    {
+        /* testing (0.1.8, session 32, owner 152: "the thing where she keeps walking after interacting is still there if
+         * you are moving at all when you interact"): SH3_WALK_LOG=N logs every N frames while she moves or her walk's
+         * velocity is not 0 (and each frame the game's mode changes), 3000 lines at most: her place, her walk's
+         * velocity (+0xF0/+0xF8) and factor (+0x11C), the dispatch's mode (5 the playable update), the action
+         * 0x712C18C and movement state 0x712C190, and what VR asks (sh3vr_move: steering, its speed) */
+        static int walk_log = -2, told;
+        static float lx, lz;
+        static uint32_t last_mode = 0xFFFFFFFFu;
+        if (walk_log == -2) walk_log = getenv("SH3_WALK_LOG") ? atoi(getenv("SH3_WALK_LOG")) : 0;
+        if (walk_log > 0 && p && told < 3000) {
+            Sh3VrMove wm;
+            sh3vr_move(&wm);
+            const float x = MEMF(p), z = MEMF(p + 8), vx = MEMF(p + 0xF0), vz = MEMF(p + 0xF8);
+            const int moved = fabsf(x - lx) > 0.5f || fabsf(z - lz) > 0.5f || vx != 0.0f || vz != 0.0f;
+            if ((moved && frame_no % (uint32_t)walk_log == 0) || last_game_mode != last_mode) {
+                told++;
+                rt_log("her walk: frame %d: at %.1f %.1f (moved %.1f), velocity %.3f %.3f, factor %.2f; the game's mode %d "
+                       "(playable %d, its event state %u), action %u, movement %u, gesture %u (grab %u); VR steers %d "
+                       "(speed %.2f, heading %.2f)",
+                       rt_frame, x, z, sqrtf((x - lx) * (x - lx) + (z - lz) * (z - lz)), vx, vz, MEMF(p + 0x11C),
+                       (int)last_game_mode, playable_frame, event_state,
+                       MEM32(0x712C18Cu), MEM32(0x712C190u), MEM16(0x712C64Au), MEM8(0x712C19Eu), wm.steer, wm.speed,
+                       wm.heading);
+                lx = x, lz = z;
+            }
+            last_mode = last_game_mode;
+        }
+        /* testing (0.1.8, session 32): SH3_GESTURE_TEST="frame:gesture,..." asks the game for a gesture at each frame
+         * given, as an event does (0x496240(gesture): 5 an item's pick-up bending down, 6 standing up from it, 0 none),
+         * so the rig plays a floor item's bend with the stick held (no floor item is within the rig's reach) */
+        static const char* gt = (const char*)-1;
+        if (gt == (const char*)-1) gt = getenv("SH3_GESTURE_TEST");
+        if (gt && p) {
+            for (const char* s = gt; s && *s;) {
+                int at = 0, ge = 0;
+                if (sscanf(s, "%d:%d", &at, &ge) == 2 && at == rt_frame) {
+                    uint32_t a = (uint32_t)ge;
+                    guest_call(0x496240u, 1, &a, 0);
+                    rt_log("testing: frame %d: gesture %d asked (0x496240): action %u, movement %u, her walk factor %.2f",
+                           rt_frame, ge, MEM32(0x712C18Cu), MEM32(0x712C190u), MEMF(p + 0x11C));
+                }
+                s = strchr(s, ',');
+                if (s) s++;
+            }
+        }
+        /* testing (0.1.8, session 32, owner 152: "When I took the key, I saw it double on my headset"): an item given
+         * by a room's script shows its model turning in a box on the screen while its message is up (0x599A60(item,
+         * 0.2): the display at 0xBC9000, drawn by 0x599EA0 each frame in play; 0x599A80(0.2) fades it out).
+         * SH3_ITEM_SHOW_TEST="frame:item,frame:-1,..." opens it for that item at each frame given, -1 closes it.
+         * (vr393, vr396: opened so, it loads the item's model and reaches its steady step 4, but draws nothing, with a
+         * message up or not: a room script's give (0x568910: the item added, 0x599A60, then the message 0x4BA500)
+         * draws it; the rig's rooms have none. The route dump showed no draw at all inside the dispatch in play, so
+         * d3d8.c's in-dispatch rule moves only the item's.) */
+        static const char* it = (const char*)-1;
+        if (it == (const char*)-1) it = getenv("SH3_ITEM_SHOW_TEST");
+        if (it && p) {
+            for (const char* s = it; s && *s;) {
+                int at = 0, item = 0;
+                if (sscanf(s, "%d:%d", &at, &item) == 2 && at == rt_frame) {
+                    const float fade = 0.2f;
+                    uint32_t a[2];
+                    memcpy(&a[1], &fade, 4);
+                    a[0] = (uint32_t)item;
+                    /* (0x599EA0's own first step loads the item's model: 0x599A00, the file from the table at
+                     * 0x710A30 through 0x4DC560; its step and the display's state logged a second later) */
+                    if (item >= 0) guest_call(0x599A60u, 2, a, 0);
+                    else guest_call(0x599A80u, 1, &a[1], 0);
+                    rt_log("testing: frame %d: the item display %s (item %d; its state %u, step %u)", rt_frame,
+                           item >= 0 ? "opened" : "closed", item, MEM32(0xBC900Cu), MEM32(0xBC9008u));
+                }
+                if (sscanf(s, "%d:%d", &at, &item) == 2 && at + 72 == rt_frame) {
+                    rt_log("testing: frame %d: the item display a second on: its state %u, step %u, model %u (slot 4's "
+                           "file %u)", rt_frame, MEM32(0xBC900Cu), MEM32(0xBC9008u), MEM32(0xBC9004u),
+                           (uint32_t)guest_call(0x4DC520u, 1, (uint32_t[]){4u}, 0));
+                }
+                s = strchr(s, ',');
+                if (s) s++;
+            }
+        }
+        /* testing (0.1.8, session 32, owner 152: the bookstore's key not in the inventory; action_check_at): the rig's
+         * rooms have no key's door within reach, so SH3_SPEND_TEST="frame:event:item" makes the room's event `event`
+         * one that needs `item` held and uses it up (its fields d4 = 2, value = item, dc = 1, as a key's door) and gives
+         * Heather the item, at that frame. The inventory's log then tells when it went: with VR's looks only looking,
+         * when A used the event (the game's own check, the event run); 0.1.7's way (SH3_LOOK_SPENDS=1) at a look of
+         * VR's, the event not run. */
+        static const char* sp = (const char*)-1;
+        if (sp == (const char*)-1) sp = getenv("SH3_SPEND_TEST");
+        int sp_at = 0, sp_ev = 0, sp_item = 0;
+        const uint32_t tab = MEM32(0x711FCA0u);
+        if (sp && p && sscanf(sp, "%d:%d:%d", &sp_at, &sp_ev, &sp_item) == 3 && sp_at == rt_frame && tab && MEM32(tab)) {
+            const uint32_t e = MEM32(tab) + (uint32_t)sp_ev * 0x14u;
+            const uint32_t fields[3] = {0x6CF6D4u, 0x6CF6D8u, 0x6CF6DCu}, values[3] = {2u, (uint32_t)sp_item, 1u};
+            for (int k = 0; k < 3; k++) {
+                const uint32_t d = fields[k], w = e + 4u * MEM8(d), sh = MEM8(d + 1), mask = MEM16(d + 2);
+                MEM32(w) = (MEM32(w) & ~(mask << sh)) | ((values[k] & mask) << sh);
+            }
+            uint32_t give = (uint32_t)sp_item;
+            guest_call(0x4972B0u, 1, &give, 0);
+            rt_log("testing: frame %d: event %d now needs item %d held and uses it up (trigger %d); item %d given (in the "
+                   "inventory %u)", rt_frame, sp_ev, sp_item, event_trigger(sp_ev), sp_item,
+                   (MEM32(0x712CA80u + (uint32_t)(sp_item >> 5) * 4u) >> (sp_item & 31)) & 1u);
+        }
+    }
     g.playable = playable_frame;
     playable_frame = 0;
     g.cutscene = MEM8(0x81FAB5) != 0;
@@ -2414,7 +2704,8 @@ void sh3_vr_frame(void) {
     /* Her body turns with the head while she stands (first person). */
     Sh3VrMove mv;
     sh3vr_move(&mv);
-    if (p && mv.face && !mv.steer && !her_reacting()) set_heather_yaw(p, mv.face_yaw);
+    if (p && mv.face && !mv.steer && !her_reacting() && !her_gesture() && !(g.playable && event_hold()))
+        set_heather_yaw(p, mv.face_yaw);
     MEMF(0x0EC00000u) = 0.0f;  /* no cutscene borders in VR */
     /* A weapon drawn from a holster: equipped between frames, in play only. */
     Sh3VrActions act;

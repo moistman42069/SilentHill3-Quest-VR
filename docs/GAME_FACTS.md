@@ -99,14 +99,21 @@ Mark what we confirm ourselves with (checked: how).
     (127 vertices, the hammer with it; a few faces across the cut stretch at full travel).
   - Submachine gun 557 / 890: an Uzi's layout, the magazine up through the grip (x 31-54), the trigger guard ahead of
     it, the muzzle along +x; the split cocking knob on top at the rear, x 0-12.7, y 55-69.5 (88 vertices of bone 0).
-  - Shotgun 290 / 490: bone 1 is the barrel assembly with its muzzle along -x; the pump is the wide block at x -129 ..
-    -13 (35 vertices). In the weapon frame's model space (sh3vr_combat.cpp's, which weapon_point and
-    weapon_model_point use: barrel +x, the muzzle's bore at the origin, y down): the receiver x -250 to -140 with its
-    floor at y 21, the trigger guard x -240 to -212 under it; the loading port (session 16, sh3vr_reload.cpp kGuns) at
-    (-180, 22, 0), shells going in along (0.892, -0.451, 0).
+  - Shotgun 290 / 490: bone 1 is the barrel assembly, its muzzle along +x at x 0 (session 4 had it along -x; session 31
+    corrected it from the dump: the trigger sits at the -x end with the receiver, and the trigger's tip curls towards
+    +x, as a real one curls forward); the pump is the wide block at x -129 .. -13 (35 vertices), 29 units (6 cm, its
+    travel) ahead of the receiver's front, so drawn back it goes along -x. In the weapon frame's model space
+    (sh3vr_combat.cpp's, which weapon_point and weapon_model_point use, the dump's own: barrel +x, the muzzle's bore at
+    the origin, y down): the receiver x -250 to -140 with its floor at y 21, the trigger guard x -240 to -212 under it;
+    the loading port (session 16, sh3vr_reload.cpp kGuns) at (-180, 22, 0), shells going in along (0.892, -0.451, 0).
   - Stun gun 132 / 226.
-  SH3 Quest VR moves those vertices in the vertex buffer for the cocking visual (d3d8.c vr_gun_part, sh3vr_reload.cpp
-  kMovingParts).
+  - The triggers (session 31, the dumps' connected pieces near each trigger: four whole flat-shaded pieces each,
+    sharing no vertex with the rest): handgun 24 vertices of bone 0, x 68.6-76.1, y 11.1-23.6 (its top from (68.6, 21.7)
+    to (74.1, 23.6), its tip at (76.1, 11.1); its two front top corners lie in the slide's height cut); shotgun 30
+    vertices of bone 1, x -233.1 to -226.8, y 20.7-31.6 (y down; its top on the receiver's floor); submachine gun 20
+    vertices of bone 0, x 63.8-70.9, y 11.4-25.2.
+  SH3 Quest VR draws each gun's moving part and trigger as their own faces, moved whole (sh3vr_parts.cpp kMovingParts,
+  kTriggerParts; the trigger turned about its pin, sh3vr_combat.cpp kTriggers).
 
 ## Combat
 - 0x004ACE10: clBattleAddQue(const BattleCollision *) (cdecl): melee hit volumes (kind 2 or 3 = melee) with
@@ -877,3 +884,85 @@ call 0x4B74B0 all round her every 120 frames, and none found a floor item in any
   one such sweep with SH3_HOLD_HIT=N (the N-th struggle step) or SH3_SWEEP_ATTACKER=N (every N frames at an attacker
   within 1.5 m). The hall's dog stands at the floor (its y -9, Heather's -9) and is low: the rig's knife swings at
   1.3 m over it never met it (vr317).
+
+## Session 32 (2026-11-27): 0.1.8, events, floor pick-ups, the inventory, the item display (disassembly; owner 152)
+
+- **The dispatcher 0x004B9E70 returns mode 5 during event scripts and pick-ups too**, not only in free play: 0.1.7
+  took mode 5 as play and walked her on through a message (the 0.1.7 player's video: "The lock is broken" up for 25 s
+  while she walked about the hall). Its step stack: depth MEM32(0x00BCC658), the steps MEM32(0x00BCC65C + 4 * depth);
+  the step running after a call is MEM32(0x00BCC65C + 4 * (depth + 1)): 0 none (free play), 2 and 5 an event's script,
+  3 a floor item's pick-up (0x004B8040), 6 the death wait, 8 0x004B8540. 0.1.8 holds VR's own walking and turning while
+  it is not 0 and the game does not walk her itself (her movement 0x0712C190 not 0x0A walk / 0x0E run): sh3.c
+  event_hold (SH3_EVENT_HOLD=0 on the rig: 0.1.7's, 2: held even while the game walks her). The pad still feeds the
+  game's own stick, so the game's own gates decide.
+- **The message wait 0x004BA500**: state 8 waits for 0x005FA510() != -1 (a button), or the abort flag [0x00BA9756].
+- **A floor item's pick-up 0x004B8040**: its record at 0x00BA95D0 (the item word at +0x00, the step at +0x24
+  [0x00BA95F4], the low-pick-up flag at +0x2C [0x00BA95FC]). Step 2 waits for 0x00496440 (her movement 0x28, the
+  crouch-and-take gesture, and 0x0712C19E); step 3, once the message is closed or aborted, sets the item's done bit and
+  calls 0x004972B0(item), which adds it to the inventory. A gesture that never plays leaves step 2 waiting: 0.1.8's
+  pickup_watch asks the gesture again (0x00496240(5), or 6 at step 5) after 90 steps without it.
+- **The inventory** is a bitset at 0x0712CA80 (words 0-2 and the low 16 bits of word 3, one bit per item); the counts
+  run from 0x0712CA8E. 0.1.8 logs every item gained or lost (sh3.log "item N now in the inventory", with the event step
+  and mode), and a change of more than 6 at once as a save loaded or a new game.
+- **Her death state** is [0x0712C662] (0x00496460 sets it to 3, 0x00496470 clears it).
+- **The item display** (an event showing the item taken, turning in its box): 0x00599A60 opens it; the dispatcher calls
+  0x00599EA0(mode) on its way out, which draws it through 0x00599B70 with an OFF-CENTRE projection of its own (no
+  viewport of its own); its state [0x00BC900C], step [0x00BC9008], model [0x00BC9004] (against 0x004DC520(4)). Its
+  draws can only come INSIDE the dispatcher's call (0x004BA3D5 is its one caller, with the mode the dispatcher returns;
+  it draws only for mode 5), before the frame's world and before the message's 2D: another camera's 3D into the back
+  buffer went to the eyes until the panel had a picture that frame (0.1.7's rule), so the item, drawn with the game's
+  own projection in both eyes alike (at no depth), was seen double against the message 0.9 m off. 0.1.8 routes another
+  camera's 3D drawn inside the dispatcher's call to the panel with the message (d3d8.c vr_route_pick, sh3.c
+  sh3_in_dispatch); in play no other draw comes inside it (vr396's route dump). SH3_ITEM_SHOW_TEST=frame:item opens it
+  on the rig, but it draws only inside a room script's give (vr393, vr396: none drawn), which the rig's rooms lack.
+- **The action check SPENDS the item an event uses, as it finds the event.** 0x004B9940's event fields (event_table_log):
+  d4 1 = the event wants `request` (the item used from the inventory) = value; 2 = item `value` held (a key at its
+  door); 3 = item `value` NOT held (the door's locked message); dc = use the item up. At its end (0x004B9CBF), with its
+  fourth argument (kind) 0 and d4 and dc set, it calls 0x00496A20(value) (items 9-0x15: one fewer, else the bit
+  cleared) before returning the event, because a found event always runs. Kind is read nowhere else. SH3 Quest VR
+  0.1.7's own checks (the hands' reach each frame, the hints', the button's along her facing and where the player
+  looks, a closing hand's) called it as the button would, kind 0: near a key's door they spent the key without the
+  door opening, and the game's own check then found the locked event (the 0.1.8 report: the bookstore's key, "Key
+  taken with Tongs", gone from the inventory). 0.1.8's checks pass kind 1 and keep the inventory as it was across each
+  (sh3.c action_check_at). The rig: SH3_SPEND_TEST="frame:event:item" makes a room event a key's door for `item` and
+  gives it; SH3_LOOK_SPENDS=1 is 0.1.7's way (vr396 / vr398).
+- **A room script's item give** (the stage functions, e.g. 0x00568910): sound 0x34 (0x0046CD50), 0x004972B0(item),
+  0x00599A60(item, 0.2) (the item display), then 0x004BA500(message) waiting on it, 0x00599A80(0.2) closing the
+  display. The event table's own give (fields at 0x006CF720 / 0x006CF724, 0x004B9308) adds the item and closes the
+  display (0x00599AF0(item, 1)).
+- **No record of an item ever held**: 0x004972B0 sets the inventory bit, counts the ammo and health items, and calls
+  0x004DC1A0 (the results' items count at [0x00BB2F58] + 0x10 and the score at + 0x18, 0x004DBD60); 0x00496A20 (an
+  item used up) only clears the bit or the count. What marks a key as taken is its giver's own flag in 0x0715D060's
+  bits: a room script sets it itself just before the give (0x00568910: `or [0x0715D0C4], 0x02000000` then item 0x4B,
+  flag 825; `or [0x0715D0C4], 0x04000000` then item 0x4C, flag 826), a floor item through the room table's taken flag.
+  The 0x004972B0 callers: 0x004B8137 (floor items), 0x004B934F (the event table's give) and some 20 room scripts
+  (tools/xrefs.py 0x4972B0). A key lost to 0.1.7's looks can only be told from one never found by its giver's flag.
+
+## Session 33 (2026-11-27): every way SH3 Quest VR could lose an item (owner 159; tools/callgraph.py)
+
+Owner 159 (a second player on 0.1.7: "I have the key for the store, but when I stand in front of the door, it's gone
+from my inventory"; "i dont want anything similar happening anywhere else in the game"): every game function VR calls
+or wraps, checked against every function that writes the inventory.
+
+- **What writes the inventory** (0x0712CA80-0x0712CABF; stores and address forms in src/recomp/gen): 0x00496A20 (an
+  item used up), 0x004972B0 (an item given), 0x00496B10, 0x00496BE0, 0x00496EE0, 0x00497690, 0x00497860 (the reload:
+  what was loaded back to the reserve, then as many as the gun takes), 0x004978F0 (the equipped slot 0x0712CABF and
+  the asked weapon 0x0712CACE only), 0x00497AD0, 0x00497D30, 0x004AB590, 0x005806B0, 0x0058C930, 0x005DC240. Callers
+  of 0x00496A20: 0x00497500, 0x00497800 (a shot), 0x004B9940 (the action check), 0x004D5F60, 0x0056BC30, 0x005713C0,
+  0x00571470, 0x005DB9E0.
+- **What VR calls** (sh3.c guest_call): 0x004B9940 and 0x004B74B0 (the action check's events and floor items),
+  0x00402E00 (the 3D pictures' size), 0x004737F0 (her yaw), 0x00496240 (a gesture), 0x0059E3A0 (a weapon's model
+  loading), 0x00497A70 and 0x004711D0 (a holster's draw), 0x00497860 and 0x00497780 (a reload by hand, the reserve's
+  figure), 0x005680F0 (a motion event's sound), 0x004ACE10 (a melee hit queued), 0x0045EC90 / 0x0045ECF0 (her pose's
+  blends); the rest only with the rig's test switches. Through direct calls only 0x004B9940 reaches an inventory writer
+  that takes items away (0x00496A20); 0x00497A70 reaches 0x004978F0 (the equipped slot, no item) and 0x00497860 is
+  the reload (the rounds move, none lost). VR's own writes: a shell pushed in by hand (one from the reserve into the
+  gun, never past either), and action_check_at putting the inventory back.
+- **0x004B9940 from VR** goes through action_check_at alone (the hands' reach, the hints, the button's look where the
+  player looks, a closing hand's, the rig's scan): kind 1 (nothing spent), the inventory kept and put back if changed,
+  logged. **0x004B9940 from the game** (its own button, each frame's check) spends only for the event it returns,
+  which then runs, VR's look at most turning the record toward what the player looks at (the event the button would
+  use); a closing hand's record moves the front point to the palm.
+- **Shots**: 0x00497800 (wrapped: a gun at 0 keeps 0) takes a round only for a shot the game fires.
+- **The log**: every item gained or lost is in sh3.log with the frame, the event step and the mode (session 32), and
+  a change a VR look made is logged and put back: a player's log tells which.

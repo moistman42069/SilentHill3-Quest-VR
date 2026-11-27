@@ -1,0 +1,7 @@
+# SH3 Quest VR, the PC rig (session 33, 0.1.8): a 0.1.7 weapon file (Version=2, the handgun moved 2 cm forward with its
+# two-hand spot 3 cm forward, the katana moved 1 cm up) and grip_spot = 3 (Reset every weapon) in sh3vr.ini: the log
+# says the file was 0.1.7's (the guns' moves and spots put back, the katana's move kept) and every spot reset. Run
+# with pics383's environment and SH3_EQUIP="1"; put both files back after.
+7320 right_first_touch 1
+7400 shot i0-start
+7460 quit 0

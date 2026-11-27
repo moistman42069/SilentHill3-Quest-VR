@@ -74,6 +74,12 @@ typedef struct Sh3VrGame {
      * 0x712C190 when it is one of the game's reaction states (34, 35, 36: 0x4D9E60 runs it, 0x4C7190 picks its
      * animation), else 0. The game moves and turns her itself: VR's walk and turn wait (sh3.c her_reacting). */
     int reacting;
+    /* 0.1.8 (owner 152): a gesture of the game's own plays (an item's pick-up bending down or reaching, the game's
+     * reload: her action 0x28, sh3.c her_gesture): VR's walk and turn wait, as for a reaction. */
+    int gesture;
+    /* 0.1.8 (owner 152): an event of the game's holds her (an examine's message up, a door, a pick-up: sh3.c
+     * event_hold): VR's walk and turn wait, the Sprint toggle's run ends, the room's walk does not follow the head. */
+    int event_hold;
 } Sh3VrGame;
 void sh3vr_game_state(const Sh3VrGame *g);
 /* What VR asks of Heather this frame (sh3.c applies it in the movement code, 0x4D83B0, and her facing). */

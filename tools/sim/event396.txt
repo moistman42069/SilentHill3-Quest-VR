@@ -1,0 +1,31 @@
+# SH3 Quest VR, the PC rig (session 32, 0.1.8 build 265), event391 with the Sprint toggle (on by default) clicked on as
+# she walks to the counter (owner: "i assume it has something to do with the sprint toggle"), the rest as event391:
+# she runs to the counter, A while running; with the fix the run ends as the message comes up (sh3.log "sprint off
+# (Sprint toggle: an event of the game's holds her)") and she stands; after the message the stick walks her (no run).
+# Run with the env of event391 (its header).
+7740 left_y 1
+7745 head_yaw 135
+7750 left_click 1
+7756 left_click 0
+7890 a 1
+7896 a 0
+7930 shot e07930-message
+7970 shot e07970-message-held
+7990 a 1
+7996 a 0
+8030 shot e08030-message
+8070 shot e08070-message-held
+8100 left_y 0
+8140 a 1
+8146 a 0
+8180 shot e08180-page3
+8200 left_y 1
+8260 shot e08260-page3-stick-held
+8280 a 1
+8286 a 0
+8340 shot e08340-closed-walking-again
+8370 left_y 0
+8590 shot e08590-item-display
+8610 head_yaw 160
+8640 shot e08640-item-display-turned
+8700 quit 0
