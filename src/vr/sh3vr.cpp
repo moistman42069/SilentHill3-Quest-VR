@@ -634,6 +634,17 @@ void log_cb(int level, const char* text) { rt_log("%s%s", level >= 2 ? "VR warni
 
 bool head_known() { return have_frame && fi.views_valid; }
 bool in_play() { return game.playable && !game.cutscene && !game.demo && !vr_menu_open; }
+// The PC rig (xr_sim's QUEST_SIM_SKIP_SCENES, 0.1.9 session 34): how many frames a scene of the game's (a cutscene or
+// demo) has been playing, 0 out of one; read once a frame.
+int sim_scene_frames() {
+    static int start = -1;
+    if (!game.cutscene && !game.demo) {
+        start = -1;
+        return 0;
+    }
+    if (start < 0) start = rt_frame;
+    return rt_frame - start;
+}
 float frame_dt() { return display_hz > 0 ? 1.0f / display_hz : 1.0f / 72.0f; }
 // 0.1.3 (owner 84: "im just simply moving the knife arm gently/arm in general, and melee animation/sound happens"): the
 // real seconds since the last frame, from the headset's display times (begin_next_frame). frame_dt() is the display's
@@ -1184,15 +1195,18 @@ struct UiState {
     float screen_away = 0.0f;     // ... a screen
     bool gliding = false;         // a screen coming round in front again
     int content_frame = -100;     // the last frame something was drawn on the panel
+    bool drawn_last = false;      // 0.1.9: something drawn on the panel at the last present (false: it fades out)
 } ui;
 float frame_box[4] = {2.0f, 2.0f, -1.0f, -1.0f};  // this frame's 2D on the panel (sh3vr_panel_box)
 bool hint_now = false;                             // 0.1.6: the reload hint drawn on the panel this frame
+bool game_screen = false;                          // 0.1.9: a game screen to choose on is up (update_pointer)
 float hint_box[4] = {0.0f, 0.0f, 1.0f, 1.0f};      // ... its box (0..1 of the panel, top row first)
 // The frame camera drew the world this frame (sh3vr_frame_world); out of play without it, the frame is one of the
 // game's full screens (the inventory, the map, memos, menus without the world): its picture whole on the panel
 // (d3d8.c vr_route), shown opaque, the eyes dark round it.
 bool world_drawn = true;
 bool full_screen_frame = false;
+int screen_draws = 0, screen_textured = 0;  // 0.1.9: the last frame's full screen: its 2D draws, those with a texture
 GLuint ui_prog = 0, ui_vao = 0, ui_tex = 0, ui_fbo = 0;
 GLint ui_u_dst = -1, ui_u_src = -1, ui_u_fade = -1, ui_u_back = -1, ui_u_opaque = -1;
 bool ui_gl_failed = false;
@@ -1842,6 +1856,7 @@ bool ui_frame(unsigned menu_tex, unsigned target, int pw, int ph, PanelLayer& pa
     if (!ui_gl()) return false;
     const float dt = frame_dt();
     const bool drawn = panel_used || menu_tex;
+    ui.drawn_last = drawn;
     const bool box_ok = frame_box[2] > frame_box[0] && frame_box[3] > frame_box[1];
     UiKind want = UiKind::kNone;
     if (drawn) {
@@ -1914,11 +1929,32 @@ bool pressed(bool now, bool before) { return now && !before; }
 
 void update_pointer() {
     mouse_on = false;
-    if (!opt.pointer || !head_known() || !panel_placed) return;
     // A screen to choose from is up: the game drew on the panel and is not in play (menus, inventory, map, puzzles),
     // or the VR menu.
     // (session 11: the UI's kind, so subtitles in a scene are not a screen to point at)
-    const bool screen_up = vr_menu_open || ui.kind == UiKind::kScreen;
+    // 0.1.9 (the owner's video: the pointer's beam and dot on the black screens between scenes): a full screen that is
+    // only a fade or a black screen (none of its 2D draws textured, or one or two of them with nothing to click on) is
+    // nothing to point at. While a screen fades out (nothing drawn on the panel since), it stays as it was: the beam
+    // does not flash up for a black screen's last frames.
+    // 0.1.9 (owner 168): worked out before the pointer's own checks, so the puzzles' hint (sh3vr_tips.cpp) knows a
+    // game screen to choose on with the pointer off too (game_screen).
+    static bool plain_was = false;
+    const bool plain = ui.drawn_last ? screen_draws > 0 && (screen_textured == 0 ||
+                                                            (screen_draws <= 2 && game.click_zones == 0))
+                                     : plain_was;
+    plain_was = plain;
+    game_screen = ui.kind == UiKind::kScreen && !plain && !vr_menu_open;
+    if (!opt.pointer || !head_known() || !panel_placed) return;
+    const bool screen_up = vr_menu_open || (ui.kind == UiKind::kScreen && !plain);
+    {
+        static int told = -1;
+        const int now = ui.kind == UiKind::kScreen && !vr_menu_open ? (plain ? 1 : 0) : -1;
+        if (now != told && now >= 0)
+            rt_log("VR: frame %d: the screen is %s (%d 2D draws, %d textured, %d click zones)", rt_frame,
+                   now ? "a fade or black: no pointer" : "one to point at", screen_draws, screen_textured,
+                   game.click_zones);
+        told = now;
+    }
     if (!screen_up) {
         hovered_cell = -1;
         return;
@@ -3013,7 +3049,12 @@ float head_in_wall() {
 }
 
 // 0.1.7 (owner message 143): the hint label is in view in full, showing a first-time hint (its time counts only then).
-bool hint_label_up() { return ui.kind == UiKind::kHint && ui.fade >= 1.0f && hint_is_tip; }
+// 0.1.9 (owner 168): or the puzzles' hint on the game's screen, the screen in full.
+bool hint_label_up() {
+    return (ui.kind == UiKind::kHint || (ui.kind == UiKind::kScreen && hint_now && tip_on_screen())) &&
+           ui.fade >= 1.0f && hint_is_tip;
+}
+bool game_screen_up() { return game_screen; }
 
 }  // namespace sh3q
 
@@ -3131,7 +3172,8 @@ int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
             glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hint_tex, 0);
             // 0.1.6: only the label's own box is copied (the picture round it is clear), so the game's 2D beside it stays
             const int bw = std::clamp(hbw, 1, std::min(hw, panel_w)), sx = (hw - bw) / 2, x0 = (panel_w - bw) / 2;
-            const int y0 = panel_h - hh - panel_h / 12;
+            // 0.1.9 (owner 168): the puzzles' hint on a game screen at its top (the game's own lines are at its foot)
+            const int y0 = tip_on_screen() ? panel_h / 24 : panel_h - hh - panel_h / 12;
             glBlitFramebuffer(sx, 0, sx + bw, hh, x0, y0, x0 + bw, y0 + hh, GL_COLOR_BUFFER_BIT, GL_LINEAR);
             panel_used = true;
             hint_now = true;
@@ -3278,24 +3320,48 @@ int sh3vr_her_shadow(const float view[16], const float proj[16], float* out_xyz,
 namespace {
 int room_seen = -100000, room_left_out = 0, room_kept = 0, room_told = -100000;
 }
+// 0.1.9 (owner 166): in a scene drawing her away from her place with the eyes in her head (Happy Burger's table on
+// waking), her place is not where she is drawn: a corner is on her within 30 cm of one of her bones as the scene
+// draws them (sh3vr_ik.cpp ik_scene_bones; up to 512 corners, evenly, looked at), the same quarter making it hers.
 int sh3vr_her_game_volume(const uint8_t* verts, uint32_t stride, uint32_t n, const float lamp[3]) {
     if (!active || view_mode != ViewMode::kFirstPerson || !game.player_valid || !verts || stride < 12 || n < 3) return 0;
-    const uint32_t m = n < 4096 ? n : 4096;
-    uint32_t on_her = 0;
-    const float r2 = (0.7f * kUnitsPerMetre) * (0.7f * kUnitsPerMetre);
-    for (uint32_t i = 0; i < m; i++) {
-        float p[3];
-        std::memcpy(p, verts + (size_t)i * stride, sizeof p);
-        const float dx = p[0] - game.pos[0], dz = p[2] - game.pos[2], up = game.pos[1] - p[1];
-        if (dx * dx + dz * dz < r2 && up > -0.15f * kUnitsPerMetre && up < 2.0f * kUnitsPerMetre) on_her++;
+    Vec3 sb[48];
+    const int nsb = ik_scene_bones(sb, 48);
+    uint32_t m = n < 4096 ? n : 4096, on_her = 0;
+    if (nsb > 0) {
+        const uint32_t step = (n + 511) / 512;
+        const float br2 = (0.3f * kUnitsPerMetre) * (0.3f * kUnitsPerMetre);
+        m = 0;
+        for (uint32_t i = 0; i < n; i += step) {
+            float p[3];
+            std::memcpy(p, verts + (size_t)i * stride, sizeof p);
+            m++;
+            for (int b = 0; b < nsb; b++) {
+                const float dx = p[0] - sb[b].x, dy = p[1] - sb[b].y, dz = p[2] - sb[b].z;
+                if (dx * dx + dy * dy + dz * dz < br2) {
+                    on_her++;
+                    break;
+                }
+            }
+        }
+    } else {
+        const float r2 = (0.7f * kUnitsPerMetre) * (0.7f * kUnitsPerMetre);
+        for (uint32_t i = 0; i < m; i++) {
+            float p[3];
+            std::memcpy(p, verts + (size_t)i * stride, sizeof p);
+            const float dx = p[0] - game.pos[0], dz = p[2] - game.pos[2], up = game.pos[1] - p[1];
+            if (dx * dx + dz * dz < r2 && up > -0.15f * kUnitsPerMetre && up < 2.0f * kUnitsPerMetre) on_her++;
+        }
     }
     static int dump_at = -2;
     if (dump_at == -2) dump_at = getenv("SH3_VSC_DUMP") ? atoi(getenv("SH3_VSC_DUMP")) : -1;
-    const bool hers = on_her * 4 >= m;
+    const bool hers = m > 0 && on_her * 4 >= m;
     const bool ready = hers && her_room_shadow_ready();
     if (rt_frame == dump_at)
-        rt_log("vsc volume: frame %d: %u corners, %u on her (her feet %.0f %.0f %.0f), the lamp %.0f %.0f %.0f: %s",
-               rt_frame, n, on_her, game.pos[0], game.pos[1], game.pos[2], lamp[0], lamp[1], lamp[2],
+        rt_log("vsc volume: frame %d: %u corners, %u of %u looked at on her (%s %.0f %.0f %.0f), the lamp %.0f %.0f "
+               "%.0f: %s", rt_frame, n, on_her, m, nsb > 0 ? "her bones as a scene draws her, her root" : "her feet",
+               nsb > 0 ? sb[0].x : game.pos[0], nsb > 0 ? sb[0].y : game.pos[1], nsb > 0 ? sb[0].z : game.pos[2],
+               lamp[0], lamp[1], lamp[2],
                !hers ? "not hers, the game's" : ready ? "hers, left out (cast from her body as drawn)"
                                                   : "hers, kept (her mesh not caught yet)");
     if (!hers) return 0;
@@ -3404,6 +3470,7 @@ int sh3vr_full_screens(void) {
 }
 
 void sh3vr_frame_world(int drawn) { world_drawn = drawn != 0; }
+void sh3vr_frame_screen(int draws, int textured) { screen_draws = draws, screen_textured = textured; }
 
 void sh3vr_movie(int on) {
     if ((on != 0) == movie_playing) return;
@@ -3912,6 +3979,11 @@ int sh3vr_weapon_bones(float* bones, int n) { return active ? combat_weapon_bone
 int sh3vr_heather_bones(float* bones, int n, const Sh3VrModel* model) {
     return active ? ik_heather_bones(bones, n, model) : 0;
 }
+// (whenever her own body has VR's pose, scenes at her eyes too: the reflection always shows the body drawn)
+int sh3vr_mirror_bones(float* bones, int n) { return active ? ik_mirror_bones(bones, n) : 0; }
+int sh3vr_mirror_map(float x[16]) { return active && ik_mirror_map(x) ? 1 : 0; }
+// 0.1.9 (owner 166): a scene draws her away from her place with the eyes in her head (her draws then cast her shadow)
+int sh3vr_scene_eyes(void) { return active && ik_scene_eyes() ? 1 : 0; }
 
 int sh3vr_own_hands(void) { return own_hands_now() ? 1 : 0; }
 

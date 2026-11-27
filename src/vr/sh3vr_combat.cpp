@@ -3266,6 +3266,57 @@ bool saber_blade_draw(uint32_t nv, uint32_t np, int pal_count, const int* pal_bo
     return true;
 }
 
+// 0.1.9 (owner 164): the weapon drawn again in a mirror's reflection of her: its bones turned over (the first whole
+// bone's determinant below 0), as the game reflects them about the glass.
+static bool weapon_palette_mirrored(const float vsc[96][4], int slots) {
+    for (int k = 0; k < slots; k++) {
+        if (!bone_affine(vsc, k)) continue;
+        const R3 r = read_bone(vsc, k).r;
+        const float d = r.m[0][0] * (r.m[1][1] * r.m[2][2] - r.m[1][2] * r.m[2][1]) -
+                        r.m[0][1] * (r.m[1][0] * r.m[2][2] - r.m[1][2] * r.m[2][0]) +
+                        r.m[0][2] * (r.m[1][0] * r.m[2][1] - r.m[1][1] * r.m[2][0]);
+        return d < -0.25f;
+    }
+    return false;
+}
+// ... never taken for the one in her hand (its place would set the shots', the effects' and the hold's numbers from the
+// mirror's side of the glass). With the mirror's map X (sh3vr_ik.cpp ik_mirror_bones, its reflection of her this frame
+// or the last) and the hand's map of this frame or the last (game_to_hand, from the weapon in her hand), it is placed
+// as that one is, through the reflection: each bone back through the glass, moved as the one in the hand, the pass's
+// part with it, then reflected again (B' = X rel X^-1 B): the reflection holds it where she does. Holstered, collapsed
+// as the one in her hand. Without those maps, left as the game drew it. 3: a reflection's weapon (marked as hers in
+// the stencil, never her shadow's caster: d3d8.c).
+static int mirror_weapon_draw(float vsc[96][4], int slots) {
+    if (!in_hand) {
+        for (int b = 0; b < slots; b++)
+            if (bone_affine(vsc, b)) {
+                Aff z{};
+                z.t = read_bone(vsc, b).t;
+                write_bone(vsc, b, z);
+            }
+        return 3;
+    }
+    float x[16];
+    Aff X, iX;
+    if (!ik_mirror_map(x) || game_to_hand_frame < 0 || rt_frame - game_to_hand_frame > 1) return 3;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) X.r.m[i][j] = x[j * 4 + i];  // row-vector rows -> column form
+    X.t = Vec3{x[12], x[13], x[14]};
+    if (!inverse(X, iX)) return 3;
+    for (int k = 0; k < slots; k++)
+        if (bone_finite(vsc, k)) write_bone(vsc, k, mul(game_to_hand, mul(iX, read_bone(vsc, k))));
+    apply_pass(vsc, slots);
+    for (int k = 0; k < slots; k++)
+        if (bone_finite(vsc, k)) write_bone(vsc, k, mul(X, read_bone(vsc, k)));
+    static int told = -100000;
+    if (rt_frame - told >= 600) {
+        told = rt_frame;
+        rt_log("VR: frame %d: the weapon in her reflection (a mirror) held as the one in her hand, through the "
+               "reflection", rt_frame);
+    }
+    return 3;
+}
+
 int combat_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count, const int* pal_bone, float vsc[96][4]) {
     weapon_draw_now = false;
     mesh_slot = mesh_sig = -1;
@@ -3290,6 +3341,30 @@ int combat_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count,
         }
     }
     const WeaponInfo* w = info_of(game.weapon);
+    // 0.1.9 (owner 167, a player's 0.1.7 video at 11:21, the store's back room, "Stay back!": "during a cutscene, a
+    // pistol didnt render in the 1st person view of her shooting, but it rendered in the 3rd person one"): a scene that
+    // draws her away from her place with the eyes in her head (ik_scene_eyes) poses her hands and the weapon in them
+    // itself, but the weapon was still moved to the controller (nowhere near the scene's hands) or, holstered, put away
+    // (nothing drawn). Now it is left where the scene's hands hold it, marked as hers as the weapon in her hand is (her
+    // own shadows leave it alone, it casts its shadow with her body; faded only right at the eyes); the beam saber's
+    // blade, a draw of its own, stays on its hilt. A part of VR's own falling still shows where it is.
+    if (w && view_mode == ViewMode::kFirstPerson && ik_scene_eyes()) {
+        const bool blade =
+            game.weapon == 9 && nv == 24 && np == 30 && pal_count == 1 && (!pal_bone || pal_bone[0] == 1);
+        if (blade || weapon_signature(nv, np)) {
+            weapon_draw_now = true;
+            PassPlace pp;
+            if (!blade && parts_pass() > 0 && parts_pass_place(parts_pass(), pp) && pp.kind == 2)
+                apply_pass(vsc, pal_count > 0 ? std::min(pal_count, kBones) : kBones);
+            static int told = -100000;
+            if (rt_frame - told >= 600) {
+                told = rt_frame;
+                rt_log("VR: frame %d: a scene draws her with the eyes in her head: %s%s (weapon %d) left in the scene's "
+                       "hands", rt_frame, w->name, blade ? "'s blade" : "", game.weapon);
+            }
+            return blade ? 2 : 1;
+        }
+    }
     if (w && view_mode == ViewMode::kFirstPerson && map_ready() && saber_blade_draw(nv, np, pal_count, pal_bone, vsc)) {
         weapon_draw_now = true;  // faded as the weapon is (near the eyes only), not as her body
         // 2: a glow, so d3d8.c keeps it out of her own-mesh shadow (a beam of light casts none), its pixels still
@@ -3297,6 +3372,8 @@ int combat_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count,
         return 2;
     }
     if (!w || view_mode != ViewMode::kFirstPerson || !map_ready() || !weapon_signature(nv, np)) return 0;
+    if (weapon_palette_mirrored(vsc, pal_count > 0 ? std::min(pal_count, kBones) : kBones))
+        return mirror_weapon_draw(vsc, pal_count > 0 ? std::min(pal_count, kBones) : kBones);
     weapon_draw_now = true;
     bool known = false;
     for (int i = 0; i < n_strides; i++) known |= skinned_strides[i] == stride;
@@ -3480,10 +3557,19 @@ void combat_weapon_mesh(const uint8_t* v48, int nv, const uint16_t* tris, int nt
 // to VR's), the way the game holds them kept; holstered, collapsed to a point as the known weapons are. Only for a
 // model whose bone 0 sits on her animated right hand (where the game hangs every weapon).
 int combat_weapon_bones(float* bones, int n) {
-    if (n < 1 || n > 4 || view_mode != ViewMode::kFirstPerson || !map_ready() || game.weapon <= 0 || info_of(game.weapon))
+    // (0.1.9, owner 167: in a scene that draws her with the eyes in her head the weapon stays in the scene's hands)
+    if (n < 1 || n > 4 || view_mode != ViewMode::kFirstPerson || !map_ready() || game.weapon <= 0 || info_of(game.weapon) ||
+        ik_scene_eyes())
         return 0;
     float m0[16];
     std::memcpy(m0, bones, sizeof m0);
+    {
+        // 0.1.9 (owner 164): the same weapon in a mirror's reflection of her (its bone turned over): carried through the
+        // reflection to the reflection's hand (sh3vr_ik.cpp ik_mirror_carry), never taken for the one on her hand
+        const float d = m0[0] * (m0[5] * m0[10] - m0[6] * m0[9]) - m0[1] * (m0[4] * m0[10] - m0[6] * m0[8]) +
+                        m0[2] * (m0[4] * m0[9] - m0[5] * m0[8]);
+        if (d < -0.25f) return ik_mirror_carry(kRight, bones, n, in_hand) ? 1 : 0;
+    }
     if (!ik_hand_carry(kRight, m0, true)) return 0;  // not on her animated right hand: not the weapon
     static int told = -1;
     if (told != game.weapon) {

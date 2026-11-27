@@ -1,0 +1,26 @@
+# SH3 Quest VR, the PC rig (session 34, 0.1.9), about 2 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# with the default options (Cutscenes: Dynamic, which has the dream's scenes at her eyes); the frames before 7312 are
+# the game's own (QUEST_SIM_ALIGN counts from 7312 only once play starts, at about 8080).
+# 0.1.9 (owner 166's fix reaches the opening dream too): its scenes at her eyes (4136-6685 and 7149-8068 in vr456) now
+# leave the game's volumes of her out (the eye inside them) and cast her shadow from her body as drawn, z-fail. Pictures
+# ahead and looking down at her feet and shadow, through the dream.
+4380 head_pitch 0
+4400 shot d04400-ahead
+4680 head_pitch -45
+4700 shot d04700-down
+4980 head_pitch 0
+5000 shot d05000-ahead
+5380 head_pitch -45
+5400 shot d05400-down
+5780 head_yaw 40
+5780 head_pitch -30
+5800 shot d05800-yaw40-down
+6180 head_yaw 0
+6180 head_pitch -45
+6200 shot d06200-down
+6580 head_pitch -20
+6600 shot d06600-ahead-down
+7280 head_pitch -45
+7300 shot d07300-down
+7400 quit 0

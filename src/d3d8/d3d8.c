@@ -11,6 +11,7 @@ static int panel_has_picture;  /* SH3 Quest VR: the panel got a draw this frame 
 /* Session 11: this frame's 3D draws with the frame camera (the world) and with others, its 2D sent whole to the panel
  * as a full screen; whether the last frame drew the world (vr_route) */
 static int frame_world, frame_other, frame_screen, world_last = 1;
+static int frame_screen_tex;  /* 0.1.9: of the full screen's 2D draws, those with a texture (a fade or a black screen has none) */
 static int frame_fog;  /* owner 79 (session 16): the game's drifting fog's draws this frame (vr_route_pick) */
 static uint32_t d3d_obj;
 
@@ -427,8 +428,9 @@ METHOD(dev_Present, 5) {
                 frame_fog = 0;
             }
             sh3vr_frame_world(frame_world > 0);
+            sh3vr_frame_screen(frame_screen, frame_screen_tex);
             world_last = frame_world > 0;
-            frame_world = frame_other = frame_screen = 0;
+            frame_world = frame_other = frame_screen = frame_screen_tex = 0;
         }
         sh3vr_present(bb->tex, depth && res_layers(depth) == 2 ? depth->tex : 0, (int)bb->w, (int)bb->h);
         panel_has_picture = 0;
@@ -615,6 +617,23 @@ METHOD(dev_SetViewport, 2) {
     dev->vp_x = MEM32(v); dev->vp_y = MEM32(v + 4); dev->vp_w = MEM32(v + 8); dev->vp_h = MEM32(v + 12);
     dev->vp_minz = MEMF(v + 16); dev->vp_maxz = MEMF(v + 20);
     MARK(vp);
+    {
+        /* 0.1.9 (the owner's video, 10:52 and 11:40: as two scenes start, the picture squeezed into a strip at the top
+         * of the view for a few seconds; no save in the rig reaches them): a viewport the game sets on the back buffer
+         * (the eyes' picture) that does not cover it, told as it changes (40 times at most), with the code that set it */
+        static float last[4] = {-1.0f, -1.0f, -1.0f, -1.0f};
+        static int told;
+        if (sh3vr_active() && dev->rt == dev->backbuffer && told < 40 &&
+            (dev->vp_x != 0.0f || dev->vp_y != 0.0f || dev->vp_w != (float)dev->bb_w || dev->vp_h != (float)dev->bb_h) &&
+            (last[0] != dev->vp_x || last[1] != dev->vp_y || last[2] != dev->vp_w || last[3] != dev->vp_h)) {
+            told++;
+            rt_log("VR: frame %d: the game's viewport on the eyes' picture is %.0f %.0f %.0f x %.0f of %u x %u "
+                   "(from %08x, a scene %d)", rt_frame, dev->vp_x, dev->vp_y, dev->vp_w, dev->vp_h, dev->bb_w, dev->bb_h,
+                   MEM32(g_esp),
+                   sh3vr_in_scene());
+        }
+        if (dev->rt == dev->backbuffer) last[0] = dev->vp_x, last[1] = dev->vp_y, last[2] = dev->vp_w, last[3] = dev->vp_h;
+    }
     return 0;
 }
 METHOD(dev_GetViewport, 2) {
@@ -1026,7 +1045,7 @@ static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
         Res *t = res_of(dev->tex[s]);
         if (!t) continue;
         if (res_layers(t) == 2) {
-            if (full_screen) frame_screen++;
+            if (full_screen) frame_screen++, frame_screen_tex++;
             return full_screen ? 1 : 0;
         }
         any_tex = 1;
@@ -1074,6 +1093,7 @@ static int vr_route_pick(uint32_t va, uint32_t stride, uint32_t count) {
     }
     if (full_screen) {
         frame_screen++;
+        if (any_tex) frame_screen_tex++;
         return 1;
     }
     {
@@ -1460,7 +1480,8 @@ static GLuint her_buf;  /* her volumes' own buffer: the mask draw's vertices (th
  * ANIMATION's pose, z-pass (vr291/vr294: a shadow of walking legs under the view, the eyes inside her own volume). In
  * first person those draws are left out here (her_game_volume: sh3vr tells hers by her place) and her body as drawn is
  * counted from the same lamp at the darkening's start (her_shadow_ready), into the game's own count: its full
- * strength, its blur. Her own pixels (bit 0x20) stay out of it, as for the flashlight's. */
+ * strength, its blur. Her own pixels (bit 0x20) stay out of it, as for the flashlight's. 0.1.9 (owner 166): a lamp of
+ * a type-3 record too, and in a scene that has the eyes in her head (her body as the scene draws it, sh3.c). */
 enum { kRoomLamps = 4 };
 static float room_lamp[kRoomLamps][3];
 static int room_lamps, room_lamp_frame = -1;
@@ -1479,10 +1500,26 @@ static int her_game_volume(uint32_t va, uint32_t stride, uint32_t n) {
     if (fabsf(w[0] - 1.0f) > 1e-4f || fabsf(w[5] - 1.0f) > 1e-4f || fabsf(w[10] - 1.0f) > 1e-4f || fabsf(w[12]) > 1e-3f ||
         fabsf(w[13]) > 1e-3f || fabsf(w[14]) > 1e-3f || fabsf(w[1]) > 1e-4f || fabsf(w[2]) > 1e-4f || fabsf(w[4]) > 1e-4f)
         return 0;
-    const uint32_t row = MEM32(0x8E43AC);
-    if (!MEM32(0x8E43A8) || !row) return 0;
+    /* 0.1.9 (owner 166: "when she woke up from the dream and was at the table, shadows looked off in 1st person"): a
+     * room's shadow light of type 3 (0x491100: no object at 0x8E43A8, its place at 0x8E43AC the record's +0x180; Happy
+     * Burger's, in the characters' list 0x685CFB draws, vr454) is as much a lamp: 0x490810 extrudes its volumes from
+     * the place at [0x8E43AC] whatever the record (0x490A9D) and draws them through 0x48BEC0, called from 0x490810
+     * alone (its DrawPrimitiveUP calls return to 0x48C018, 0x48C071, 0x48C0DB, 0x48C132). Such a lamp is taken only
+     * within 30 m of the volume's corners (VR casts from a lamp up to 40 m off, sh3vr_ik.cpp her_room_shadow_tris). */
+    const uint32_t row = MEM32(0x8E43AC), ret = MEM32(g_esp);
+    const int point = ret == 0x0048C018u || ret == 0x0048C071u || ret == 0x0048C0DBu || ret == 0x0048C132u;
+    if (!row || (!MEM32(0x8E43A8) && !point)) return 0;
     const float lamp[3] = {MEMF(row), MEMF(row + 4), MEMF(row + 8)};
     if (!isfinite(lamp[0]) || !isfinite(lamp[1]) || !isfinite(lamp[2])) return 0;
+    if (!MEM32(0x8E43A8)) {
+        float near2 = 1e30f;
+        for (uint32_t i = 0; i < n && i < 64; i++) {
+            const float *p = (const float *)GPTR(va + i * stride);
+            const float dx = p[0] - lamp[0], dy = p[1] - lamp[1], dz = p[2] - lamp[2], d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 < near2) near2 = d2;
+        }
+        if (!(near2 < (30.0f * 490.0f) * (30.0f * 490.0f))) return 0;
+    }
     if (!sh3vr_her_game_volume((const uint8_t *)GPTR(va), stride, n, lamp)) return 0;
     if (dev->rs[55] == 7 && dev->rs[22] == 3) {  /* the pass's camera, as draw_setup keeps it from the game's volumes */
         memcpy(vol_view, dev->view, sizeof vol_view);
@@ -1649,11 +1686,12 @@ static int vr_weapon_passes(Res *vb, Res *ib, int is32, uint32_t type, uint32_t 
 }
 /* LIST 56, Heather's shadow from her own mesh (session 14; the owner, 62-64: "the ratchet and clank shadow works fine
  * and shows the whole body", "dont take shortcuts and be proper"): each skinned draw of hers just drawn for the eyes
- * (her parts in sh3.c's 0x45ED40 wrapper, her_mark; the weapon or a part in her hand, shader_held_draw), with its
+ * (her parts in sh3.c's 0x45ED40 wrapper, her_mark 1, not a mirror's reflection of her, 2; the weapon or a part in her
+ * hand, shader_held_draw 1, not a reflection's, 3), with its
  * shader's bone palette, handed to VR as drawn: its vertices, faces and the constants it was given. VR skins it as the
  * game's shader does and casts her shadow from it (sh3vr_ik.cpp shadow_part, shadow_mesh). */
 static void her_shadow_capture(const uint8_t *verts48, uint32_t nv, const uint16_t *tris, int ntris, uint32_t key) {
-    if (!(her_mark || shader_held_draw == 1) || !shader_last_main || !shader_last_palette || !shader_last_consts ||
+    if (!(her_mark == 1 || shader_held_draw == 1) || !shader_last_main || !shader_last_palette || !shader_last_consts ||
         dev->stride[0] != 48 || ntris <= 0 || !sh3vr_active())
         return;
     sh3vr_shadow_part(verts48, (int)nv, tris, ntris, shader_last_consts, key, shader_held_draw ? 1 : 0);
@@ -1847,7 +1885,7 @@ METHOD(dev_DrawIndexedPrimitive, 6) {
                    glDrawElementsBaseVertex(prim_mode(ARG(1)), prim_verts(ARG(1), ARG(5)),
                                             is32 ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT,
                                             (void *)(uintptr_t)(ARG(4) * (is32 ? 4 : 2)), dev->base_vertex));
-            if ((route == 0 || route == 2) && verts48 && (her_mark || shader_held_draw == 1) && shader_last_main) {
+            if ((route == 0 || route == 2) && verts48 && (her_mark == 1 || shader_held_draw == 1) && shader_last_main) {
                 enum { kMaxTris = 8192 };
                 static uint16_t tris[kMaxTris * 3];
                 const int nt = unroll_tris(ib, is32, ARG(1), ARG(2), ARG(3), ARG(4), ARG(5), tris, kMaxTris);

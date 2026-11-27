@@ -145,12 +145,28 @@ C:/SH3Quest/checks268.sh (vr413-422, about 30 minutes, both ini files backed up 
   releases/latest is v0.1.8, its asset's digest sha256:71dd5e64...1d52682 and 9,613,170 bytes, and a copy downloaded
   with gh (C:/SH3Quest/dl018) hashes the same.
 
+## 0.1.9: the key give-back (owner 161: "Yes, add it", "just make this a quick patch release", "regress nothing")
+
+- The nine doors that use up a held key (eight keys) and each key's giver found in the stage tables and room scripts
+  (docs/GAME_FACTS.md "Session 33, part 2"; rigtools event_gives.py, event_show.py). The game takes these keys
+  nowhere but at their doors.
+- sh3.c keys_lend / keys_settle (before and after the game's own 0x4B9940 in the sub_004B9940 wrapper): a key not
+  held, its giver's flag set, its door's event still on, in that door's stage, is lent to the game's own action check
+  (the button or a closing hand); the game finds the door, spends the key, opens it. Any other result clears the bit
+  at once. The rig's switch SH3_KEY_BACK_TEST="frame:event:item:flag".
+- Owner 162, a player's log (D:/Downloads/sh3 (3).log): 0.1.7, the store door (stage 2, event 50 "locked", key 38)
+  pressed 24 times; the key lost to 0.1.7's looks. AUDIT row 192.
+- Build 269 (C:/SH3Quest/build_pc_269.log). checks269a.sh: vr423 (key taken away as 0.1.7 did: lent at frame 7839,
+  the door's event 8 found and run as in vr415, the key used), vr424 (giver flag not set: nothing lent), vr425 (key
+  held: nothing lent). checks269b.sh (0.1.8's checks again on build 269, vr426-435) was written but never run, nor
+  checks270.sh's second half (stopped in vr441); session 34 ran the release build's weapon checks (its handoff).
+
 ## Next
 
 1. Players' reports on 0.1.8 and their headset logs (sh3.log says what VR did; every item gained or lost is in it).
 2. The video's 11:40-11:45 (owner 160): the picture through a small window at the top as the clothes store's cutscene
    starts. A save at that fight (or the flat PC game there) settles whether it is the game's own opening or ours.
-3. Keys lost to 0.1.7's looks stay lost in saves made after (0.1.8 keeps keys from now on; the notes say to load an
-   earlier save). A key could be given back where its giver's flag is set (docs/GAME_FACTS.md session 32: "No record
-   of an item ever held") and its door has not opened: only with the owner's word, as it changes saves.
-4. docs/HEADSET_CHECKLIST.md's 0.1.8 items on a headset.
+3. Keys lost to 0.1.7's looks: given back at their doors since 0.1.9 (keys_lend). A player's report from a
+   headset on 0.1.9 with such a save ("lent" / "given back" in sh3.log) confirms it on the real doors; the rig has
+   none of them (no saves, a new game only).
+4. docs/HEADSET_CHECKLIST.md's 0.1.8 and 0.1.9 items on a headset.

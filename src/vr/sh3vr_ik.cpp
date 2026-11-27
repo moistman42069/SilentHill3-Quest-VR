@@ -1130,6 +1130,30 @@ void ik_scene_head(const float* bones) {
     }
 }
 
+// 0.1.9 (owner 166: "when she woke up from the dream and was at the table, shadows looked off in 1st person... they
+// seem to look fine in 3rd person"): a scene drawing her away from her place with the eyes in her head (Happy
+// Burger's table on waking, Dynamic cutscenes): the game's own z-pass volumes of her, her eyes inside her head's, are
+// left out as in play (sh3vr.cpp sh3vr_her_game_volume) and her body as the scene draws it casts her shadow
+// (her_room_shadow_ready; sh3.c marks those draws of hers for it).
+bool ik_scene_eyes() {
+    return active && view_mode == ViewMode::kFirstPerson && (game.cutscene || game.demo) &&
+           scene_drawn_frame >= rt_frame - 1;
+}
+// Her bones' places as the scene draws her (her trunk, limbs and head, bones 0-42 but the unposed 19 and 20), within
+// 3 m of her pelvis: 0 when no scene has the eyes in her head.
+int ik_scene_bones(Vec3* out, int max) {
+    if (!ik_scene_eyes() || !out) return 0;
+    const Vec3 pv = scene_drawn[kPelvis];
+    int n = 0;
+    for (int b = 0; b <= 42 && n < max; b++) {
+        const Vec3 p = scene_drawn[b];
+        if (b == 19 || b == 20 || !std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) continue;
+        if (length(p - pv) > 3.0f * kU) continue;
+        out[n++] = p;
+    }
+    return n;
+}
+
 // From the game's model draw (src/game/sh3.c, after 0x45EC00): 1 when her bones were changed.
 int ik_heather_bones(float* bones, int n, const Sh3VrModel* m) {
     if (!active || !game.player_valid || n != kN || !m) return 0;
@@ -1577,6 +1601,89 @@ bool ik_hand_carry(int h, float* m, bool on_hand) {
     out.o = apply(b, local(w.o - a.o));
     if (!std::isfinite(out.o.x + out.o.y + out.o.z) || length(out.o - w.o) > 1.5f * kU) return false;
     store(m, out);
+    return true;
+}
+
+// 0.1.9 (owner 164, the video's 9:09-9:15: "the mirror in the game didnt show the vr body moving accurately"; "not
+// sure if thats the only mirror in the game"). A mirror is the game drawing her model a second time with her own
+// animation's bones reflected about the glass (the mall restroom's, vr451: flag 0x2000, its world her struct's +0x310;
+// x -> -122000.6 - x, every bone the game poses within 1 unit of her animation's reflected), so it kept the game's pose
+// while VR posed her, and its hands (her finger hands, on bones the game never poses in play) were missing. Such a draw
+// is told by its bones alone, whatever the mirror: one map X, a reflection (rows orthonormal, turned over), takes her
+// animation's pose (this frame's, or the last when the mirror comes first) onto the draw's, bone for bone, within 15
+// cm for every bone the game poses (those within 2.5 m of her root); then the draw is given VR's pose through it
+// (out * X), her fingers with it. X (rows its axes, row 3 its origin) is kept for the draw's held flashlight and its
+// weapon (sh3.c, sh3vr_combat.cpp). 0: not her reflection (left as the game posed it).
+namespace {
+Bone mirror_x;
+int mirror_x_frame = -100;
+int mirror_told = -100000, mirror_refused_told = -100000, mirror_count = 0;
+}
+int ik_mirror_bones(float* bones, int n) {
+    if (!active || n != kN || sk.state != 1 || view_mode != ViewMode::kFirstPerson) return 0;
+    if (st.bones_frame < rt_frame - 1 || anim_frame != st.bones_frame) return 0;  // no VR pose of this frame or the last
+    const Bone& A0 = anim[kUpperRoot];
+    for (int i = 0; i < 3; i++)
+        if (std::fabs(length(A0.r[i]) - 1.0f) > 0.02f) return 0;  // her root carries a scale: no rigid map from it
+    const Bone X = compose(rigid_inverse(A0), load(bones + 16 * kUpperRoot));
+    for (int i = 0; i < 3; i++)
+        if (std::fabs(length(X.r[i]) - 1.0f) > 0.02f || std::fabs(dot(X.r[i], X.r[(i + 1) % 3])) > 0.02f) return 0;
+    if (dot(X.r[0], cross(X.r[1], X.r[2])) > 0.0f) return 0;  // not turned over: a copy, not a reflection
+    int checked = 0;
+    float worst = 0;
+    for (int b = 0; b < kN; b++) {
+        if (length(anim[b].o - A0.o) > 2.5f * kU) continue;  // a bone the game leaves unposed in play (her fingers)
+        const Vec3 got = load(bones + 16 * b).o;
+        if (!std::isfinite(got.x + got.y + got.z)) return 0;
+        worst = std::max(worst, length(apply(X, anim[b].o) - got));
+        checked++;
+    }
+    if (checked < 20 || worst > 0.15f * kU) {
+        if (rt_frame - mirror_refused_told >= 600) {
+            mirror_refused_told = rt_frame;
+            rt_log("VR: frame %d: a reflected draw of her model not matched to her pose (%d bones, %.1f cm off at worst): "
+                   "left as the game posed it", rt_frame, checked, worst / kU * 100.0f);
+        }
+        return 0;
+    }
+    for (int b = 0; b < kN; b++) store(bones + 16 * b, compose(st.out[b], X));
+    mirror_x = X;
+    mirror_x_frame = rt_frame;
+    mirror_count++;
+    if (rt_frame - mirror_told >= 600) {
+        mirror_told = rt_frame;
+        rt_log("VR: frame %d: her reflection (a mirror) drawn with her VR pose: %d draws since the last line; her pose "
+               "of frame %d mapped bone for bone (%d bones within %.1f cm), the map's x row %.3f %.3f %.3f, origin %.1f "
+               "%.1f %.1f", rt_frame, mirror_count, st.bones_frame, checked, worst / kU * 100.0f, X.r[0].x, X.r[0].y,
+               X.r[0].z, X.o.x, X.o.y, X.o.z);
+        mirror_count = 0;
+    }
+    return 1;
+}
+// The mirror's map of this frame or the last (row-vector, as the bones): false without one.
+bool ik_mirror_map(float x[16]) {
+    if (rt_frame - mirror_x_frame > 1) return false;
+    store(x, mirror_x);
+    return true;
+}
+// An extra weapon (no hold of its own: ik_hand_carry) in a mirror's reflection of her: each bone back through the
+// glass, carried from her animated hand to her hand as posed, reflected again; holstered, collapsed (not drawn). False
+// without the mirror's map, or when it does not hang on her reflected animated hand (left as the game drew it).
+bool ik_mirror_carry(int h, float* bones, int n, bool in_hand) {
+    if (rt_frame - mirror_x_frame > 1 || n < 1) return false;
+    const Bone ix = rigid_inverse(mirror_x);
+    float m[16];
+    store(m, compose(load(bones), ix));
+    if (!ik_hand_carry(h, m, true)) return false;
+    for (int b = 0; b < n; b++) {
+        float* mb = bones + 16 * b;
+        if (!in_hand) {
+            for (int i = 0; i < 12; i++) mb[i] = 0.0f;
+            continue;
+        }
+        store(m, compose(load(mb), ix));
+        if (ik_hand_carry(h, m, false)) store(mb, compose(load(m), mirror_x));
+    }
     return true;
 }
 
@@ -2108,9 +2215,10 @@ int her_shadow_tris(const float view[16], const float proj[16], float* out, int 
 // game's own count before its darkening, at its full strength: her body and the weapon in her hand as drawn this frame
 // (her mesh, shadow_mesh), every face of hers that faces the lamp, closed and counted the z-fail way so the eyes
 // inside her volume leave it right. -1: her mesh not caught (the game's own volumes are kept then).
+// 0.1.9 (owner 166): also in a scene with the eyes in her head (ik_scene_eyes), her mesh then as the scene draws her.
 bool her_room_shadow_ready() {
-    return view_mode == ViewMode::kFirstPerson && sk.state == 1 && st.bones_frame >= rt_frame - 1 &&
-           shadow_parts_frame >= rt_frame - 1;
+    if (view_mode != ViewMode::kFirstPerson || shadow_parts_frame < rt_frame - 1) return false;
+    return (sk.state == 1 && st.bones_frame >= rt_frame - 1) || ik_scene_eyes();
 }
 
 int her_room_shadow_tris(const float view[16], const float proj[16], Vec3 lamp, float* out, int max_tris,

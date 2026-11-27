@@ -1,0 +1,56 @@
+# SH3 Quest VR, the PC rig (session 34, 0.1.9), about 3 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300" SH3_STEER_AT_ATTACKER=1 SH3_HP=1 SH3_VSC_DUMP=9300
+# and "blocking = 0" and "cutscenes = 1" (scenes always at her eyes) in the game folder's sh3vr.ini for this run only
+# (put the defaults back after).
+# Owner 166 (Happy Burger's table after the dream, the shadows wrong in first person): table455 with the scenes kept at
+# her eyes, as the owner's headset had them. QUEST_SIM_ALIGN's mark (first person in play, out of a scene) came at the
+# game's frame 7260 in vr456 (Dynamic) but 1909 in vr458 (Cutscenes: First person), so table455's frames are moved by
+# 5351 here, and a game's frame R is R + 5403. The table's scene at her eyes from about the game's frame 9085: pictures
+# through it, the head level and looking down at the table.
+13091 left_y 1
+13451 left_y 0
+13461 lh_x 0.200
+13461 lh_y 0.100
+13461 lh_z -0.300
+13471 left_grip 1
+13477 left_grip 0
+13491 lh_x 0
+13491 lh_y 0
+13491 lh_z 0
+13551 left_y 1
+14131 head_yaw 0
+14131 head_pitch -20
+14151 shot t08800-yaw0-pitch_m20
+14281 head_yaw 50
+14281 head_pitch -15
+14301 shot t08950-yaw50-pitch_m15
+14351 left_y 0
+14533 head_yaw 0
+14533 head_pitch -10
+14553 shot f09150-yaw0-pitch-10
+14613 head_yaw 0
+14613 head_pitch -30
+14633 shot f09230-yaw0-pitch-30
+14683 head_yaw 0
+14683 head_pitch 0
+14703 shot f09300-yaw0-pitch0
+14763 head_yaw 30
+14763 head_pitch -30
+14783 shot f09380-yaw30-pitch-30
+14843 head_yaw -30
+14843 head_pitch -30
+14863 shot f09460-yaw-30-pitch-30
+14933 head_yaw 0
+14933 head_pitch -45
+14953 shot f09550-yaw0-pitch-45
+15033 head_yaw 0
+15033 head_pitch -20
+15053 shot f09650-yaw0-pitch-20
+15133 head_yaw 45
+15133 head_pitch -15
+15153 shot f09750-yaw45-pitch-15
+15233 head_yaw 0
+15233 head_pitch -30
+15253 shot f09850-yaw0-pitch-30
+15353 quit 0

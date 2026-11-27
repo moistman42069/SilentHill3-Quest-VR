@@ -43,6 +43,8 @@ namespace sh3q { bool sim_reload_spot(int what, float out[3]); }
 // SH3 Quest VR (0.1.6): a holster's place (sh3vr_combat.cpp), for "lh_at_holster N" / "rh_at_holster N".
 namespace sh3q { bool sim_holster_spot(int n, float out[3]); }
 namespace sh3q { void sim_grip_spot(int v); }
+// SH3 Quest VR (0.1.9): how long a scene of the game's has played (sh3vr.cpp), for QUEST_SIM_SKIP_SCENES.
+namespace sh3q { int sim_scene_frames(); }
 
 namespace quest {
 
@@ -404,6 +406,18 @@ public:
         c.x = number("x") != 0;
         c.y = number("y") != 0;
         c.menu = number("menu") != 0;
+        {
+            // SH3 (0.1.9, session 34; vr452: a menu press timed for a scene came in play and opened the game's pause):
+            // QUEST_SIM_SKIP_SCENES=N: from frame N on, the menu button pressed for 6 frames once a scene of the game's
+            // has played 60 frames, and every 200 frames after while it goes on, so a script skips the scenes however
+            // late they come and never presses in play (the opening's scenes before N play as the scripts expect).
+            static const int skip_from =
+                std::getenv("QUEST_SIM_SKIP_SCENES") ? std::atoi(std::getenv("QUEST_SIM_SKIP_SCENES")) : -1;
+            if (skip_from >= 0 && due(skip_from)) {  // (the script's frames, aligned as its lines are)
+                const int f = sh3q::sim_scene_frames();
+                if (f >= 60 && (f - 60) % 200 < 6) c.menu = true;
+            }
+        }
         c.left_click = number("left_click") != 0;
         c.right_click = number("right_click") != 0;
         c.left_x = number("left_x");

@@ -419,6 +419,11 @@ int her_room_shadow_tris(const float view[16], const float proj[16], Vec3 lamp, 
 void shadow_part(const uint8_t* v48, int nv, const uint16_t* tris, int nt, const float* c, uint32_t key, int kind);
 bool ik_chest_carry(Vec3 p, Vec3& out);  // a point on her chest as the game posed it, where VR's pose puts it (the chest lamp)
 bool ik_hand_carry(int h, float* m, bool on_hand);  // LIST 24: a bone on her animated hand carried to her IK hand (the extras)
+int ik_mirror_bones(float* bones, int n);  // 0.1.9: a reflected draw of her model (a mirror) given her VR pose
+bool ik_mirror_map(float x[16]);           // ... its map of this frame or the last (row-vector)
+bool ik_mirror_carry(int h, float* bones, int n, bool in_hand);  // ... an extra weapon in its hand, through it
+bool ik_scene_eyes();                    // 0.1.9 (owner 166): a scene draws her away from her place, the eyes in her head
+int ik_scene_bones(Vec3* out, int max);  // ... her bones' places as it draws her (0: no such scene)
 // The distance (metres) from a tracking segment to the weapon's surface (negative inside): its capsules, and for the
 // other hand the main hand's fist round the grip. 1e9: no weapon placed.
 float weapon_clearance(int hand, Vec3 a, Vec3 b);
@@ -553,13 +558,16 @@ void reload_crash_info(FILE* f);
 
 // ---------------------------------------------------------------- hints (sh3vr_tips.cpp, owner messages 143, 144)
 
-enum TipKind { kTipStart, kTipFlashlight, kTipUse, kTipItem, kTipHeld, kTipGun, kTipMelee, kTipHealth, kTipCount };
+enum TipKind { kTipStart, kTipFlashlight, kTipUse, kTipItem, kTipHeld, kTipGun, kTipMelee, kTipHealth, kTipPuzzle,
+               kTipCount };
 void tip_event(int kind);       // something a hint is about came up (a grab: kTipHeld; within reach: kTipUse, kTipItem)
 void tip_moment_over(int kind); // ... and is over (she is free): its line ends, its waiting lines go
 bool tip_wants_use();           // sh3.c asks whether to look for a door or an item within reach this frame
 void tips_frame();              // each frame, after combat_frame: what starts a hint, the line up now
 const char* tip_text();         // the line for the hint label now (reload_hint_texture, when no reload step is due), or null
 bool hint_label_up();           // the hint label is up in full showing a first-time hint (sh3vr.cpp ui)
+bool tip_on_screen();           // 0.1.9 (owner 168): the puzzles' hint is on the game's screen now (the label at its top)
+bool game_screen_up();          // 0.1.9: a game screen to choose on is up, pointer on or not (sh3vr.cpp update_pointer)
 extern bool hint_is_tip;        // the hint label drawn this frame is a first-time hint (sh3vr_reload.cpp)
 bool tip_reload_due(int gun_item);   // the reload's steps still to show for this gun (its item: 9 stun gun ... 12)
 void tip_reload_done(int gun_item);  // ... a reload of it done with them: not again

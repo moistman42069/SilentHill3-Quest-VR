@@ -126,6 +126,30 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       stick as soon as it is closed; the Sprint run ended.
 - [ ] 0.1.8 the item taken: as you take an item, it turns in its box on the message's panel, once, never double in
       the eyes.
+- [ ] 0.1.9 a key 0.1.7 lost (two players' saves: the store's key, stage 2): load a save where the key is gone and its
+      door still locked, press A at the door (and once close a hand on it): the door opens, sh3.log "lent to the
+      action check" then "key 38 given back"; A elsewhere in the stage changes nothing ("taken back" lines only).
+      With the key still held, or before it was found, the door is as on 0.1.8.
+- [ ] 0.1.9 the mirror (the mall's women's restroom, after the dream): stand before the first mirror; turn your head,
+      raise each hand, hold one out, open and close your hands, look down: the reflection does each, mirrored, with
+      her hands and fingers, the flashlight on her chest (the game draws no weapon in its mirrors: a weapon drawn is
+      not in the reflection, vr472). sh3.log "her reflection (a mirror) drawn with her VR pose ... 41 bones". Any
+      other mirror: the same.
+- [ ] 0.1.9 Happy Burger's table after the dream, scenes at her eyes (Dynamic, or Cutscenes: First person): her shadow
+      on the table and the floor follows her body as the scene moves her, nothing dark around the eyes or over the
+      table; from the scene's camera and in third person as on 0.1.8. The opening dream's scenes at her eyes the same.
+- [ ] 0.1.9 the pointer: no beam or dot over the fades and black screens between scenes, nor for a moment as one
+      fades out; on the title menu, the pause menu, the inventory, the map, memos and puzzles it is there as before.
+- [ ] 0.1.9 the puzzles' hint (Hints on, "puzzle" not yet in sh3quest_tips.ini): the first puzzle's screen (the
+      bookstore's Shakespeare shelf, or the first keypad) shows two lines at its top, about 5 s each: "Puzzles and
+      screens: point with either hand and pull the trigger to choose", "Or the left stick and A, as on a pad. B backs
+      out"; readable, over nothing the puzzle needs; gone with the screen. sh3.log "a screen an event's script opened is
+      up to choose on (the game's mode N)" and "hint (puzzle)". The inventory, the map, memos, the pause menu and the
+      save screen never show it. The Hints page lists both lines.
+- [ ] 0.1.9 a scene seen from her eyes with a weapon drawn (Dynamic, or Cutscenes: First person; the store's back
+      room, "Stay back!", with the handgun): the gun is in her hands where the scene holds it, as from the scene's
+      camera, its shadow with her; sh3.log "a scene draws her with the eyes in her head: ... left in the scene's hands".
+      Back in play the gun is in your hand as before.
 
 ## View and comfort
 - [ ] New Game: the opening movie plays on the big cinema screen in front of you (sharp, 4:3, no stutter), with its

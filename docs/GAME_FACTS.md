@@ -966,3 +966,85 @@ or wraps, checked against every function that writes the inventory.
 - **Shots**: 0x00497800 (wrapped: a gun at 0 keeps 0) takes a round only for a shot the game fires.
 - **The log**: every item gained or lost is in sh3.log with the frame, the event step and the mode (session 32), and
   a change a VR look made is logged and put back: a player's log tells which.
+
+## Session 33, part 2 (2026-11-27): the keys a door uses up, their givers, and 0.1.9's give-back (owner: "Yes, add it")
+
+The stage tables (`MEM32(0x006CF7D0 + 4 x stage)` -> {events, regions, ?, floor items}; 0x0711FCA0 the loaded
+stage's; rigtools/stages.py, event_gives.py, event_show.py) read for every event that uses an item up:
+
+- **Doors that use up a held key** (d4 = 2, dc = 1, trigger 1): stage 2 event 48 (key 38, flag A 126, region 507),
+  stage 4 event 50 (key 47, flag 182), stage 15 event 21 (key 61, flag 394), stage 20 event 65 (key 35, flag 452),
+  stage 25 event 8 and stage 26 event 4 (key 64, flag 513, the same door), stage 30 event 20 (key 66, flag 673), stage
+  33 event 119 (key 69, flag 743), stage 37 event 10 (key 78, flag 833). Each is on while its flag A is 0 and sets it
+  as the door opens (descriptor 12/13 = 1/the flag; stage 2's event 48 and stage 33's event 119 through their room
+  script, descriptor 24 = 3). The locked messages (d4 = 3, the key not held): stage 2 event 50 (key 38) and stage 4
+  event 49 (key 47) only. Stage 2 event 49 is the same door with key 38 used from the inventory (trigger 2, d4 = 1).
+- **Their givers** (the event's own give: descriptor 28 set, item = descriptor 29, 0x004B9308 -> 0x004972B0; or a room
+  script's `push key; call 0x004972B0`): key 38 stage 2 event 98 (sets flag 42; on after flag 40, which item 37 used
+  at stage 2's event 96 sets); key 47 the room script 0x00589610 (sets flag 193, 0x0715D078 bit 1, then gives it);
+  key 61 stage 17 event 59 (flag 401); key 64 stage 25 event 88 (item 63 used there; flag 521); key 66 stage 32 event
+  80 (flag 689); key 69 the room script 0x0057428C (flag 747, 0x0715D0BC bit 11, and the key together); key 78 stage
+  38 event 99 (flag 828); key 35 at every game's start (0x0058E750, with items 1 and 36, after taking the dream's
+  items with 0x00497D30). No floor item gives any of them.
+- **Who takes them**: 0x00496A20 (a key: its bit cleared; counts only for items 9-21) is called with a key only by
+  0x004B9940 at its end (dc); 0x00497D30 at the game's start (items 2, 10, 12, 15, 17-20, 31, 34) and in the room
+  scripts at 0x00585972-0x00585F7E (items 2, 7, 8); the
+  other takes (0x0056BD30: the table 0x006DF7A0, items 74-81; 0x005713C0 / 0x00571470: item 71; 0x005DB970: a
+  debug toggle; 0x00497500 / 0x00497800: ammo) never a key. So a key not held, given (its flag set), with its door
+  still on, was spent by a check whose event did not run: 0.1.7's looks.
+- **0.1.9** (sh3.c keys_lend / keys_settle): at the game's own action check (mode set, kind 0, pass 0 or 1: the
+  button or a closing hand), in such a door's stage, its event still on, the key not held but given, the key's bit is
+  set for that check; the game then finds the door (its d4 = 3 message skipped as the key is held), spends the key
+  and opens it; any other result has the bit cleared again at once. Logged ("lent", "given back", "taken back").
+- **A player's 0.1.7 log** (sh3 (3).log, 2026-11-27, Quest 3): 24 presses of stage 2's event 50 (the store door's
+  "locked" with key 38 not held) from frame 21268, the door's own event 48 never found, the hints' log already at its
+  20 lines; no save written that session (data.sys only), save 3 loaded at the start and twice later.
+
+## Session 34 (2026-11-27): mirrors, and the shadow lights of scenes (owners 164, 166)
+
+- **A mirror is a second draw of her 73-bone model.** The mall women's restroom (-60600 -20625): the mirror's model
+  (0x0208C060 in vr451) drawn at her place + 0x310, flag 0x2000, its bones her animation's reflected about the glass
+  (x -> -122000.6 - x there), so its root's 3x3 has determinant -1 (hers +1); the transposed bones (0x45ECF0) keep the
+  sign. Her draw comes before the mirror's in a frame; the two models take turns every frame. The game's finger bones
+  (43-72) and bones 19-20 are unposed in play, in her draw and the mirror's alike (its rigid hands are what it draws).
+  0.1.9 (sh3.c 0x45EC00 / 0x45ED40, sh3vr_ik.cpp ik_mirror_bones): a reflected draw is never taken for hers; when its
+  bones are her animation's under one reflection (checked bone for bone within 15 cm, 20 bones at least), it gets her
+  VR pose through that reflection, her finger hands and the flashlight with it. The game draws no weapon in its
+  mirrors (vr472, SH3_VSC_DUMP=10790 with the handgun drawn before the mirror: her model 0x00C0E060 with the weapon on
+  her hand, then the mirror's 0x0208C060 and no second weapon): the reflection has none, as the game has it.
+- **The shadow lights' records** (0x491030, its jump table at 0x4912F8): type 0 (0x491075) A8 = the object, AC/B0/B4 =
+  its rows +0x1C0/+0x1A0/+0x1B0, B8 = [object + 0x1F8]; type 1 (0x4910B1) A0 = +0x120, A4 = +0xC0 (AC untouched);
+  type 2 (0x4910CB) as type 0 with B8 = 1; type 3 (0x491100) A8 = 0, AC = +0x180, B0 = +0x160, B4 = +0x170, B8 = 1.
+  B8 only turns the volumes' winding over (0x48BD70 / 0x48BEC0: STENCILPASS on cull 3 INCR when it is set, DECR when
+  not, the other on cull 2). The caster's builder by 0xB544BA: 1 0x490810 (extrudes from the PLACE at [0x8E43AC]
+  whatever the record, 0x490A9D, and draws through 0x48BEC0, its only caller: DrawPrimitiveUP returning to 0x48C018,
+  0x48C071, 0x48C0DB, 0x48C132), 2 0x490CF0 (the record at 0x8E43A8's matrices, drawn by 0x48BD70), 3 0x490F00.
+- **Happy Burger's wake-up scene** (vr454, SH3_VSC_DUMP=10600): two lists, the characters' (0x491320 called from
+  0x685CFB, head 0x07119FE0) with a type-3 light (two volume pairs), and the one from 0x685D08 with her own type-0 record
+  (0x0712D260, inside her work struct, as in the park) whose lamp is at -100995 -429 -20942, at her head's height 1.6 m
+  off (eight pairs). The scene draws her away from her place (her head at -101345 -416 -20212), so sh3.c's 1 m test
+  sends her bones to ik_scene_head, not the IK. 0.1.9: in such a scene with the eyes in her head, her draws are marked
+  as in play (bit 0x20; caught for her shadow), the game's volumes of her (a quarter of their corners within 30 cm of
+  her bones as the scene draws them) are left out, and her shadow from each of those lamps is cast from her body as
+  drawn, z-fail (d3d8.c her_game_volume takes a type-3 lamp for 0x48BEC0's draws, within 30 m).
+
+## Session 35 (2026-11-27): the game's modes, screens an event opens, a scene's weapon (owners 167, 168)
+
+- **The game's mode** is the main loop 0x58EDB0's own step on the step stack (0xBCC658 the depth, 0xBCC65C the steps;
+  0x5F1B50 pushes a level without clearing it, 0x5F1B70 sets the step and clears every deeper level, 0x5F1BC0 reads,
+  0x5F1BD0 adds one). Its switch (0x58FBAC, 31 cases) runs the mode; the event dispatch 0x4B9E70 (mode 5's) returns
+  the next and 0x58F12C sets it (26 and 27 are handled inline). The level the dispatch returns to is the main loop's,
+  so its step there is the mode at any time (sh3.c main_level). Seen on the rig: 2 a room's load (the door's event
+  step 2 before it; her death's wait, step 6, also hands over to 2), 5 play, 6 the inventory with its maps and memos
+  (0x5E81C0; vr477), 14 its Options (0x5E6B20), 19 the save screen (0x58F8F6, shared with 20 and 25: 0x5994C0 /
+  0x599500 / 0x599540). No other mode was ever returned with an event step change in 438 rig logs. Build 273's mode log (vr474): a room's load runs 2 -> 3 -> 4 -> 5 (3 and 4 set
+  without the dispatch, 1 to 12 frames each), the save screen leaves by 19 -> 7 -> 8 -> 5.
+- **A screen an event opens**: the save point's script (event step 2) ends as it returns mode 19 ("the game's event
+  step 2 -> 0 (event N, mode 19"; vr473), so the dispatch's step is 0 through the save screen: a script's screen is
+  told by the step before the call that returned its mode, not by the step during it (sh3.c event_mode). Screens the
+  player opens (the inventory, the map, the pause menu) open from free play (step 0). The save screen opens on a red
+  close-up of the save mark, its slots over it a moment later (vr474: "Mall toilet", "01. Create a new save data").
+- **A scene seen from her eyes poses her hands and the weapon in them itself** (owner 167, a player's 0.1.7 video at
+  11:21): VR moved the weapon to the controller in every first-person frame (combat_weapon_bones), so in such a scene
+  it was nowhere near the scene's hands, or, holstered, not drawn. 0.1.9 leaves it in the scene's hands when
+  ik_scene_eyes (first person, a scene or demo drawing her away from her place, its bones fresh), marked as hers.

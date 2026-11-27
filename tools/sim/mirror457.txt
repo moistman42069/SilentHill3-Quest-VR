@@ -1,0 +1,42 @@
+# SH3 Quest VR, the PC rig (session 34, 0.1.9), about 3 minutes: mirror451 with the handgun in her hand. Run as
+# mirror451 (its env, QUEST_SIM_SKIP_SCENES=8300 too) and SH3_GIVE="10:10,15:20" SH3_GIVE_AT=9600 SH3_EQUIP="1" (build 272
+# on: the gun given in the restroom, as the dream's death takes her items), so the reflection's weapon is seen in its
+# hand as the right controller raises it.
+7740 left_y 1
+8100 left_y 0
+8105 shot w08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8200 left_y 1
+9000 left_y 0
+10600 left_y 1
+10700 left_y 0
+10720 shot w10720-before-the-mirror
+10740 head_yaw 85
+10800 shot w10800-mirror
+10820 rh_y 0.450
+10820 rh_z -0.100
+10880 shot w10880-mirror-right-hand-up
+10900 rh_y 0
+10900 rh_z 0
+10900 lh_x -0.250
+10900 lh_y 0.250
+10900 lh_z -0.200
+10960 shot w10960-mirror-left-hand-out
+10980 lh_x 0
+10980 lh_y 0
+10980 lh_z 0
+10980 head_pitch -25
+11040 shot w11040-mirror-looking-down
+11060 head_pitch 0
+11060 head_yaw 60
+11100 shot w11100-mirror-60
+11120 head_yaw 110
+11160 shot w11160-mirror-110
+11200 quit 0

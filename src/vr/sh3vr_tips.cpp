@@ -13,17 +13,22 @@
 //
 // What they are about, and what starts each:
 // - the start of play in first person: walking, turning and running; the VR menu and recentring (two lines);
-// - the flashlight first lit in play: how to switch it;
+// - the flashlight first lit in play: how to switch it, and (0.1.9) what a grip at the chest pocket does;
 // - something the action button would use within reach (sh3.c's per-frame action check asks every 8 frames while the
 //   hint is still due and the label is free): a door, a switch or a thing to look at; or an item to take;
 // - a monster's grab or a knock-down (the game's struggle step, sh3vr_combat.cpp): shake to break free; it goes before
 //   any other line, and ends when she is free;
 // - the first gun and the first melee weapon in the hand: fire or swing, the second hand, the holster;
-// - health under half in first person: her watch, and the supplies.
+// - health under half in first person: her watch, and the supplies;
+// - 0.1.9 (owner 168: "we already have hints that apply to puzzles, right? just answer and implement if not": they did
+//   not): the first screen to choose on that an event's script opened (a puzzle's; never the inventory, the map or the
+//   pause menu, which the player opens, nor the save point's save screen): the pointer, and the pad's way. Its lines
+//   are on the game's screen itself, at its top, apart from the lines of play (those wait, as on any screen).
 #include "sh3vr_internal.h"
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -32,8 +37,11 @@ namespace sh3q {
 
 namespace {
 
-// Each hint's name in sh3quest_tips.ini: 1 once it has been shown. The reload's: one per gun (its item).
-const char* const kTipKeys[kTipCount] = {"start", "flashlight", "use", "item", "held", "gun", "melee", "health"};
+// Each hint's name in sh3quest_tips.ini: 1 once it has been shown. The reload's: one per gun (its item). 0.1.9: the
+// flashlight's is "flashlight_hand" (0.1.7-0.1.8's "flashlight" is left unread), so its new second line, what the
+// chest pocket's grip does, shows once to players who saw the old one too.
+const char* const kTipKeys[kTipCount] = {"start", "flashlight_hand", "use", "item", "held", "gun", "melee", "health",
+                                         "puzzle"};
 constexpr int kReloadGuns = 4;
 const int kReloadItems[kReloadGuns] = {9, 10, 11, 12};
 const char* const kReloadKeys[kReloadGuns] = {"reload_stun_gun", "reload_handgun", "reload_shotgun",
@@ -66,6 +74,15 @@ int weapon_seen = 0;     // the weapon in the hand now, as last looked at (0 non
 float weapon_held = 0;
 float weapon_gone = 0;   // seconds with no weapon in the hand
 int dropped_told = 0;
+
+// 0.1.9 (owner 168): the puzzles' hint, its own two lines on the game's screen (not the queue of play's lines).
+int puzzle_line = -1;        // its line up now (0, 1), -1 none
+float puzzle_up = 0;         // seconds that line has been on the label in full
+bool puzzle_counted = false; // ... and it has counted (0.3 s)
+double puzzle_from = 0;      // shown from: the screen in first, a short gap between the lines
+bool puzzle_on = false;      // a screen an event's script opened is up to choose on, as last looked at
+int puzzle_asked = -100;     // the label last asked for its line (tip_text)
+std::string puzzle_drawn;    // ... the line it was given
 
 int reload_index(int item) {
     for (int i = 0; i < kReloadGuns; i++)
@@ -163,8 +180,14 @@ std::string start_walk() {
                             : "Left stick: walk where you look. Right stick: turn. Left stick click: run";
 }
 const char* const kStartMenu = "Hold the left menu button: VR menu. Click both sticks: recentre the view";
-std::string light_line() {
-    return "Flashlight: the " + off_side() + " trigger" + (opt.chest_light_touch ? ", or grip at your chest pocket" : "");
+std::string light_line() { return "Flashlight: the " + off_side() + " trigger switches it on and off"; }
+// 0.1.9 (the owner, after a player's 0.1.7 video: the chest pocket's line "threw off the guy"; "mention grip at chest
+// pocket to grab and use flashlight physically"): the pocket's own line, saying what gripping there does (sh3vr_combat.cpp
+// kLightPocket: a free hand's grip takes the flashlight off her chest, held and aimed by the hand while the grip stays
+// closed, its trigger switching it); none with "Take the flashlight from your chest" off.
+std::string light_hand_line() {
+    return opt.chest_light_touch ? "Or grip at your chest pocket to take it in your hand and aim it"
+                                 : "";
 }
 std::string use_line() {
     return opt.take_by_hand ? "Something to use here: press A, or reach out to it and grip" : "Something to use here: press A";
@@ -192,6 +215,77 @@ const char* const kHealthWatch = "Health low: turn your left wrist toward you to
 std::string heal_line() {
     return opt.holster_pouch ? "To heal: press B for your supplies, or grip at the belt pouch"
                              : "To heal: press B for your supplies";
+}
+
+// 0.1.9 (owner 168): the puzzles' lines (docs/CONTROLS.md, "Menus, the map, memos, puzzles": the trigger on the pointed
+// thing chooses, or A; the left stick moves the selection as the d-pad; B backs out). The pointer's hand as set
+// ("Pointer hand"); with the pointer off, the pad's way alone.
+const char* const kPuzzleHead = "Puzzles and screens";
+const char* const kPuzzlePad = "the left stick and A, as on a pad. B backs out";
+std::string puzzle_point() {
+    const char* hand = opt.pointer_hand == 1 ? "your left hand" : opt.pointer_hand == 2 ? "your right hand" : "either hand";
+    return std::string("point with ") + hand + " and pull the trigger to choose";
+}
+std::string puzzle_text(int line) {
+    if (!opt.pointer) return line == 0 ? std::string(kPuzzleHead) + ": " + kPuzzlePad : std::string();
+    if (line == 0) return std::string(kPuzzleHead) + ": " + puzzle_point();
+    return line == 1 ? std::string("Or ") + kPuzzlePad : std::string();
+}
+
+// A screen to choose on that an event's script opened (sh3.c event_mode: the mode the event dispatch returned while a
+// script ran, the game in that mode now), in the headset, not in a scene. Not the save point's save screen (19; 20 and
+// 25 run the same code, 0x58F8F6) nor the inventory's Options (14; the inventory itself, 6, opens from play, vr477).
+// SH3_PUZZLE_TEST (testing) takes the save screen for a puzzle's: the rig reaches no puzzle.
+bool puzzle_screen_now() {
+    if (!opt.vr || !opt.hints || !active || game.cutscene || game.demo || !game_screen_up()) return false;
+    const int m = game.event_mode;
+    if (m < 0 || m != game.game_mode) return false;
+    static int test = -2;
+    if (test == -2) test = std::getenv("SH3_PUZZLE_TEST") ? 1 : 0;
+    if (m == 19 || m == 20 || m == 25 || m == 14) return test && m == 19;
+    return true;
+}
+
+void puzzle_frame() {
+    const bool on = puzzle_screen_now();
+    if (on != puzzle_on) {
+        static int told;
+        if (told++ < 40)
+            rt_log("VR: frame %d: a screen an event's script opened %s (the game's mode %d)%s", rt_frame,
+                   on ? "is up to choose on" : "is gone", on ? game.event_mode : game.game_mode,
+                   on && game.event_mode == 19 ? " (testing: SH3_PUZZLE_TEST takes the save screen for a puzzle's)" : "");
+        puzzle_on = on;
+        if (on && due(kTipPuzzle) && !puzzle_text(0).empty()) {
+            puzzle_line = 0;
+            puzzle_up = 0;
+            puzzle_counted = false;
+            puzzle_from = now + 0.5;
+        } else if (!on && puzzle_line >= 0) {
+            if (puzzle_counted)
+                rt_log("VR: frame %d: the hint ends (the screen closed): %s", rt_frame, puzzle_text(puzzle_line).c_str());
+            puzzle_line = -1;
+        }
+    }
+    if (!on || puzzle_line < 0 || now < puzzle_from) return;
+    if (!(puzzle_asked >= rt_frame - 2 && hint_label_up())) return;
+    const std::string text = puzzle_text(puzzle_line);
+    puzzle_up += frame_dt();
+    if (!puzzle_counted && puzzle_up > 0.3f) {
+        puzzle_counted = true;
+        if (puzzle_line == 0 && !shown[kTipPuzzle]) {
+            shown[kTipPuzzle] = 1;
+            save_counts();
+        }
+        rt_log("VR: frame %d: hint (%s): %s", rt_frame, kTipKeys[kTipPuzzle], text.c_str());
+    }
+    // long enough to read, as play's lines
+    const float show = std::clamp(2.0f + 0.045f * (float)text.size(), 4.0f, 6.0f);
+    if (puzzle_up >= show) {
+        puzzle_line = puzzle_line == 0 && !puzzle_text(1).empty() ? 1 : -1;
+        puzzle_up = 0;
+        puzzle_counted = false;
+        puzzle_from = now + 0.6;
+    }
 }
 
 void queue_start() {
@@ -325,8 +419,15 @@ void tip_lines(std::vector<std::string>& out) {
     out.push_back(start_walk());
     out.push_back(kStartMenu);
     out.push_back(light_line());
+    if (!light_hand_line().empty()) out.push_back(light_hand_line());
     out.push_back(use_line());
     out.push_back(item_line());
+    if (opt.pointer) {  // 0.1.9 (owner 168)
+        out.push_back(std::string(kPuzzleHead) + " - " + puzzle_point());
+        out.push_back(std::string(kPuzzleHead) + " - or " + kPuzzlePad);
+    } else {
+        out.push_back(std::string(kPuzzleHead) + " - " + kPuzzlePad);
+    }
     out.push_back("Grabbed or knocked down - " + held_line());
     out.push_back("Guns - " + gun_fire());
     if (opt.two_hand) {
@@ -355,6 +456,7 @@ void tip_lines(std::vector<std::string>& out) {
 void tips_frame() {
     now += frame_dt();
     if (!counts_loaded) load_counts();
+    puzzle_frame();  // 0.1.9 (owner 168): on the game's screens, out of play
     if (!can_hint()) {
         // "Hints" off: nothing up or waiting. A menu, a scene or a screen: the lines wait (each dropped when its moment
         // has passed: a grab or a door soon, the start or a weapon's after a while)
@@ -378,7 +480,10 @@ void tips_frame() {
         float level = 0;
         if (combat_beam(lp, ld, level) && level > 0.5f) {
             light_seen = true;
-            if (due(kTipFlashlight)) add(kTipFlashlight, true, light_line(), 30);
+            if (due(kTipFlashlight)) {
+                add(kTipFlashlight, true, light_line(), 30);
+                add(kTipFlashlight, false, light_hand_line(), 30);  // (none added when empty)
+            }
         }
     }
     const int w = fp && weapon_shown_in_hand() ? game.weapon : 0;
@@ -424,7 +529,14 @@ void tips_frame() {
     if (current_up >= show) end_current(nullptr);
 }
 
+bool tip_on_screen() { return puzzle_on && puzzle_line >= 0 && now >= puzzle_from; }
+
 const char* tip_text() {
+    if (tip_on_screen()) {  // 0.1.9 (owner 168): the puzzles' line, on the game's screen
+        puzzle_asked = rt_frame;
+        puzzle_drawn = puzzle_text(puzzle_line);
+        return puzzle_drawn.empty() ? nullptr : puzzle_drawn.c_str();
+    }
     if (current.kind < 0 || !can_hint()) return nullptr;
     asked_frame = rt_frame;
     return current.text.c_str();
@@ -434,7 +546,8 @@ void tips_crash_info(FILE* f) {
     std::fprintf(f, "VR hints: %s; shown:", opt.hints ? "on" : "off");
     for (int k = 0; k < kTipCount; k++) std::fprintf(f, " %s %d", kTipKeys[k], shown[k]);
     for (int i = 0; i < kReloadGuns; i++) std::fprintf(f, " %s %d", kReloadKeys[i], reload_shown[i]);
-    std::fprintf(f, "; up now: \"%s\", %d waiting\n", current.kind >= 0 ? current.text.c_str() : "", queued);
+    std::fprintf(f, "; up now: \"%s\", %d waiting; the puzzles' line %d (a screen an event opened: %d)\n",
+                 current.kind >= 0 ? current.text.c_str() : "", queued, puzzle_line, puzzle_on ? 1 : 0);
 }
 
 }  // namespace sh3q

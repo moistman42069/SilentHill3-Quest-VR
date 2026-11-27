@@ -1,0 +1,31 @@
+# SH3 Quest VR, the PC rig (session 35, 0.1.9), about 3.5 minutes: mirror457 (the handgun in her hand before the
+# restroom's first mirror, its save point) with A pressed at the save point: the save screen, then B. Run as mirror457
+# (its env) with SH3_VSC_DUMP at the mirror (each draw of that frame: the weapon's drawn once, or again in the reflection)
+# and SH3_MEM_SNAP round the save screen (the game's step stack, 0xBCC658 on: its mode while the save screen is up), so
+# the puzzles' hint (owner 168) can tell the save screen from a puzzle.
+7740 left_y 1
+8100 left_y 0
+8105 shot w08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8200 left_y 1
+9000 left_y 0
+10600 left_y 1
+10700 left_y 0
+10720 shot w10720-before-the-mirror
+10740 head_yaw 85
+10800 shot w10800-mirror
+10860 a 1
+10866 a 0
+10960 shot w10960-after-a
+11060 shot w11060-save-screen
+11200 b 1
+11206 b 0
+11300 shot w11300-after-b
+11500 quit 0

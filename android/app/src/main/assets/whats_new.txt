@@ -1,3 +1,27 @@
+0.1.9:
+
+- A key that 0.1.7 used up without opening its door opens that door again. On 0.1.7, reaching toward a key's door,
+  a hint, or A looking where you look could use the key up there and then, the door still locked (fixed in 0.1.8). A
+  save made after that had the key gone for good. Now, at such a door, A (or closing your hand on it) opens it as
+  with the key, as long as the game had given you that key and the door is still locked. With the key in your
+  inventory, or a door you have not found the key for yet, everything is as before.
+- The flashlight's hint says what the chest pocket does, in two lines: "Flashlight: the left trigger switches it on
+  and off", then "Or grip at your chest pocket to take it in your hand and aim it". It shows once more.
+- A hint for puzzles: the first time something you examine opens a screen (a puzzle's), two lines at the top of it:
+  "Puzzles and screens: point with either hand and pull the trigger to choose", then "Or the left stick and A, as on
+  a pad. B backs out". Once, like every hint; the Hints page lists it.
+- The gun in her hand in the scenes you see from her eyes: in a scene where she shoots, her pistol showed from the
+  scene's camera but not from her eyes (VR still moved it to your controller). It now stays in her hands where the
+  scene puts it. In play nothing changes.
+- A mirror shows your body as you move it: Heather's reflection takes her VR body's pose, mirrored through the glass
+  (your head's turns, your hands and fingers, the flashlight). It was the game's own animation, standing still, with
+  no hands. (The game draws no weapon in its mirrors.)
+- Her shadow in the scenes you see from her eyes (Happy Burger's table after the dream, the opening dream): with the
+  eyes inside her head, the game's own shadow of her came out wrong; it is now cast from her body as the scene draws
+  it, as in play. From the scene's camera, or in third person, nothing changes.
+- No pointer over the fades and black screens between scenes; menus and the other screens show it as before.
+- In front of a mirror the log no longer lists her parts every frame (much less written to the headset's storage).
+
 0.1.8:
 
 - Keys no longer used up at their doors without the door opening (the bookstore's key gone from the inventory): the

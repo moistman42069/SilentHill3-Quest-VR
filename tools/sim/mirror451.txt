@@ -1,0 +1,49 @@
+# SH3 Quest VR, the PC rig (session 34, 0.1.9), about 3 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300;-60600,-19950"
+# SH3_STEER_AT_ATTACKER=1 SH3_EVENT_SCAN=8100 SH3_EVENT_SCAN_EVERY=120 SH3_HP=1 SH3_VSC_DUMP=10895
+# QUEST_SIM_SKIP_SCENES=8300 (build 271 on: the scenes after the death skipped however late they come; vr452 on build
+# 270 had timed menu presses, one of which came in play and opened the pause)
+# and "blocking = 0" in the game folder's sh3vr.ini for this run only (put the defaults back after).
+# Owner 164 (the video's 9:09-9:15): the mall women's restroom's mirror. door252's death skip (she wakes in the restroom at
+# -60600 -20625, yaw 0; the mirrors on the wall to her left, 0.9 m off, from 1.2 m ahead), walked 1.5 m ahead (steer point
+# 5) to stand before the first mirror, then the head turned to it (her body turns with it), the hands raised and
+# moved, so the reflection is seen against the body she has in VR; SH3_VSC_DUMP logs every model's bones in one frame.
+7740 left_y 1
+8100 left_y 0
+8105 shot j08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8200 left_y 1
+9000 left_y 0
+10600 left_y 1
+10700 left_y 0
+10720 shot j10720-before-the-mirror
+10740 head_yaw 85
+10800 shot j10800-mirror
+10820 rh_y 0.450
+10820 rh_z -0.100
+10880 shot j10880-mirror-right-hand-up
+10900 rh_y 0
+10900 rh_z 0
+10900 lh_x -0.250
+10900 lh_y 0.250
+10900 lh_z -0.200
+10960 shot j10960-mirror-left-hand-out
+10980 lh_x 0
+10980 lh_y 0
+10980 lh_z 0
+10980 head_pitch -25
+11040 shot j11040-mirror-looking-down
+11060 head_pitch 0
+11060 head_yaw 60
+11100 shot j11100-mirror-60
+11120 head_yaw 110
+11160 shot j11160-mirror-110
+11200 quit 0

@@ -200,6 +200,12 @@ static uint32_t last_game_mode = 0xFFFFFFFFu, frame_no;
  * 6 her death's wait, 8 0x4B8540's. The game returns mode 5 (the playable update) through its scripts and pick-ups as
  * well (0x4BA28A: mode 2 only when 0xBA974E asks for it), so mode 5 alone never told free play from an event. */
 static uint32_t event_state;
+/* 0.1.9 (owner 168): the level of the game's step stack the dispatch returns to, its caller's (the main loop
+ * 0x58EDB0's): its step there is the game's mode, set to the mode the dispatch returns (0x58F12C); -1 before play.
+ * event_mode: the mode an event's script handed over to (the dispatch returned it with its step 2 or 5 before the
+ * call: a puzzle's screen; the save point's save screen 19, vr473: "event step 2 -> 0, mode 19"); -1 once it hands
+ * back play (5) or a room's load (2). */
+static int main_level = -1, event_mode = -1;
 static void pickup_watch(void);
 /* 0.1.8 (owner 152): 1 while the dispatch runs: as it returns it calls 0x599EA0, which draws the item an event gives
  * (0x599B70, a projection of its own); d3d8.c puts the 3D drawn then on the panel with its message */
@@ -214,6 +220,9 @@ void sub_004B9E70(void) {
     if (g_eax == 5) playable_frame = 1;
     const uint32_t depth = MEM32(0xBCC658u), was = event_state;
     event_state = depth < 15u ? MEM32(0xBCC65Cu + 4u * (depth + 1u)) : 0u;
+    if (depth < 15u) main_level = (int)depth;  /* 0.1.9: the main loop's own level (its step: the game's mode) */
+    if (g_eax == 5u || g_eax == 2u) event_mode = -1;
+    else if (was == 2u || was == 5u) event_mode = (int)g_eax;  /* 0.1.9: a screen an event's script opened */
     if (event_state != was) {
         static int told;
         if (told++ < 600)
@@ -234,6 +243,19 @@ static uint32_t vr_player(void) {
  * Bones): (model, skeleton, world matrix, flag), cdecl. It fills [0x6B4540] with [model+0xC] world matrices of 64
  * bytes; 0x45EC90 then makes each part's blended ones at +0x2000 from them. LIST 19 (full-body IK) changes Heather's arm
  * bones here, after the game's pose and before anything reads them. SH3_VSC_DUMP=N logs each model's bones in frame N. */
+/* 0.1.9 (owner 164): a bone (rows 0-2 its axes, either way round: the determinant is the same) whose axes are turned
+ * over, as a mirror's reflection of her has them; and the mirror's draw of her this frame, given her VR pose. */
+static int rows_turned_over(const float *m) {
+    const float d = m[0] * (m[5] * m[10] - m[6] * m[9]) - m[1] * (m[4] * m[10] - m[6] * m[8]) +
+                    m[2] * (m[4] * m[9] - m[5] * m[8]);
+    return d < -0.25f;
+}
+static uint32_t mirror_model;
+static int mirror_frame = -100;
+/* 0.1.9 (owner 166): her model as a scene draws it away from her place this frame (its draw cast her shadow in a scene
+ * that has the eyes in her head) */
+static uint32_t scene_model;
+static int scene_model_frame = -100;
 extern void sub_0045EC00_gen(void);
 void sub_0045EC00(void) {
     const uint32_t model = ARG(0), skel = ARG(1), world = ARG(2), flag = ARG(3);
@@ -272,9 +294,14 @@ void sub_0045EC00(void) {
     if (MEM32(model + 0xC) == 73) {
         /* Heather's parts (0x45ED40 draws part i only when bit [part+0x52] of the skeleton's 64-bit mask at +0x10 is
          * set): the list once, the mask at each change (her hands: rigid ones in play, finger-skinned ones in scenes). */
-        static uint32_t listed_model, mask_lo = 1, mask_hi = 1;
-        if (listed_model != model) {
-            listed_model = model;
+        /* (0.1.9: once a model, not at each change of model: in a mirror's room her model and its reflection's, two
+         * models, take turns every frame, and the list ran 110 lines a frame, vr451) */
+        static uint32_t listed[8], n_listed, mask_lo = 1, mask_hi = 1;
+        uint32_t li = 0;
+        while (li < n_listed && listed[li] != model) li++;
+        if (li == n_listed) {
+            if (n_listed < 8) listed[n_listed++] = model;
+            else memmove(listed, listed + 1, 7 * sizeof listed[0]), listed[7] = model;
             uint32_t part = model + MEM32(model + 0x24);
             const uint32_t count = MEM32(model + 0x20);
             for (uint32_t i = 0; i < count && i < 128; i++) {
@@ -297,7 +324,13 @@ void sub_0045EC00(void) {
         /* Heather's model (73 bones) with its root within a metre (490 units) of her feet: her arms to the hands. */
         const uint32_t hp = vr_player(), hb = MEM32(0x6B4540);
         const float *root = (const float *)GPTR(hb);
-        if (hp && fabsf(root[12] - MEMF(hp)) < 490.0f && fabsf(root[14] - MEMF(hp + 8)) < 490.0f) {
+        /* 0.1.9 (owner 164): a mirror's draw of her, her bones reflected about the glass (its root's axes turned over),
+         * is never taken for her own, however near the glass she stands: it is given her VR pose through the
+         * reflection (sh3vr_mirror_bones checks it is her animation's pose reflected, bone for bone). */
+        const int reflected = rows_turned_over(root);
+        if (reflected) {
+            if (hp && sh3vr_mirror_bones((float *)GPTR(hb), 73)) mirror_model = model, mirror_frame = rt_frame;
+        } else if (hp && fabsf(root[12] - MEMF(hp)) < 490.0f && fabsf(root[14] - MEMF(hp + 8)) < 490.0f) {
             Sh3VrModel m;
             m.parents = (const int8_t *)GPTR(model + MEM32(model + 0x10));
             m.rest = (const float *)GPTR(model + MEM32(model + 0x08));
@@ -309,6 +342,7 @@ void sub_0045EC00(void) {
             /* LIST 48 (vr146: at 5280 she was in the picture but her head's place 1200 frames old): a scene may pose
              * her model away from the player's own place; her head is still where the scene shows her */
             sh3vr_scene_head((const float *)GPTR(hb));
+            scene_model = model, scene_model_frame = rt_frame;  /* 0.1.9 (owner 166): its draw casts her shadow */
         }
     }
     if (sh3vr_active() && MEM32(model + 0xC) >= 20 && MEM32(model + 0xC) <= 128 && sh3vr_in_scene()) {
@@ -362,11 +396,16 @@ void sub_0045EC00(void) {
  * ghost pass: a hand pushed through a wall is drawn once more, faint and through the walls, where the controller
  * really is (the bones and blends rebuilt from the ghost pose for that draw, then put back for the draws after). */
 static int heather_parts(uint32_t model) {
-    static uint32_t checked_model;
-    static int ok;
-    if (checked_model == model) return ok;
-    checked_model = model;
-    ok = 0;
+    /* (0.1.9: two models remembered, as her own and a mirror's reflection of her take turns every frame: one re-read
+     * and logged them both each frame, vr451) */
+    static uint32_t checked[2];
+    static int oks[2], next;
+    for (int k = 0; k < 2; k++)
+        if (checked[k] == model) return oks[k];
+    const int slot = next;
+    next ^= 1;
+    checked[slot] = model;
+    int ok = oks[slot] = 0;
     if (MEM32(model + 0xC) != 73 || MEM32(model + 0x20) != 55) return 0;
     uint32_t part = model + MEM32(model + 0x24);
     int g10 = -1, g14 = -1;
@@ -376,7 +415,7 @@ static int heather_parts(uint32_t model) {
         if (MEM32(part) == 0) break;
         part += MEM32(part);
     }
-    ok = g10 == 3 && g14 == 4;
+    ok = oks[slot] = g10 == 3 && g14 == 4;
     rt_log("parts: model %08X: %s (part 10 group %d, part 14 group %d)", model,
            ok ? "Heather's, her own hands can be drawn" : "not the expected Heather model, her hands left as the game's",
            g10, g14);
@@ -405,7 +444,30 @@ void sub_0045ED40(void) {
             rt_log("vsc her draw: frame %d: stencil %s, from %08x, groups %08x %08x, model %08x skel %08x", rt_frame,
                    d3d8_stencil_on() ? "ON" : "off", MEM32(g_esp), MEM32(skel + 0x10), MEM32(skel + 0x14), model, skel);
     }
+    /* 0.1.9 (owner 166: "when she woke up from the dream and was at the table, shadows looked off in 1st person"): in a
+     * scene that draws her away from her place with the eyes in her head, the game's own draw of her (the scene's pose,
+     * its hands) is marked as hers in play is (bit 0x20; d3d8.c her_shadow_capture takes it for her shadow's caster):
+     * her shadow from the room's lamp is then cast from her body as drawn, counted the z-fail way, in place of the game's
+     * z-pass volumes of her that her eyes sit inside (d3d8.c her_game_volume). */
+    if (sh3vr_active() && MEM32(model + 0xC) == 73 && model == scene_model && scene_model_frame == rt_frame &&
+        !sh3vr_own_hands() && sh3vr_scene_eyes() && !rows_turned_over((const float *)GPTR(MEM32(0x6B4540)))) {
+        d3d8_her_mark(1);
+        sub_0045ED40_gen();
+        d3d8_her_mark(0);
+        return;
+    }
     if (!sh3vr_active() || MEM32(model + 0xC) != 73 || !sh3vr_own_hands() || !heather_parts(model)) {
+        sub_0045ED40_gen();
+        return;
+    }
+    /* 0.1.9 (owner 164): a mirror's reflection of her (its bones turned over: the transposed bones keep the sign) has
+     * her hands and the flashlight in her hand only when it was given her VR pose this frame (her fingers, through the
+     * reflection); else the game's own draw of it, its rigid hands with it (before, her finger hands were drawn on the
+     * bones the game leaves unposed in play: the reflection had no hands). It is never her shadow's caster nor drawn
+     * as the ghost hands. */
+    const int mirrored = rows_turned_over((const float *)GPTR(MEM32(0x6B4540)));
+    float mirror_x[16];
+    if (mirrored && (mirror_model != model || mirror_frame != rt_frame || !sh3vr_mirror_map(mirror_x))) {
         sub_0045ED40_gen();
         return;
     }
@@ -452,7 +514,9 @@ void sub_0045ED40(void) {
         if (g < 32) new_lo |= 1u << g;
         else new_hi |= 1u << (g - 32);
     }
-    d3d8_her_mark(1);  /* LIST 56 (session 12): her pixels marked so her own shadow volumes leave her body alone */
+    /* LIST 56 (session 12): her pixels marked so her own shadow volumes leave her body alone; 0.1.9: a mirror's
+     * reflection of her marked the same (2), but not taken for her shadow's caster (d3d8.c her_shadow_capture) */
+    d3d8_her_mark(mirrored ? 2 : 1);
     MEM32(skel + 0x10) = new_lo;
     MEM32(skel + 0x14) = new_hi;
     sub_0045ED40_gen();
@@ -461,10 +525,19 @@ void sub_0045ED40(void) {
         /* Bone 4 as the draw has it (transposed by 0x45ECF0: each 4x4's rows its columns) put in the hand for group
          * 32's draw alone, then given back. */
         const uint32_t b4 = MEM32(0x6B4540) + 4 * 64;
-        float saved4[16], t[16];
+        float saved4[16], t[16], lm[16];
+        const float *lb = light_bone;
+        if (mirrored) {
+            /* 0.1.9: in the reflection's hand: the flashlight through the mirror's map (row-vector: light * X) */
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < 4; c++)
+                    lm[r * 4 + c] = light_bone[r * 4] * mirror_x[c] + light_bone[r * 4 + 1] * mirror_x[4 + c] +
+                                    light_bone[r * 4 + 2] * mirror_x[8 + c] + light_bone[r * 4 + 3] * mirror_x[12 + c];
+            lb = lm;
+        }
         memcpy(saved4, GPTR(b4), sizeof saved4);
         for (int r = 0; r < 4; r++)
-            for (int c = 0; c < 4; c++) t[r * 4 + c] = light_bone[c * 4 + r];
+            for (int c = 0; c < 4; c++) t[r * 4 + c] = lb[c * 4 + r];
         memcpy(GPTR(b4), t, sizeof t);
         MEM32(skel + 0x10) = 0;
         MEM32(skel + 0x14) = 1u;
@@ -474,7 +547,7 @@ void sub_0045ED40(void) {
         memcpy(GPTR(b4), saved4, sizeof saved4);
     }
     static float ghost[73 * 16];
-    const int bits = sh3vr_ghost_bones(ghost, 73);
+    const int bits = mirrored ? 0 : sh3vr_ghost_bones(ghost, 73);
     if (bits) {
         const uint32_t base = MEM32(0x6B4540), blends = MEM32(model + 0x14);
         static uint8_t saved[0x2000 + 256 * 64];
@@ -787,6 +860,99 @@ static int event_trigger(int ev) {
     return (int)((MEM32(e + 4u * MEM8(d)) >> MEM8(d + 1)) & (MEM8(d + 2) | (uint32_t)MEM8(d + 3) << 8));
 }
 
+/* 0.1.9 (the owner, after 0.1.8: "Yes, add it": give back the keys 0.1.7 already lost in players' saves). 0.1.7's looks
+ * spent a key at its door without opening it (action_check_at's note above), so a save made after that has the key
+ * gone and its door locked for good. Only the keys whose door uses them up could be lost so: the stage tables' events
+ * (0x6CF7D0, a table per stage) with d4 = 2 (an item held), dc set and the button's trigger are these nine doors, eight
+ * keys; and the game takes these keys nowhere but at their doors (every call of 0x496A20 and 0x497D30 read, session 33).
+ * So at the game's own action check (the button, or a closing hand), in the stage of one of these doors whose event is
+ * still on (its flag A as the event asks it: the door not opened yet), with its key not held but given before (the flag
+ * its giver sets with it), the key is lent to the check: when the game's check then finds that door, the game uses the
+ * key there as its own (it spends it and the door opens, as with the key held); otherwise the key is taken back at once.
+ * Nothing changes for a player who has the key, never had it, or has opened the door. `given`: the flag set with the
+ * key (-1: every game has it from its start). */
+static const struct {
+    uint8_t stage, key;
+    uint16_t event;
+    int16_t given;
+} key_doors[] = {
+    {2, 38, 48, 42},    /* given by stage 2's event 98, which sets flag 42 */
+    {4, 47, 50, 193},   /* the room script 0x589610 sets flag 193 as it gives it */
+    {15, 61, 21, 401},  /* stage 17's event 59 */
+    {20, 35, 65, -1},   /* given at every game's start (0x58E750, with items 1 and 36) */
+    {25, 64, 8, 521},   /* stage 25's event 88 (item 63 used) gives it */
+    {26, 64, 4, 521},   /* (the same door from the next stage) */
+    {30, 66, 20, 689},  /* stage 32's event 80 */
+    {33, 69, 119, 747}, /* the room script 0x57428C sets flag 747 as it gives it */
+    {37, 78, 10, 828},  /* stage 38's event 99 */
+};
+#define KEY_DOORS ((int)(sizeof key_doors / sizeof key_doors[0]))
+/* testing (the PC rig, whose rooms have none of these doors): SH3_KEY_BACK_TEST="frame:event:item:flag" takes `item`
+ * away at that frame as 0.1.7's looks did and makes the room's event `event` (SH3_SPEND_TEST makes it a key's door)
+ * one more of these doors, the key given by `flag` (-1: none) */
+static uint32_t key_test_tab;
+static int key_test_ev = -1, key_test_item, key_test_given = -1;
+
+static int game_flag(int f) { return f >= 0 && f < 4096 ? (int)((MEM32(0x715D060u + 4u * (uint32_t)(f >> 5)) >> (f & 31)) & 1u) : 0; }
+static int item_held(int it) { return (int)((MEM32(0x712CA80u + 4u * (uint32_t)(it >> 5)) >> (it & 31)) & 1u); }
+static uint32_t event_field(uint32_t tab, int ev, int k) {
+    const uint32_t e = MEM32(tab) + (uint32_t)ev * 0x14u, d = 0x6CF6B0u + 4u * (uint32_t)k;
+    return (MEM32(e + 4u * MEM8(d)) >> MEM8(d + 1)) & (MEM8(d + 2) | (uint32_t)MEM8(d + 3) << 8);
+}
+static int key_door(int i, uint32_t* tab, int* ev, int* key, int* given) {
+    if (i < KEY_DOORS) {
+        *tab = MEM32(0x6CF7D0u + 4u * key_doors[i].stage);
+        *ev = key_doors[i].event, *key = key_doors[i].key, *given = key_doors[i].given;
+        return 1;
+    }
+    if (i == KEY_DOORS && key_test_ev >= 0) {
+        *tab = key_test_tab, *ev = key_test_ev, *key = key_test_item, *given = key_test_given;
+        return 1;
+    }
+    return 0;
+}
+/* the keys lent to this check (a bit per key_doors entry) */
+static uint32_t keys_lend(void) {
+    const uint32_t now = MEM32(0x711FCA0u);
+    if (!now || !MEM32(now)) return 0;
+    uint32_t lent = 0;
+    for (int i = 0; i <= KEY_DOORS; i++) {
+        uint32_t tab;
+        int ev, key, given;
+        if (!key_door(i, &tab, &ev, &key, &given) || tab != now) continue;
+        /* the door as the table has it (a key's door: d4 2, its key, dc), still on, the key not held but given */
+        if (event_field(now, ev, 9) != 2u || event_field(now, ev, 10) != (uint32_t)key || !event_field(now, ev, 11))
+            continue;
+        if ((uint32_t)game_flag((int)event_field(now, ev, 3)) != event_field(now, ev, 2)) continue;
+        if (item_held(key) || (given >= 0 && !game_flag(given))) continue;
+        MEM32(0x712CA80u + 4u * (uint32_t)(key >> 5)) |= 1u << (key & 31);
+        lent |= 1u << i;
+        static int told;
+        if (told++ < 20)
+            rt_log("VR: frame %d: key %d not held though given (flag %d), its door (event %d) still locked: lent to the "
+                   "action check (0.1.7's looks spent such keys)", rt_frame, key, given, ev);
+    }
+    return lent;
+}
+/* after the game's check: a lent key the game used at its door stays used (the door opens); any other is taken back */
+static void keys_settle(uint32_t lent, int found) {
+    for (int i = 0; i <= KEY_DOORS; i++) {
+        uint32_t tab;
+        int ev, key, given;
+        if (!(lent & (1u << i)) || !key_door(i, &tab, &ev, &key, &given)) continue;
+        if (found == ev) {
+            rt_log("VR: frame %d: key %d given back: the game's check found its door (event %d) and used the key there "
+                   "(in the inventory now %d)", rt_frame, key, ev, item_held(key));
+        } else {
+            MEM32(0x712CA80u + 4u * (uint32_t)(key >> 5)) &= ~(1u << (key & 31));
+            static int told;
+            if (told++ < 20)
+                rt_log("VR: frame %d: key %d taken back: the check found %d, not its door (event %d)", rt_frame, key,
+                       found, ev);
+        }
+    }
+}
+
 /* The ray a hand's action uses (session 11, ask 28: "drawers, objects, handles, doors", the hand at the thing): from
  * her place toward the palm, to 20 cm (98 units) past it, at least 0.5 m (a hand reaching down or close still reaches
  * what is right before her), never past the game's own 1.02 m. */
@@ -949,6 +1115,8 @@ void sub_004B9940(void) {
         MEMF(rec + 0x38) = cosf(yaw) * reach;
     }
     const uint32_t mode = ARG(0), kind = ARG(3), pass = ARG(4);
+    /* 0.1.9: a key 0.1.7's looks spent, lent to the button's (or a closing hand's) check at its door (keys_lend) */
+    const uint32_t lent = rec && mode && kind == 0 && pass < 2 ? keys_lend() : 0;
     /* her place, when the check below used the head's (put back after it), and the head's place it used */
     float gaze_from[2] = {0.0f, 0.0f}, gaze_used[2] = {0.0f, 0.0f};
     int gaze_moved = 0;
@@ -1028,6 +1196,7 @@ void sub_004B9940(void) {
         }
     }
     sub_004B9940_gen();
+    if (lent) keys_settle(lent, (int)g_eax);
     /* 0.1.7 (session 28, the rig's vr335: A at the hall's far door found nothing and said nothing): a press that finds
      * nothing, along her facing nor where the player looks, is logged with the ways and places it tried (a player's log
      * then tells a door the check never reached from one it reached), at most 20 times, once a second */
@@ -2502,6 +2671,22 @@ void sh3_vr_frame(void) {
     g.gesture = p ? her_gesture() : 0;
     g.event_hold = p && playable_frame ? event_hold() : 0;
     {
+        /* 0.1.9 (owner 168, the puzzles' hint): the game's mode (its main loop's step, at the level the event dispatch
+         * returns to: main_level) and the mode an event's script handed over to; each change of mode logged */
+        static int mode_was = -2, modes_told;
+        g.game_mode = main_level >= 0 ? (int)MEM32(0xBCC65Cu + 4u * (uint32_t)main_level) : -1;
+        g.event_mode = event_mode;
+        if (g.game_mode != mode_was) {
+            if (modes_told++ < 400)
+                rt_log("VR: frame %d: the game's mode %d -> %d (%s; the event step %u, event %d, a scene %d, a demo %d)%s",
+                       rt_frame, mode_was, g.game_mode,
+                       event_mode >= 0 && event_mode == g.game_mode ? "an event's script opened it" : "not from an event",
+                       event_state, (int)MEM32(0xBA9768u), MEM8(0x81FAB5) != 0, MEM32(0x898308) == 2,
+                       modes_told == 400 ? "; no more of these lines" : "");
+            mode_was = g.game_mode;
+        }
+    }
+    {
         /* 0.1.8 (owner 152, a player: "I took the key for the bookstore. But when I went back to the book store, the
          * key is not in my inventory"): what the inventory gains and loses (its items' bits at 0x712CA80, which
          * 0x4972B0 sets for each item the game gives; the counts follow from 0x712CA8E), each with the game's event
@@ -2639,6 +2824,20 @@ void sh3_vr_frame(void) {
                    "inventory %u)", rt_frame, sp_ev, sp_item, event_trigger(sp_ev), sp_item,
                    (MEM32(0x712CA80u + (uint32_t)(sp_item >> 5) * 4u) >> (sp_item & 31)) & 1u);
         }
+        /* testing (0.1.9, keys_lend): SH3_KEY_BACK_TEST="frame:event:item:flag", see key_test_tab */
+        static const char* kb = (const char*)-1;
+        if (kb == (const char*)-1) kb = getenv("SH3_KEY_BACK_TEST");
+        int kb_at = 0, kb_ev = 0, kb_item = 0, kb_flag = -1;
+        if (kb && p && sscanf(kb, "%d:%d:%d:%d", &kb_at, &kb_ev, &kb_item, &kb_flag) >= 3 && kb_at == rt_frame && tab &&
+            MEM32(tab) && kb_item > 0 && kb_item < 112) {
+            MEM32(0x712CA80u + 4u * (uint32_t)(kb_item >> 5)) &= ~(1u << (kb_item & 31));
+            key_test_tab = tab, key_test_ev = kb_ev, key_test_item = kb_item, key_test_given = kb_flag;
+            rt_log("testing: frame %d: item %d taken away as 0.1.7's looks did; event %d (d4 %u, item %u, dc %u, flag A "
+                   "%u wants %u, now %d) a key's door given by flag %d (now %d)", rt_frame, kb_item, kb_ev,
+                   event_field(tab, kb_ev, 9), event_field(tab, kb_ev, 10), event_field(tab, kb_ev, 11),
+                   event_field(tab, kb_ev, 3), event_field(tab, kb_ev, 2), game_flag((int)event_field(tab, kb_ev, 3)),
+                   kb_flag, game_flag(kb_flag));
+        }
     }
     g.playable = playable_frame;
     playable_frame = 0;
@@ -2719,8 +2918,11 @@ void sh3_vr_frame(void) {
     /* testing (LIST 46, the PC rig): SH3_GIVE=item:count,... at the first playable frame (a gun's count is its loaded
      * rounds, its ammo item's the reserve: handgun 10 + bullets 15, shotgun 11 + shells 16, submachine gun 12 +
      * rounds 17, stun gun 9 + batteries 14), then SH3_EQUIP=weapon number. */
-    static int gave;
-    if (!gave && RT_ENV("SH3_GIVE") && heather_placed(p) && g.playable) {
+    static int gave, give_at = -1;
+    /* (0.1.9: SH3_GIVE_AT=frame, the first playable frame from then: after the dream's death the game gives her a new
+     * inventory, so a weapon for the restroom's mirror is given there) */
+    if (give_at < 0) give_at = getenv("SH3_GIVE_AT") ? atoi(getenv("SH3_GIVE_AT")) : 0;
+    if (!gave && RT_ENV("SH3_GIVE") && heather_placed(p) && g.playable && rt_frame >= give_at) {
         gave = 1;
         rt_log("testing: the items she has before the give: %08X %08X %08X %08X", MEM32(0x712CA80u), MEM32(0x712CA84u),
                MEM32(0x712CA88u), MEM32(0x712CA8Cu));

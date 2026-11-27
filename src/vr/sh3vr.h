@@ -80,6 +80,14 @@ typedef struct Sh3VrGame {
     /* 0.1.8 (owner 152): an event of the game's holds her (an examine's message up, a door, a pick-up: sh3.c
      * event_hold): VR's walk and turn wait, the Sprint toggle's run ends, the room's walk does not follow the head. */
     int event_hold;
+    /* 0.1.9 (owner 168, the puzzles' hint): the game's mode, its main loop's own step (0x58EDB0 switches on it, the
+     * event dispatch 0x4B9E70 returns the next: 2 a room's load, 5 play, 6 the inventory, 14 its Options, 19 the save
+     * screen; -1 not known yet), and the mode an event's script handed over to (the dispatch returned it while a script
+     * ran, its step 2 or 5 before the call: a puzzle's screen; the save point's save screen 19, vr473), -1 once the
+     * dispatch hands back play or a room's load. A screen the player opens (the inventory, the map, the pause menu) is
+     * never one: it opens from free play. */
+    int game_mode;
+    int event_mode;
 } Sh3VrGame;
 void sh3vr_game_state(const Sh3VrGame *g);
 /* What VR asks of Heather this frame (sh3.c applies it in the movement code, 0x4D83B0, and her facing). */
@@ -197,7 +205,8 @@ const float *sh3vr_eye_identity(void);
  * signatures from data/chrwp.arc) gets its bone palette (c48 on, 3 rows a bone) moved to the hand holding it, or
  * hidden while holstered. pal_count: the palette slots the draw uploaded (0: not a palette shader); pal_bone[slot]:
  * the model bone each slot holds (-1 not known; d3d8.c). 1 when `vsc` was changed (the draw uploads that copy); 2 for
- * the beam saber's blade, moved too (a glow: not in her shadow, d3d8.c her_shadow_capture). */
+ * the beam saber's blade, moved too (a glow: not in her shadow, d3d8.c her_shadow_capture); 3 for the weapon in a mirror's
+ * reflection of her (0.1.9: held as hers through the reflection; marked as hers, not her shadow's caster). */
 int sh3vr_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count, const int *pal_bone, float vsc[96][4]);
 /* LIST 24, 46 (the moving parts drawn whole, the parts in the hand): the weapon's draw in passes, each through the
  * game's own shader, lights and textures (the PC VR mod moved vertices in the buffer, which stretched the faces a moving
@@ -281,6 +290,15 @@ int sh3vr_weapon_bones(float *bones, int n);
 /* LIST 48: her model (73 bones) drawn away from the player's own place, as a scene may pose her: during a scene her
  * head's place is taken from it (dynamic cutscenes), nothing else. */
 void sh3vr_scene_head(const float *bones);
+/* 0.1.9 (owner 164): a reflected draw of her model (a mirror: the game draws her again with her animation's bones
+ * reflected about the glass) given her VR pose through the same reflection, her hands with it. 1 when changed; 0 not her
+ * reflection (left as the game posed it). */
+int sh3vr_mirror_bones(float *bones, int n);
+/* The mirror's map of this frame or the last (row-vector 4x4, as the bones): 0 without one. */
+int sh3vr_mirror_map(float x[16]);
+/* 0.1.9 (owner 166): 1 while a scene draws her away from her place with the eyes in her head (first person): her draws
+ * then go to her shadow as in play (sh3.c, d3d8.c her_shadow_capture). */
+int sh3vr_scene_eyes(void);
 /* 1 during a cutscene or a scripted sequence (VR active). */
 int sh3vr_in_scene(void);
 /* 1 while her own finger-skinned hands (her model's groups 3 and 4) are to be drawn in place of play's rigid ones: her
@@ -307,6 +325,8 @@ int sh3vr_full_screens(void);
 /* At each present: whether the frame camera's 3D (the world) was drawn this frame (a frame out of play without it is a
  * full screen). */
 void sh3vr_frame_world(int drawn);
+/* 0.1.9: the frame's full screen (out of play, without the world): its 2D draws and how many of them had a texture */
+void sh3vr_frame_screen(int draws, int textured);
 /* LIST 5 (src/game/movie.c): 1 while one of the game's movies plays (the view on the cinema screen, the frame the
  * movie's picture), 0 at its end. */
 void sh3vr_movie(int on);

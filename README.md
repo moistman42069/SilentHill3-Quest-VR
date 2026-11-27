@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.8</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.9</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -23,7 +23,9 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.8's release notes](docs/RELEASE-NOTES-0.1.8.md): every weapon held by
+with everything you need to install it ([0.1.9's release notes](docs/RELEASE-NOTES-0.1.9.md): a mirror shows your body as
+you move it, the gun in her hand and her shadow right in the scenes seen from her eyes, a hint for puzzles, no pointer
+over black screens, and a key that 0.1.7 used up without opening its door opens that door again; [0.1.8's](docs/RELEASE-NOTES-0.1.8.md): every weapon held by
 Heather's own hand closing on its own shape, her trigger finger on the trigger and pulling it as the gun's trigger
 swings back, the second hand wrapped round each two-hand grip, her thumb along the frame, fingers that stop on the
 weapons, Hold weapons anywhere, Swing strength needed, the shotgun's pump the right way; [0.1.7's](docs/RELEASE-NOTES-0.1.7.md): A opens what you look
@@ -38,9 +40,9 @@ the world, both sticks to recentre; [0.1.4's](docs/RELEASE-NOTES-0.1.4.md): ever
 among them; [0.1.3's](docs/RELEASE-NOTES-0.1.3.md): no screen filters
 or fuzz by default, smooth turning, gentler melee, a softer shadow, no crash on quitting; [0.1.2's](docs/RELEASE-NOTES-0.1.2.md);
 [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short:
-install SH3QuestVR-0.1.8.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
+install SH3QuestVR-0.1.9.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
 headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. Already on an earlier version? The launcher
-offers 0.1.8 itself (Updates). Reports from a headset are very welcome
+offers 0.1.9 itself (Updates). Reports from a headset are very welcome
 (the launcher's "Save a report to Download" holds the game's own logs).
 
 ## Which copies of Silent Hill 3 work
@@ -73,7 +75,7 @@ More in [0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md#which-copies-of-sile
 - **Heather's own body**, full-body IK: her head at the headset, her hands at the controllers, her arms, trunk and legs
   following you; look down and see her. **Her shadow** where the game casts one (under the rooms' lamps): from her body
   as you move it and the weapon in her hand, in the game's own stencil shadows (0.1.7; the old "Heather's shadow"
-  switch is gone).
+  switch is gone; in the scenes you see from her eyes too, 0.1.9). **Mirrors** show her with your body's pose (0.1.9).
 - **The flashlight on her chest** goes where you look and lights your hands where they are in its beam; its spill keeps
   them in sight close by, even in the darkest rooms (0.1.7).
 - **Her watch**: turn your left wrist to you for her health and stamina bars (first person; "Health and stamina on

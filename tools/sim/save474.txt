@@ -1,0 +1,54 @@
+# SH3 Quest VR, the PC rig (session 35, 0.1.9), about 4 minutes: save473 with the save screen left up about 20 s
+# before B (its first B closed it as it opened). Run as mirror457 (its env) and SH3_WALK_LOG=100000. Without
+# SH3_PUZZLE_TEST: the save screen is not a puzzle's (no puzzles' hint; "the game's mode 5 -> 19 (an event's script
+# opened it"). With SH3_PUZZLE_TEST=1 the save screen stands in for a puzzle's (the rig reaches no puzzle): the
+# puzzles' two lines at the top of the screen, each about 5 s, gone with the screen. The rig's savedata and its
+# sh3quest_tips.ini are put back after.
+7740 left_y 1
+8100 left_y 0
+8105 shot w08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8200 left_y 1
+9000 left_y 0
+10600 left_y 1
+10700 left_y 0
+10720 shot w10720-before-the-mirror
+10740 head_yaw 85
+10800 shot w10800-mirror
+10860 a 1
+10866 a 0
+10920 shot w10920-line-1
+10940 a 1
+10946 a 0
+11000 shot w11000-line-2
+11020 a 1
+11026 a 0
+11080 shot w11080-third
+11100 a 1
+11106 a 0
+11160 shot w11160-fourth
+11240 shot w11240-later
+11300 shot w11300-screen-a
+11420 shot w11420-screen-b
+11540 shot w11540-screen-c
+11660 shot w11660-screen-d
+11780 shot w11780-screen-e
+11900 shot w11900-screen-f
+12020 shot w12020-screen-g
+12140 shot w12140-screen-h
+12260 shot w12260-screen-i
+12380 shot w12380-screen-j
+12500 b 1
+12506 b 0
+12560 shot w12560-after-b
+12580 b 1
+12586 b 0
+12640 shot w12640-after-b2
+12800 quit 0

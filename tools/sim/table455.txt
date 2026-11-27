@@ -1,0 +1,37 @@
+# SH3 Quest VR, the PC rig (session 34, 0.1.9), about 2 minutes (table453 cut short). Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300" SH3_STEER_AT_ATTACKER=1 SH3_HP=1
+# and "blocking = 0" in the game folder's sh3vr.ini for this run only (put the defaults back after).
+# Owner 166 (the video's 6:35-6:52: Happy Burger's table after the dream, the shadows wrong in first person, right in
+# third): door252's death in the dream, then NO menu press, so the wake-up scene plays out and she stands at the table;
+# a picture every 150 frames, the head turned about (ahead and down, left, right, level), to find the table's part.
+# 0.1.9 (owner 166, after the fix): table453 to 9300, pictures in the scene's first person at her eyes (9021-9044 in
+# vr454) and SH3_VSC_DUMP=9030 (each volume of the game's shadow pass, hers or not).
+7740 left_y 1
+8100 left_y 0
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8200 left_y 1
+8780 head_yaw 0
+8780 head_pitch -20
+8800 shot t08800-yaw0-pitch_m20
+8930 head_yaw 50
+8930 head_pitch -15
+8950 shot t08950-yaw50-pitch_m15
+9000 left_y 0
+9024 shot f09024-scene-first-person
+9032 shot f09032-scene-first-person
+9040 shot f09040-scene-first-person
+9080 head_yaw -50
+9080 head_pitch -15
+9100 shot t09100-yaw-50-pitch_m15
+9230 head_yaw 0
+9230 head_pitch 0
+9250 shot t09250-yaw0-pitch0
+9300 quit 0

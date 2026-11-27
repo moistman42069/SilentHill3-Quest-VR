@@ -1,0 +1,45 @@
+# SH3 Quest VR, the PC rig (0.1.9, the owner: the flashlight's hint should say what gripping at the chest pocket does),
+# about 2 minutes: play from the start with every other hint already shown (sh3quest_tips.ini) and the flashlight's new
+# key "flashlight_hand" not yet: as soon as the light is on in first person, "Flashlight: the left trigger switches it on
+# and off", then "Or grip at your chest pocket to take it in your hand and aim it" on the hint label ("hint
+# (flashlight_hand)" logged for the first). Pictures every 30 frames; each line checked whole (within its label, none
+# cut). Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+7320 shot h07320-hint
+7350 shot h07350-hint
+7380 shot h07380-hint
+7410 shot h07410-hint
+7440 shot h07440-hint
+7470 shot h07470-hint
+7500 shot h07500-hint
+7530 shot h07530-hint
+7560 shot h07560-hint
+7590 shot h07590-hint
+7620 shot h07620-hint
+7650 shot h07650-hint
+7680 shot h07680-hint
+7710 shot h07710-hint
+7740 shot h07740-hint
+7770 shot h07770-hint
+7800 shot h07800-hint
+7830 shot h07830-hint
+7860 shot h07860-hint
+7890 shot h07890-hint
+7920 shot h07920-hint
+7950 shot h07950-hint
+7980 shot h07980-hint
+8010 shot h08010-hint
+8040 shot h08040-hint
+8070 shot h08070-hint
+8100 shot h08100-hint
+8130 shot h08130-hint
+8160 shot h08160-hint
+8190 shot h08190-hint
+8220 shot h08220-hint
+8250 shot h08250-hint
+8280 shot h08280-hint
+8310 shot h08310-hint
+8340 shot h08340-hint
+8370 shot h08370-hint
+8400 shot h08400-hint
+8460 quit 0

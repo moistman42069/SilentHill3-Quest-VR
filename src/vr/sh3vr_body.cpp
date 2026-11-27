@@ -550,7 +550,10 @@ void read_answer(ProbeSet& s) {
             // 0.1.7: her pixels' stencil mark (her whole model and the weapon in her hand) where it was read: exact.
             // Without it, her column (the view's own probes: only her drawn arms and hands; her column holds her eyes,
             // so a post a few cm before them would count as her) and the capsules round her bones.
-            const bool her_px = s.stencil && (px[i * 4 + 3] & 0x20) != 0;
+            // (0.1.9, owner 166: a scene drawing her away from her place with the eyes in her head marks her draws now,
+            // for her shadow, sh3.c; the probes before the eyes still take her own body right there as no place to
+            // watch the scene from, as before: her chest before her eyes while she is slumped over the table)
+            const bool her_px = s.stencil && (px[i * 4 + 3] & 0x20) != 0 && !(p.kind == kView && ik_scene_eyes());
             own = her_px || (!s.stencil && p.kind != kView && in_her_column(at));
             for (int c = 0; c < s.ncaps && !own; c++) own = in_capsule(s.caps[c], at);
             if (own) {
