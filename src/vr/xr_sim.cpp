@@ -42,6 +42,7 @@ namespace sh3q { bool sim_second_spot(float out[3]); }
 namespace sh3q { bool sim_reload_spot(int what, float out[3]); }
 // SH3 Quest VR (0.1.6): a holster's place (sh3vr_combat.cpp), for "lh_at_holster N" / "rh_at_holster N".
 namespace sh3q { bool sim_holster_spot(int n, float out[3]); }
+namespace sh3q { void sim_grip_spot(int v); }
 
 namespace quest {
 
@@ -379,6 +380,16 @@ public:
             out.hand_grip[side] = {out.hand_aim[side].position,
                                    hand * Quat{std::sin(m_grip_tilt * 0.5f), 0, 0, std::cos(m_grip_tilt * 0.5f)}};
         }
+        // SH3 (0.1.7), "grip_spot N": the VR menu's "Two-hand grip spot" set to N when the script changes it (1 Adjust,
+        // 2 reset the weapon in the hand, 3 reset every weapon): the per-weapon spot checked on the rig.
+        {
+            static int last_spot = 0;
+            const int gs = (int)number("grip_spot");
+            if (gs != last_spot) {
+                last_spot = gs;
+                sh3q::sim_grip_spot(gs);
+            }
+        }
         Controls& c = out.controls;
         c.a = number("a") != 0;
         c.b = number("b") != 0;
@@ -595,20 +606,19 @@ public:
         }
     }
 
-    // The wrist's bar over eye `eye`'s picture (its first row the bottom), as the runtime lays a quad: each pixel takes
-    // the bar where its ray meets the quad (nearest texel), premultiplied.
-    void stamp_wrist(int eye, std::vector<unsigned char>& pixels, int width, int height) {
+    // A quad's picture (`picture`, pw x ph, premultiplied, its first row the bottom) at `p`, `qw` x `qh` metres, over eye
+    // `eye`'s picture, as the runtime lays a quad: each pixel takes the picture where its ray meets the quad (nearest
+    // texel). The pixels drawn.
+    int stamp_quad(int eye, std::vector<unsigned char>& pixels, int width, int height, const Pose& p, float qw, float qh,
+                   const std::vector<std::uint8_t>& picture, int pw, int ph) {
         const Pose& e = m_drawn_set ? m_drawn_eye[eye] : m_frame_eye[eye];
         const float* fov = m_drawn_set ? m_drawn_fov[eye] : m_frame_fov[eye];
-        const Pose& p = m_wrist.pose;
         const Vec3 normal = rotate(p.orientation, {0, 0, 1});
         const Vec3 right = rotate(p.orientation, {1, 0, 0});
         const Vec3 up = rotate(p.orientation, {0, 1, 0});
-        if (!(m_wrist.width > 0.0f) || !(m_wrist.height > 0.0f)) {
-            return;
+        if (!(qw > 0.0f) || !(qh > 0.0f) || picture.size() < static_cast<std::size_t>(pw) * ph * 4) {
+            return 0;
         }
-        const std::vector<std::uint8_t> picture =
-            render_wrist(m_wrist.health, m_wrist.alpha, m_wrist.pulse, m_wrist.stamina);
         const float tl = std::tan(fov[0]), tr = std::tan(fov[1]), tu = std::tan(fov[2]), td = std::tan(fov[3]);
         const Vec3 to = p.position - e.position;
         int drawn = 0;
@@ -626,14 +636,14 @@ public:
                     continue;
                 }
                 const Vec3 rel = e.position + Vec3{d.x * t, d.y * t, d.z * t} - p.position;
-                const float u = (rel.x * right.x + rel.y * right.y + rel.z * right.z) / m_wrist.width + 0.5f;
-                const float v = (rel.x * up.x + rel.y * up.y + rel.z * up.z) / m_wrist.height + 0.5f;
+                const float u = (rel.x * right.x + rel.y * right.y + rel.z * right.z) / qw + 0.5f;
+                const float v = (rel.x * up.x + rel.y * up.y + rel.z * up.z) / qh + 0.5f;
                 if (u < 0.0f || u >= 1.0f || v < 0.0f || v >= 1.0f) {
                     continue;
                 }
-                const int tx = std::min(kWristWidth - 1, static_cast<int>(u * kWristWidth));
-                const int ty = std::min(kWristHeight - 1, static_cast<int>(v * kWristHeight));
-                const std::uint8_t* s = picture.data() + (static_cast<std::size_t>(ty) * kWristWidth + tx) * 4;
+                const int tx = std::min(pw - 1, static_cast<int>(u * pw));
+                const int ty = std::min(ph - 1, static_cast<int>(v * ph));
+                const std::uint8_t* s = picture.data() + (static_cast<std::size_t>(ty) * pw + tx) * 4;
                 unsigned char* out = pixels.data() + (static_cast<std::size_t>(py) * width + px) * 4;
                 const float a = static_cast<float>(s[3]) / 255.0f;
                 for (int k = 0; k < 3; ++k) {
@@ -642,11 +652,51 @@ public:
                 ++drawn;
             }
         }
+        return drawn;
+    }
+
+    // The wrist's bar over eye `eye`'s picture (stamp_quad).
+    void stamp_wrist(int eye, std::vector<unsigned char>& pixels, int width, int height) {
+        const int drawn = stamp_quad(eye, pixels, width, height, m_wrist.pose, m_wrist.width, m_wrist.height,
+                                     render_wrist(m_wrist.health, m_wrist.alpha, m_wrist.pulse, m_wrist.stamina),
+                                     kWristWidth, kWristHeight);
         if (eye == 0 && !m_shot.empty()) {
             char line[200];
             std::snprintf(line, sizeof line,
                           "[sim] wrist bar in shot %s: %d pixels of the left eye (health %.2f, stamina %.2f, shown %.2f)",
                           m_shot.c_str(), drawn, m_wrist.health, m_wrist.stamina, m_wrist.alpha);
+            m_log(1, line);
+        }
+    }
+
+    // 0.1.7 the break-free bar (owner message 128): logged as it comes and goes and twice a second while shown, laid on
+    // the eyes' pictures as the headset would show it (stamp_hold).
+    void show_hold(const HoldLayer& hold) override {
+        const bool on = hold.shown && hold.alpha > 0.01f, was = m_hold.shown && m_hold.alpha > 0.01f;
+        m_hold = hold;
+        if (on != was || (on && m_frame - m_hold_logged >= 30)) {
+            m_hold_logged = m_frame;
+            char line[220];
+            if (!on) {
+                std::snprintf(line, sizeof line, "[sim] break-free bar: none");
+            } else {
+                std::snprintf(line, sizeof line,
+                              "[sim] break-free bar: fill %.2f, shown %.2f, light %.2f, at %.2f %.2f %.2f (%.3f x %.3f m)",
+                              hold.fill, hold.alpha, hold.glow, hold.pose.position.x, hold.pose.position.y,
+                              hold.pose.position.z, hold.width, hold.height);
+            }
+            m_log(1, line);
+        }
+    }
+
+    void stamp_hold(int eye, std::vector<unsigned char>& pixels, int width, int height) {
+        const int drawn = stamp_quad(eye, pixels, width, height, m_hold.pose, m_hold.width, m_hold.height,
+                                     render_hold(m_hold.fill, m_hold.alpha, m_hold.glow), kHoldWidth, kHoldHeight);
+        if (eye == 0 && !m_shot.empty()) {
+            char line[200];
+            std::snprintf(line, sizeof line,
+                          "[sim] break-free bar in shot %s: %d pixels of the left eye (fill %.2f, shown %.2f)",
+                          m_shot.c_str(), drawn, m_hold.fill, m_hold.alpha);
             m_log(1, line);
         }
     }
@@ -781,6 +831,9 @@ private:
         if (m_wrist.shown && m_wrist.alpha > 0.01f && (target == kTargetLeftEye || target == kTargetRightEye)) {
             stamp_wrist(target == kTargetLeftEye ? 0 : 1, pixels, m_width[target], m_height[target]);
         }
+        if (m_hold.shown && m_hold.alpha > 0.01f && (target == kTargetLeftEye || target == kTargetRightEye)) {
+            stamp_hold(target == kTargetLeftEye ? 0 : 1, pixels, m_width[target], m_height[target]);
+        }
         write_png(path, pixels, m_width[target], m_height[target], alpha);
     }
 
@@ -809,6 +862,9 @@ private:
             }
             if (m_wrist.shown && m_wrist.alpha > 0.01f) {
                 stamp_wrist(eye, pixels, m_width[target], m_height[target]);
+            }
+            if (m_hold.shown && m_hold.alpha > 0.01f) {
+                stamp_hold(eye, pixels, m_width[target], m_height[target]);
             }
             if (panel.visible) {
                 stamp_panel(eye, pixels, m_width[target], m_height[target], panel, hud);
@@ -903,6 +959,8 @@ private:
     long m_cross_logged = -1000;
     WristLayer m_wrist;  // LIST 49 (show_wrist, stamp_wrist)
     long m_wrist_logged = -1000;
+    HoldLayer m_hold;  // 0.1.7 the break-free bar (show_hold, stamp_hold)
+    long m_hold_logged = -1000;
     Pose m_frame_eye[2], m_drawn_eye[2];
     Pose m_frame_head;  // 0.1.9 (stamp_panel)
     float m_frame_fov[2][4]{}, m_drawn_fov[2][4]{};

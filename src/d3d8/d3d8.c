@@ -1429,7 +1429,63 @@ static float her_tri[kHerMaxTris * 9];
 static int her_tris_n, her_mask_frame = -1;
 static float her_mask_strength = 1.0f;
 static GLuint her_buf;  /* her volumes' own buffer: the mask draw's vertices (the stream buffer) stay for its second run */
+/* 0.1.7 (owner 123: "heathers normal shadow seems to be rendered weirdly"): in a lit place the game casts Heather's
+ * shadow itself: a record of type 0 for her in its map list (0x491030 keeps the record at 0x8E43A8 and its rows'
+ * pointers at 0x8E43AC.., the first row the lamp's place) whose volumes 0x490810 draws from her kg1 shadow model in her
+ * ANIMATION's pose, z-pass (vr291/vr294: a shadow of walking legs under the view, the eyes inside her own volume). In
+ * first person those draws are left out here (her_game_volume: sh3vr tells hers by her place) and her body as drawn is
+ * counted from the same lamp at the darkening's start (her_shadow_ready), into the game's own count: its full
+ * strength, its blur. Her own pixels (bit 0x20) stay out of it, as for the flashlight's. */
+enum { kRoomLamps = 4 };
+static float room_lamp[kRoomLamps][3];
+static int room_lamps, room_lamp_frame = -1;
+static int her_game_volume(uint32_t va, uint32_t stride, uint32_t n) {
+    if (!dev->rs[52] || dev->rs[56] != 8 /* ALWAYS */ || dev->rs[59] != 0x1F || (dev->rs[55] != 7 && dev->rs[55] != 8) ||
+        !va || stride < 12 || n < 3 || !dev->ds || !sh3vr_active())
+        return 0;
+    {
+        /* testing (the PC rig): SH3_NO_ROOM_SHADOW=1 leaves the game's own volumes of her as they are */
+        static int off = -1;
+        if (off < 0) off = getenv("SH3_NO_ROOM_SHADOW") && atoi(getenv("SH3_NO_ROOM_SHADOW")) != 0;
+        if (off) return 0;
+    }
+    /* its corners in the world as given (the game's volumes: the world matrix the identity) */
+    const float *w = dev->world[0];
+    if (fabsf(w[0] - 1.0f) > 1e-4f || fabsf(w[5] - 1.0f) > 1e-4f || fabsf(w[10] - 1.0f) > 1e-4f || fabsf(w[12]) > 1e-3f ||
+        fabsf(w[13]) > 1e-3f || fabsf(w[14]) > 1e-3f || fabsf(w[1]) > 1e-4f || fabsf(w[2]) > 1e-4f || fabsf(w[4]) > 1e-4f)
+        return 0;
+    const uint32_t row = MEM32(0x8E43AC);
+    if (!MEM32(0x8E43A8) || !row) return 0;
+    const float lamp[3] = {MEMF(row), MEMF(row + 4), MEMF(row + 8)};
+    if (!isfinite(lamp[0]) || !isfinite(lamp[1]) || !isfinite(lamp[2])) return 0;
+    if (!sh3vr_her_game_volume((const uint8_t *)GPTR(va), stride, n, lamp)) return 0;
+    if (dev->rs[55] == 7 && dev->rs[22] == 3) {  /* the pass's camera, as draw_setup keeps it from the game's volumes */
+        memcpy(vol_view, dev->view, sizeof vol_view);
+        memcpy(vol_proj, dev->proj, sizeof vol_proj);
+        vol_frame = rt_frame;
+    }
+    if (room_lamp_frame != rt_frame) room_lamp_frame = rt_frame, room_lamps = 0;
+    int k = 0;
+    while (k < room_lamps && (fabsf(room_lamp[k][0] - lamp[0]) > 1.0f || fabsf(room_lamp[k][1] - lamp[1]) > 1.0f ||
+                              fabsf(room_lamp[k][2] - lamp[2]) > 1.0f))
+        k++;
+    if (k == room_lamps && room_lamps < kRoomLamps) {
+        memcpy(room_lamp[room_lamps], lamp, sizeof lamp);
+        room_lamps++;
+    }
+    return 1;
+}
 static void her_shadow_ready(void) {
+    if (room_lamp_frame == rt_frame && room_lamps > 0 && dev->ds) {
+        /* her shadow from each room lamp whose volumes of her were left out, counted with the room's before the
+         * darkening reads the count (so at the game's own strength) */
+        for (int i = 0; i < room_lamps; i++) {
+            her_tris_n = sh3vr_her_room_shadow(vol_view, vol_proj, room_lamp[i], her_tri, kHerMaxTris);
+            vr_her_shadow();
+        }
+        her_tris_n = 0;
+    }
+    room_lamp_frame = -1;
     if (her_mask_frame >= 0 && her_mask_frame != rt_frame) {
         static int told = 0;
         if (!told++)
@@ -1618,6 +1674,7 @@ METHOD(dev_DrawPrimitive, 4) {
     stream_bases(base, bufs);
     Res *vb = res_of(dev->stream[0]);
     uint32_t n = prim_verts(ARG(1), ARG(3));
+    if (vb && vb->mem && her_game_volume(vb->mem + ARG(2) * dev->stride[0], dev->stride[0], n)) return 0;  /* 0.1.7 */
     ROUTED(vr_route(vb && vb->mem ? vb->mem + ARG(2) * dev->stride[0] : 0, dev->stride[0], n),
            draw_setup(base, bufs, 0), glDrawArrays(prim_mode(ARG(1)), ARG(2), n));
     return 0;
@@ -1632,6 +1689,7 @@ METHOD(dev_DrawIndexedPrimitive, 6) {
     int is32 = ib->fmt == FMT_INDEX32;
     Res *vb = res_of(dev->stream[0]);
     uint32_t first = dev->base_vertex + ARG(2);  /* MinIndex, NumVertices */
+    if (vb && vb->mem && her_game_volume(vb->mem + first * dev->stride[0], dev->stride[0], ARG(3))) return 0;  /* 0.1.7 */
     dev->draw_nv = ARG(3), dev->draw_np = ARG(5);  /* SH3 Quest VR: the weapon's mesh signature (d3d8_shader.c) */
     {
         /* testing (LIST 46): SH3_WEAPON_DUMP=N, in the SH3_VSC_DUMP frame: a draw of N vertices, each 4-byte column's
@@ -1783,6 +1841,11 @@ static void up_upload(uint32_t data, uint32_t bytes) {
 }
 METHOD(dev_DrawPrimitiveUP, 5) {
     uint32_t n = prim_verts(ARG(1), ARG(2)), stride = ARG(4);
+    if (her_game_volume(ARG(3), stride, n)) {  /* 0.1.7: her game shadow volume, left out (VR casts hers) */
+        if (dev->stream[0]) res_release(dev->stream[0]);
+        dev->stream[0] = 0;
+        return 0;
+    }
     up_upload(ARG(3), n * stride);
     uintptr_t base[16] = {0};
     GLuint bufs[16] = {dev->stream_buf};
@@ -1793,6 +1856,13 @@ METHOD(dev_DrawPrimitiveUP, 5) {
 }
 METHOD(dev_DrawIndexedPrimitiveUP, 9) {
     uint32_t nidx = prim_verts(ARG(1), ARG(4)), isz = ARG(6) == FMT_INDEX32 ? 4 : 2, stride = ARG(8);
+    if (her_game_volume(ARG(7) + ARG(2) * stride, stride, ARG(3))) {  /* 0.1.7: her game shadow volume, left out */
+        if (dev->stream[0]) res_release(dev->stream[0]);
+        dev->stream[0] = 0;
+        if (dev->ib) res_release(dev->ib);
+        dev->ib = 0;
+        return 0;
+    }
     up_upload(ARG(7), (ARG(2) + ARG(3)) * stride);
     uintptr_t base[16] = {0};
     GLuint bufs[16] = {dev->stream_buf};

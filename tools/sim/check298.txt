@@ -1,0 +1,48 @@
+# SH3 Quest VR, the PC rig (session 25, 0.1.7; check296 with the first walk 6 frames longer: 0.1.7 stops her when the stick is let go, vr296 short of the gate), about 4 minutes, with SH3_KILL_HOLDER=70; check290's opening exactly (vr295 without its head turns: no hold). As check290: the hall's dog
+# holds her at about frame 8339. Owner message 128: the break-free bar in view while held (fading in under the gaze,
+# emptying with shakes, lit by each); message 125/127: her holder dying in its hold frees her (the 70th struggle step,
+# about frame 8409), the bar empties and leaves rising; she walks after.
+7740 left_y 1
+8106 left_y 0
+8105 shot j08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8130 head_yaw 55
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8145 shot e08145-gate-left
+8150 head_yaw -55
+8165 shot e08165-gate-right
+8170 head_yaw 0
+8200 shot j08200-hall
+8200 left_y 1
+8300 left_y 0
+8305 head_yaw 180
+8330 shot h08330-before
+8342 shot h08342-bar-coming
+8350 shot h08350-bar-in
+8362 shot h08362-bar
+8364 rh_x 0.15
+8368 rh_x -0.15
+8372 rh_x 0.15
+8376 rh_x -0.15
+8380 rh_x 0.15
+8384 rh_x -0.15
+8388 rh_x 0.15
+8392 rh_x -0.15
+8394 shot h08394-bar-shaken
+8396 rh_x 0
+8402 shot h08402-bar
+8412 shot h08412-freed
+8418 shot h08418-leaving
+8426 shot h08426-leaving
+8440 shot h08440-gone
+8450 head_yaw 0
+8460 left_y 1
+8560 left_y 0
+8565 shot h08565-walked
+8600 quit 0

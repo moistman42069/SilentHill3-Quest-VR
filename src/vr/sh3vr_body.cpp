@@ -134,12 +134,18 @@ struct ProbeSet {
     GLuint pbo = 0;
     GLsync fence = nullptr;
     bool pending = false;
+    bool stencil = false;         // 0.1.7: the stencil pass ran for this set (each answer's alpha her stencil)
 };
 ProbeSet sets[2];
 int next_set = 0;
 
 GLuint probe_prog = 0, probe_tex = 0, probe_fbo = 0, probe_sampler = 0;
 GLint probe_uv_loc = -1, probe_depth_loc = -1;
+// 0.1.7: the stencil pass (her pixels); off when its program or the texture's stencil mode is refused (then the
+// capsules and her column tell her apart, as before).
+GLuint probe_st_prog = 0;
+GLint probe_st_uv_loc = -1, probe_st_loc = -1;
+int stencil_reads = -1;  // -1 not tried yet, 0 refused, 1 working
 
 // What the probes said (the last answer read).
 struct {
@@ -168,6 +174,9 @@ struct {
     Vec3 beyond[2][kSurfMost];
     int beyond_n[2] = {};
     int own_hits = 0;            // probes whose surface was Heather herself (free)
+    int own_stencil = 0;         // 0.1.7: of those, known by her pixels' stencil mark
+    bool stencil = false;        // 0.1.7: this answer read her stencil mark
+    bool weapon_her[kWeaponSamples];  // 0.1.7: the weapon's line sample's surface is hers (her body or the weapon)
     bool valid = false;
     int age = 99;                 // frames since it was read
     int serial = 0;               // answers read (a new one: the hands' planes fitted again)
@@ -238,15 +247,29 @@ const char* kProbeVs =
     "void main() {\n"
     "  vec2 p = vec2(float((gl_VertexID & 1) * 4 - 1), float((gl_VertexID >> 1) * 4 - 1));\n"
     "  gl_Position = vec4(p, 0.0, 1.0);\n}\n";
+// The probes' places, two to a vec4 (one upload of 80 vec4s, kProbeMax / 2).
 const char* kProbeFs =
     "#version 320 es\nprecision highp float;\nprecision highp sampler2DArray;\n"
-    "uniform sampler2DArray uDepth; uniform vec2 uUV[160];\nout vec4 o;\n"
+    "uniform sampler2DArray uDepth; uniform vec4 uUV[80];\nout vec4 o;\n"
     "void main() {\n"
-    "  int i = int(gl_FragCoord.x);\n"
-    "  float d = texture(uDepth, vec3(uUV[i], 0.0)).r;\n"
+    "  int i = int(gl_FragCoord.x); vec4 p = uUV[i >> 1]; vec2 uv = (i & 1) == 0 ? p.xy : p.zw;\n"
+    "  float d = texture(uDepth, vec3(uv, 0.0)).r;\n"
     "  float v = floor(clamp(d, 0.0, 1.0) * 16777215.0 + 0.5);\n"
     "  float r = floor(v / 65536.0); float g = floor((v - r * 65536.0) / 256.0); float b = v - r * 65536.0 - g * 256.0;\n"
-    "  o = vec4(r, g, b, 255.0) / 255.0;\n}\n";
+    "  o = vec4(r, g, b, 0.0) / 255.0;\n}\n";
+// 0.1.7 (owner 123: "weapons are acting like theyre colliding with things mid walk/in the air despite there being
+// nothing ... a ding happens too"): the same places' stencil, into the alpha the depth pass left 0. Every draw of
+// Heather's (her whole model: body, skirt, hair, feet, the arms and hands, the parts faded near the eyes, whose dithered
+// pixels still write depth) and the weapon or part in her hand carries bit 0x20 (d3d8.c draw_setup, her_mark /
+// shader_held_draw), so a probe's surface is known to be hers to the pixel; the capsules round her bones missed her
+// skirt, her chest and shoulders, her feet, and the faded parts, and the probes took those for walls.
+const char* kProbeStencilFs =
+    "#version 320 es\nprecision highp float;\nprecision highp usampler2DArray;\n"
+    "uniform usampler2DArray uStencil; uniform vec4 uUV[80];\nout vec4 o;\n"
+    "void main() {\n"
+    "  int i = int(gl_FragCoord.x); vec4 p = uUV[i >> 1]; vec2 uv = (i & 1) == 0 ? p.xy : p.zw;\n"
+    "  uint s = texture(uStencil, vec3(uv, 0.0)).r;\n"
+    "  o = vec4(0.0, 0.0, 0.0, float(s & 255u) / 255.0);\n}\n";
 
 bool gl_init() {
     if (gl_ready || gl_failed) return gl_ready;
@@ -263,6 +286,14 @@ bool gl_init() {
     c_size = glGetUniformLocation(comfort_prog, "uSize");
     probe_uv_loc = glGetUniformLocation(probe_prog, "uUV");
     probe_depth_loc = glGetUniformLocation(probe_prog, "uDepth");
+    probe_st_prog = link(kProbeVs, kProbeStencilFs, "VR probes' stencil");
+    if (probe_st_prog) {
+        probe_st_uv_loc = glGetUniformLocation(probe_st_prog, "uUV");
+        probe_st_loc = glGetUniformLocation(probe_st_prog, "uStencil");
+    } else {
+        stencil_reads = 0;
+        rt_log("VR: the probes' stencil pass is off (its shader failed; see above): her body told by her bones' capsules");
+    }
     glGenVertexArrays(1, &vao);
     glGenFramebuffers(1, &draw_fbo_mv);
     glGenTextures(1, &probe_tex);
@@ -481,6 +512,9 @@ void read_answer(ProbeSet& s) {
     answer.view_asked = false;
     answer.ray_n = 0;
     answer.own_hits = 0;
+    answer.own_stencil = 0;
+    answer.stencil = s.stencil;
+    for (int i = 0; i < kWeaponSamples; i++) answer.weapon_her[i] = false;
     answer.surf_n[0] = answer.surf_n[1] = 0;
     answer.beyond_n[0] = answer.beyond_n[1] = 0;
     for (int i = 0; i < s.n; i++) {
@@ -497,14 +531,17 @@ void read_answer(ProbeSet& s) {
             // The surface the depth shows, on the eye's ray through the probe: Heather's own arm, hand or body is
             // not the world, and a probe behind it is free (her hand over a fingertip, her arm along the arm's line).
             at = s.eye + (p.world - s.eye) * (p.own > 1e-3f ? surface_depth / p.own : 1.0f);
-            // (the view's own probes: only her drawn arms and hands; her column holds her eyes, so a post a few cm
-            // before them would count as her)
-            own = p.kind != kView && in_her_column(at);
+            // 0.1.7: her pixels' stencil mark (her whole model and the weapon in her hand) where it was read: exact.
+            // Without it, her column (the view's own probes: only her drawn arms and hands; her column holds her eyes,
+            // so a post a few cm before them would count as her) and the capsules round her bones.
+            const bool her_px = s.stencil && (px[i * 4 + 3] & 0x20) != 0;
+            own = her_px || (!s.stencil && p.kind != kView && in_her_column(at));
             for (int c = 0; c < s.ncaps && !own; c++) own = in_capsule(s.caps[c], at);
             if (own) {
                 hidden = pen > 0;  // behind her: free for a fingertip, not known for the arm's line
                 pen = -0.01f;
                 answer.own_hits++;
+                if (her_px) answer.own_stencil++;
             }
         }
         // Session 8: the world's surface near a hand (12 cm beyond the probe at most, 45 cm before it: a hand pushed
@@ -541,6 +578,7 @@ void read_answer(ProbeSet& s) {
             answer.weapon_pen[p.a] = pen;
             answer.weapon_ok[p.a] = ok;
             answer.weapon_hidden[p.a] = hidden;
+            answer.weapon_her[p.a] = own;
             answer.weapon_asked = true;
             break;
         case kView:
@@ -557,6 +595,16 @@ void read_answer(ProbeSet& s) {
     answer.valid = true;
     answer.age = 0;
     answer.serial++;
+    {
+        // 0.1.7: every 10 s or so, how many of the probes met her and how many of those her stencil mark told.
+        static int told_at = -100000;
+        if (rt_frame - told_at >= 600) {
+            told_at = rt_frame;
+            rt_log("VR probes: frame %d: %d probes, %d met her or the weapon in her hand, %d of them by her pixels' "
+                   "stencil mark (%s)", rt_frame, s.n, answer.own_hits, answer.own_stencil,
+                   s.stencil ? "read" : "not read: her bones' capsules and column");
+        }
+    }
 
     // The guide dot: the first step of the ray that went behind a surface, between it and the step before.
     guide_valid = false;
@@ -594,26 +642,41 @@ void issue_probes(unsigned depth_tex) {
     glUniform1i(probe_depth_loc, 0);
     // Unused slots read the middle of the picture (their answers are ignored).
     for (int i = s.n; i < kProbeMax; i++) uv[i][0] = uv[i][1] = 0.5f;
-    if (probe_uv_loc >= 0) {
-        // A vec2 array: uploaded two floats at a time through its elements' locations.
-        static GLint locs[kProbeMax];
-        static bool have_locs = false;
-        if (!have_locs) {
-            for (int i = 0; i < kProbeMax; i++) {
-                char name[24];
-                std::snprintf(name, sizeof name, "uUV[%d]", i);
-                locs[i] = glGetUniformLocation(probe_prog, name);
-            }
-            have_locs = true;
-        }
-        for (int i = 0; i < kProbeMax; i++)
-            if (locs[i] >= 0) glUniform2f(locs[i], uv[i][0], uv[i][1]);
-    }
+    // Two places a vec4, the whole array in one upload.
+    if (probe_uv_loc >= 0) glUniform4fv(probe_uv_loc, kProbeMax / 2, &uv[0][0]);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depth_tex);
     glBindSampler(0, probe_sampler);
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+    // 0.1.7: her pixels' stencil mark into the alpha (the texture read as its stencil for this one draw, then as its
+    // depth again for the game). Tried once: a refused stencil mode turns the pass off for the run.
+    s.stencil = false;
+    if (probe_st_prog && stencil_reads != 0) {
+        if (stencil_reads < 0)
+            while (glGetError() != GL_NO_ERROR) {
+            }
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX);
+        if (stencil_reads < 0) {
+            const GLenum e = glGetError();
+            stencil_reads = e == GL_NO_ERROR ? 1 : 0;
+            if (e != GL_NO_ERROR)
+                rt_log("VR: the probes' stencil pass is off (the depth's stencil mode was refused, GL error %04X): her "
+                       "body told by her bones' capsules", (unsigned)e);
+            else
+                rt_log("VR: the probes read her pixels' stencil mark (her body and the weapon in her hand are never a wall)");
+        }
+        if (stencil_reads == 1) {
+            glUseProgram(probe_st_prog);
+            glUniform1i(probe_st_loc, 0);
+            if (probe_st_uv_loc >= 0) glUniform4fv(probe_st_uv_loc, kProbeMax / 2, &uv[0][0]);
+            glColorMask(0, 0, 0, 1);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glColorMask(1, 1, 1, 1);
+            s.stencil = true;
+        }
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
+    }
     glBindBuffer(GL_PIXEL_PACK_BUFFER, s.pbo);
     glReadPixels(0, 0, kProbeMax, 1, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -951,9 +1014,13 @@ const LightHold& light_hold_of(int h, const Quat& rel) {
 // are read: the first sample behind a surface (by less than 30 cm) after free or unknown ones is where the line meets
 // it; a sample behind the drawn weapon or her own hand tells nothing, and with the line's end so hidden the last
 // contact is kept (a weapon held at a wall covers the wall where its line goes on).
+// 0.1.7 (owner 123): a contact starts only when two answers in a row show it, so one answer's stray sample never holds
+// the weapon back or knocks it on nothing; what the line's samples said when it started is kept for the log.
+int weapon_hit_runs = 0, weapon_hit_serial = -1;
+char weapon_hit_line[256] = "";
 void weapon_contact() {
     if (!answer.valid || answer.age > 3 || !answer.weapon_asked) {
-        if (!answer.valid || answer.age > 3) weapon_free = 1.0f;
+        if (!answer.valid || answer.age > 3) weapon_free = 1.0f, weapon_hit_runs = 0;
         return;
     }
     float t_hit = 1.0f;
@@ -984,8 +1051,23 @@ void weapon_contact() {
         hit = true;
         break;
     }
-    if (hit) weapon_free = std::clamp(t_hit - 0.02f, 0.0f, 1.0f);
-    else if (!(any && end_hidden && weapon_free < 1.0f)) weapon_free = 1.0f;
+    if (answer.serial != weapon_hit_serial) {
+        weapon_hit_serial = answer.serial;
+        weapon_hit_runs = hit ? weapon_hit_runs + 1 : 0;
+    }
+    const bool in_contact = weapon_free < 1.0f;
+    if (hit && (in_contact || weapon_hit_runs >= 2)) {
+        if (!in_contact) {
+            int n = std::snprintf(weapon_hit_line, sizeof weapon_hit_line, "its line met it %.0f%% along; the line's "
+                                  "probes, palm to tip, cm behind the surface (her: on her or the weapon):", t_hit * 100.0f);
+            for (int i = 0; i < kWeaponSamples && n < (int)sizeof weapon_hit_line - 8; i++)
+                n += !answer.weapon_ok[i]   ? std::snprintf(weapon_hit_line + n, sizeof weapon_hit_line - n, " off")
+                     : answer.weapon_her[i] ? std::snprintf(weapon_hit_line + n, sizeof weapon_hit_line - n, " her")
+                                            : std::snprintf(weapon_hit_line + n, sizeof weapon_hit_line - n, " %.0f",
+                                                            answer.weapon_pen[i] * 100.0f);
+        }
+        weapon_free = std::clamp(t_hit - 0.02f, 0.0f, 1.0f);
+    } else if (!(any && end_hidden && in_contact)) weapon_free = 1.0f;
 }
 
 // ---------------------------------------------------------------- the surfaces at each hand (session 8)
@@ -1666,6 +1748,15 @@ void body_frame() {
                 break;
             }
             if (!s.inside && was_inside && end_hidden) s.inside = true;  // the last contact kept
+            {
+                // 0.1.7 (owner 123): a new hold only when two answers in a row show the line behind a surface.
+                static int arm_runs[2] = {}, arm_serial[2] = {-1, -1};
+                if (answer.serial != arm_serial[h]) {
+                    arm_serial[h] = answer.serial;
+                    arm_runs[h] = s.inside ? arm_runs[h] + 1 : 0;
+                }
+                if (s.inside && !was_inside && arm_runs[h] < 2) s.inside = false;
+            }
             static int dump_at = -2;  // SH3_VSC_DUMP=N (the PC rig): what the arm's probes said in frame N
             if (dump_at == -2) dump_at = getenv("SH3_VSC_DUMP") ? atoi(getenv("SH3_VSC_DUMP")) : -1;
             if (rt_frame == dump_at) {
@@ -1873,7 +1964,8 @@ void body_fingers() {
                     target = trig > 0.05f || first ? 0.42f + 0.33f * trig : 0.10f;
                 } else {
                     const float c = finger_contact(h, f, s.shown, nullptr, true, 1.0f, free_from);
-                    const float base = f == kThumb ? std::min(hold, 0.7f) : hold;
+                    const float th = f == kThumb ? weapon_hold_thumb(h) : -1.0f;
+                    const float base = f == kThumb ? (th >= 0 ? th : std::min(hold, 0.7f)) : hold;
                     target = c >= 0 ? c : std::max(base, free_from);
                 }
             } else if (role == 3 || part) {
@@ -1968,6 +2060,7 @@ bool hand_finger_tip(int h, int f, float c, Vec3& tip) {
 }
 
 float weapon_wall_free() { return answer.valid && answer.age <= 3 ? weapon_free : 1.0f; }
+const char* weapon_wall_line() { return weapon_hit_line; }
 
 bool guide_hit(Vec3& at) {
     if (!guide_valid || guide_age > 3 || !map_ready()) return false;
@@ -2062,9 +2155,10 @@ void body_crash_info(FILE* f) {
                      h == kLeft ? "left" : "right", weapon_hand_role(h), reload_held_part(h), finger_target[h][0],
                      finger_target[h][1], finger_target[h][2], finger_target[h][3], finger_target[h][4], weapon_touch[h]);
     }
-    std::fprintf(f, "VR probes: answer %s (age %d, %d on her own body), guide dot %s, GL %s, the weapon's line %.0f%% "
-                    "free\n",
-                 answer.valid ? "read" : "none", answer.age, answer.own_hits, guide_valid ? "on a surface" : "none",
+    std::fprintf(f, "VR probes: answer %s (age %d, %d on her own body, %d of them by her stencil mark; the stencil pass "
+                    "%s), guide dot %s, GL %s, the weapon's line %.0f%% free\n",
+                 answer.valid ? "read" : "none", answer.age, answer.own_hits, answer.own_stencil,
+                 stencil_reads == 1 ? "on" : stencil_reads == 0 ? "off" : "not tried", guide_valid ? "on a surface" : "none",
                  gl_ready ? "ready" : gl_failed ? "failed" : "not yet", weapon_free * 100.0f);
 }
 

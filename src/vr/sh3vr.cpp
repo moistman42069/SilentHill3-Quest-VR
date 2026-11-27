@@ -43,7 +43,7 @@ Options opt;
 
 namespace {
 
-const char* const kPages[] = {"Performance", "View", "Comfort", "Pointer", "Hands and weapons", "Vibration"};
+const char* const kPages[] = {"Performance", "View", "Comfort", "Pointer", "Hands and weapons", "Vibration", "Hints"};
 const char* const kOffLowHigh[] = {"Off", "Low", "Medium", "High", "Highest"};
 const char* const kSharpen[] = {"Off", "Normal", "Strong"};
 const char* const kRefresh[] = {"72 Hz", "80 Hz", "90 Hz", "120 Hz"};
@@ -58,6 +58,10 @@ const char* const kPointerHand[] = {"Either (last trigger)", "Left", "Right"};
 const char* const kBeamLook[] = {"Silent Hill (rust)", "White"};
 const char* const kFlashlight[] = {"Where you look", "Where Heather faces (the game's)"};
 const char* const kExtraVibration[] = {"Off", "Pickups", "The whole world"};
+// 0.1.7 (owner message 124): the two-hand grip's spot on each weapon (sh3vr_combat.cpp update_two_hand). Only in the VR
+// menu: "Adjust" and "Back to ..." are for a moment (the launcher, which writes sh3vr.ini whole, leaves it "As saved").
+const char* const kGripSpot[] = {"As saved", "Adjust: take hold where you want it", "Reset the weapon in your hand",
+                                 "Reset every weapon"};
 
 #define SW(key, name, page, next) {#key, name, page, Kind::kSwitch, &opt.key, 0, 0, 0, nullptr, 0, nullptr, "", next}
 #define CH(key, name, page, list, next) \
@@ -96,13 +100,17 @@ const OptionRow kRows[] = {
     NU(saturation, "Color saturation", "View", 0.0f, 200.0f, 10.0f, "%", false),
     NU(dark_edges, "Darker edges", "View", 0.0f, 100.0f, 10.0f, "%", false),
     SW(smooth_edges, "Smooth edges", "View", false),
-    SW(her_shadow, "Heather's shadow", "View", false),
+    // 0.1.7 (owner message 135: "we shouldnt really need that seperate body ik shadow toggle thing anymore since the
+    // actual native game one looks great now"): "Heather's shadow" (her IK body in the flashlight's beam) no longer
+    // offered; her shadow is the game's own from the room's lamps, cast from her body as drawn (d3d8.c her_game_volume).
     NU(panel_distance, "Screen distance", "View", 0.8f, 3.0f, 0.1f, "m", false),
     NU(panel_width, "Screen size", "View", 0.6f, 2.5f, 0.1f, "m", false),
     SW(panel_follow, "Screen follows the view", "View", false),
     SW(menus_in_view, "Menus open in front of you", "View", false),
     SW(messages_at_things, "Messages next to things", "View", false),
     SW(wrist_health, "Health and stamina on your wrist", "View", false),  // 0.1.6: named for both, on View (owner 111)
+    SW(hold_bar, "Break-free bar when grabbed", "View", false),  // 0.1.7 (owner message 128)
+    SW(hints, "Hints", "Hints", false),  // 0.1.7 (owner messages 143, 144): every hint, once (sh3vr_tips.cpp); the menu lists them
     // Comfort
     CH(turn, "Turning", "Comfort", kTurn, false),
     NU(snap_degrees, "Snap turn angle", "Comfort", 15.0f, 90.0f, 15.0f, "deg", false),
@@ -123,7 +131,9 @@ const OptionRow kRows[] = {
     SW(laser, "Guide dot", "Hands and weapons", false),
     SW(auto_aim_first_person, "Game's auto-aim in first person", "Hands and weapons", false),
     SW(two_hand, "Two-hand grips", "Hands and weapons", false),
+    CH(grip_spot, "Two-hand grip spot", "Hands and weapons", kGripSpot, false),  // 0.1.7 (owner message 124)
     SW(physical_melee, "Physical melee", "Hands and weapons", false),
+    NU(melee_damage_pct, "Melee damage", "Hands and weapons", 50.0f, 400.0f, 25.0f, "%", false),  // 0.1.7
     SW(punches, "Punches", "Hands and weapons", false),
     SW(gun_club, "Guns as clubs", "Hands and weapons", false),
     SW(holsters, "Holsters", "Hands and weapons", false),
@@ -138,7 +148,6 @@ const OptionRow kRows[] = {
     SW(take_by_hand, "Take items with your hand", "Hands and weapons", false),
     SW(manual_reload, "Manual reload", "Hands and weapons", false),
     NU(ammo_pouch_radius_cm, "Ammo pouch radius", "Hands and weapons", 6.0f, 30.0f, 1.0f, "cm", false),  // owner 122
-    SW(reload_hints, "Reload hints", "Hands and weapons", false),
     SW(hand_sounds, "Hand sounds", "Hands and weapons", false),
     SW(blocking, "Block with your weapon or arms", "Hands and weapons", false),
     SW(shake_free, "Shake to break free", "Hands and weapons", false),
@@ -182,6 +191,8 @@ void clamp_options() {
     opt.dark_edges = std::clamp(opt.dark_edges, 0.0f, 100.0f);
     opt.holster_radius_cm = std::clamp(opt.holster_radius_cm, 10.0f, 30.0f);
     opt.ammo_pouch_radius_cm = std::clamp(opt.ammo_pouch_radius_cm, 6.0f, 30.0f);
+    opt.melee_damage_pct = std::clamp(opt.melee_damage_pct, 50.0f, 400.0f);
+    opt.grip_spot = std::clamp(opt.grip_spot, 0, 3);
 }
 
 }  // namespace
@@ -919,9 +930,26 @@ bool scene_first_person() {
 }
 
 // LIST 5: one of the game's movies plays (src/game/movie.c): the view on the cinema screen, whatever the options.
+// 0.1.7 (a player on 0.1.6: "I tested the flat version to see if the issue could also be replicated there, but it
+// launches to a fully black screen. Can still hear game audio"): the launcher's Flat (sh3vr.ini vr = 0) promises "the
+// game on a screen in the headset, played with the Touch controllers as a pad", but VR then never started, and the game
+// runs in the headset's immersive activity (AndroidManifest: QuestGameActivity), which shows nothing that is not given
+// to OpenXR: only black, the sound playing. Now Flat starts the headset as VR does and keeps the view on the cinema
+// screen all the time (the game's own camera, its HUD and menus on the screen; the controllers as the game's pad, as in
+// third person), with the VR menu as ever. The PC keeps its flat window (SH3_FLAT_SCREEN=1 tries the headset's Flat).
+bool flat_screen = false;
+bool flat_screen_wanted() {
+#if defined(__ANDROID__)
+    return !opt.vr;
+#else
+    const char* e = getenv("SH3_FLAT_SCREEN");
+    return !opt.vr && e && atoi(e) != 0;
+#endif
+}
 bool movie_playing = false;
 ViewMode pick_view_mode() {
     if (!active || !head_known()) return ViewMode::kFlat;
+    if (flat_screen) return ViewMode::kScreen;  // 0.1.7: Flat, the game on the cinema screen all the time
     if (movie_playing) return ViewMode::kScreen;  // LIST 5: the game's movies on the cinema screen
     // Seconds of play since the last frame of a scene (cutscene or scripted sequence); loading and menus neither count
     // nor reset it.
@@ -2089,6 +2117,80 @@ void show_wrist_bar() {
     hs->show_wrist(w);
 }
 
+// 0.1.7 (owner message 128: "i know the game has a status bar related to holds. see about putting that on the screen in a
+// smooth and dynamic/natural fashion when being grabbed ... it's a purple bar. Toggle for it of course, but on by
+// default"): the game's Life Gauge draws the time to get free (0x712C608) as a line under its bars, never in VR's eyes
+// (sh3.c 0x5A5E40). While she is held or down with time to get free, VR shows it as a purple bar (wrist.h render_hold)
+// 1 m off, 9 degrees under the gaze, 14 degrees wide: it rises into place and grows in as it fades in (a quarter
+// second), follows the view lazily, level of roll (as the top left's bars), empties smoothly as she struggles, each
+// press counted lighting it for a moment over a slow throb; when she gets free it empties and fades out rising (0.4 s), a
+// hold that ends otherwise lets it sink away. First and third person; the cinema screen keeps the game's own HUD.
+// "Break-free bar when grabbed", on the View page, on by default.
+constexpr float kHoldAhead = 1.0f, kHoldDown = 0.16f, kHoldWide = 0.24f;
+void show_hold_bar() {
+    static Vec3 way{0, 0, -1};
+    static float shown = 0.0f, fill = 1.0f, light = 0.0f, phase = 0.0f;
+    static int presses_was = 0, freed_was = 0, holds_was = -1, told_at = -1000;
+    static bool freed_out = false, on_was = false;
+    const float dt = std::clamp(frame_dt(), 0.0f, 0.1f);
+    const StruggleBar s = struggle_bar();
+    const bool views = view_mode == ViewMode::kFirstPerson || view_mode == ViewMode::kCamera;
+    const bool want = opt.hold_bar && views && head_known() && in_play() && s.held && s.start > 0.05f;
+    const float target = s.start > 0.0f ? std::clamp(s.left / std::max(s.start, s.left), 0.0f, 1.0f) : 0.0f;
+    const Vec3 gaze = rotate(fi.head.orientation, Vec3{0, 0, -1});
+    if (want && (shown < 0.01f || s.holds != holds_was)) {  // a hold begins: full, in place under the gaze
+        holds_was = s.holds;
+        presses_was = s.presses;
+        freed_was = s.freed;
+        fill = target;
+        light = 0.0f;
+        freed_out = false;
+        if (shown < 0.01f) way = gaze;
+    }
+    if (s.freed != freed_was) {  // she got free: the bar empties, lights and rises away
+        freed_was = s.freed;
+        freed_out = true;
+        light = 1.0f;
+    }
+    if (want) {
+        if (s.presses > presses_was) light = 1.0f;
+        presses_was = s.presses;
+        fill += (target - fill) * std::clamp(dt * 10.0f, 0.0f, 1.0f);
+    } else if (freed_out) {
+        fill += (0.0f - fill) * std::clamp(dt * 14.0f, 0.0f, 1.0f);
+    }
+    if (!views || !head_known()) shown = 0.0f;  // the cinema screen, a lost head: gone at once
+    shown = want ? std::min(1.0f, shown + dt * 4.0f) : std::max(0.0f, shown - dt * (freed_out ? 2.5f : 4.0f));
+    light *= std::exp(-dt * 7.0f);
+    phase = std::fmod(phase + dt * 0.9f, 1.0f);
+    way = normalized(way + (gaze - way) * std::clamp(dt * 3.0f, 0.0f, 1.0f));
+    HoldLayer l;
+    if (shown > 0.0f) {
+        const float a = shown * shown * (3.0f - 2.0f * shown);  // eased
+        const float drift = (1.0f - a) * (freed_out ? 0.03f : -0.03f);  // in from below; away up when freed
+        const Quat q = looking_along(way);
+        l.shown = true;
+        l.pose = {fi.head.position + rotate(q, Vec3{0.0f, -kHoldDown + drift, -kHoldAhead}), q};
+        l.width = kHoldWide * (0.9f + 0.1f * a);
+        l.height = l.width * kHoldHeight / kHoldWidth;
+        l.fill = fill;
+        l.alpha = a;
+        l.glow = std::clamp(0.62f + 0.13f * std::sin(phase * 6.2831853f) + 0.5f * light, 0.0f, 1.0f);
+    }
+    const bool on = l.shown;
+    if (on != on_was || (on && rt_frame - told_at >= 60)) {
+        told_at = rt_frame;
+        rt_log("VR: frame %d: the break-free bar: %s (fill %.2f: the time to get free %.2f of %.2f; shown %.2f; %d "
+               "presses; option %d, %s)",
+               rt_frame, on ? (on_was ? "shown" : "comes") : freed_out ? "gone: she is free" : "gone", fill, s.left,
+               s.start, shown, s.presses, opt.hold_bar ? 1 : 0,
+               view_mode == ViewMode::kFirstPerson ? "first person" : view_mode == ViewMode::kCamera ? "third person"
+                                                                                                   : "no VR view");
+    }
+    on_was = on;
+    hs->show_hold(l);
+}
+
 // The controllers as the pad (bindings: sh3.c's VR defaults, savedata/keyvr.ini; docs/CONTROLS.md).
 enum PadButton { kX = 0, kA, kB, kY, kLB, kRB, kLT, kRT, kBack, kStart, kLS, kRS };
 
@@ -2245,8 +2347,13 @@ void map_pad() {
         p.dpad_y = (int8_t)(ly > 0.5f ? -1 : ly < -0.5f ? 1 : 0);
     } else if (fp) {
         // First person: VR steers (sh3vr_move: the stick, or the head's walk in the room); the game sees the stick
-        // forward by that much, so it walks or runs.
-        p.ly = move.steer ? -move.speed : 0.0f;
+        // forward by that much, so it walks or runs. 0.1.7 (owner 140): in her hit reaction VR does not steer and the
+        // game sees the stick itself, as on the PC (its struggle step counts the directions newly pushed as presses).
+        if (game.reacting) {
+            p.lx = lx;
+            p.ly = -ly;
+        } else
+            p.ly = move.steer ? -move.speed : 0.0f;
     } else {
         // Third person: the game's own control (strafing with the off grip held, above).
         if (off_grip > 0.6f) p.ly = -ly;
@@ -2299,7 +2406,24 @@ void comfort_turn() {
 // What Heather is asked to do this frame.
 void plan_move() {
     move = Sh3VrMove{};
-    if (view_mode != ViewMode::kFirstPerson || !game.player_valid || !in_play() || !head_known()) {
+    // 0.1.7 (owner 140; sh3.c her_reacting): while the game has her in a hit reaction (a flinch, a knockdown and getting
+    // up, a monster's hold) it moves and turns her itself: VR's walk, room walk and body turn wait (VR's walk re-timed
+    // the reaction's animation, so a hold never moved on: vr347), and the stick goes to the game (its struggle counts
+    // the directions as presses, sh3vr_pad).
+    {
+        static int from = -1, told = 0;
+        const bool reacting_now = game.player_valid && game.reacting && in_play();
+        if (reacting_now && from < 0) {
+            from = rt_frame;
+            if (told++ < 30)
+                rt_log("VR: frame %d: her hit reaction (the game's movement state %d): VR's walk and turn wait, the stick "
+                       "goes to the game", rt_frame, game.reacting);
+        } else if (!reacting_now && from >= 0) {
+            if (told <= 30) rt_log("VR: frame %d: her hit reaction over after %d frames", rt_frame, rt_frame - from);
+            from = -1;
+        }
+    }
+    if (view_mode != ViewMode::kFirstPerson || !game.player_valid || !in_play() || !head_known() || game.reacting) {
         prev_pos_valid = false;
         catching_up = false;
         blocked_seconds = 0;
@@ -2346,6 +2470,26 @@ void plan_move() {
         move.heading = wrap(base + std::atan2(lx, ly));
         move.speed = len;
         move.run = sprinting;  // 0.1.6: the Sprint toggle's (update_sprint), held in when it is off
+        // 0.1.7 (the rig, vr326: the head leaned 30 cm ahead through a door, then back, the stick pushed at once): room
+        // walk takes up the head's offset from her only with the stick at rest, so the eyes stayed 30 cm behind her head
+        // as she walked, her hair and collar in view (and the knife's probes took her hair for a wall). While the stick
+        // walks her, an offset left over is taken up smoothly, 0.5 m a second: the eyes come back to her head while the
+        // world moves anyway. A larger one (a head held back by a wall, a long lean) faster, up to 1 m a second (1.5
+        // times the offset a second from a third of a metre): a 0.9 m offset is gone in about 1.4 s, not 1.8.
+        if (opt.room_walk && dist > 0.05f * kUnitsPerMetre) {
+            const Vec3 n = neck_of(fi.head);
+            Vec3 d{n.x - rig.neck0.x, 0.0f, n.z - rig.neck0.z};
+            const float m = length(d), step = std::clamp(1.5f * m, 0.5f, 1.0f) * motion_dt();
+            if (m > 1e-4f) {
+                d = d * std::min(1.0f, step / m);
+                rig.neck0 = rig.neck0 + d;
+                rig.origin = rig.origin + d;
+                static int told = 0;
+                if (told++ < 6)
+                    rt_log("VR: frame %d: walking with the stick, the head %.2f m from her: taken up as she walks", rt_frame,
+                           dist / kUnitsPerMetre);
+            }
+        }
     } else if (opt.room_walk) {
         if (dist > 0.2f * kUnitsPerMetre) {
             move.steer = 1;
@@ -2817,6 +2961,7 @@ void begin_next_frame() {
     comfort_turn();
     body_frame();
     combat_frame();
+    tips_frame();     // 0.1.7 (owner message 143): the first-time hints
     update_sprint();  // 0.1.6
     plan_move();
     map_pad();
@@ -2853,6 +2998,9 @@ float head_in_wall() {
     return std::clamp((dist - 0.3f) / 0.3f, 0.0f, 1.0f);
 }
 
+// 0.1.7 (owner message 143): the hint label is in view in full, showing a first-time hint (its time counts only then).
+bool hint_label_up() { return ui.kind == UiKind::kHint && ui.fade >= 1.0f && hint_is_tip; }
+
 }  // namespace sh3q
 
 // ================================================================ C API
@@ -2869,6 +3017,10 @@ int sh3vr_start(void) {
         rt_log("VR: off (sh3vr.ini vr = 0): the game runs flat");
         return 0;
     }
+    flat_screen = flat_screen_wanted();
+    if (flat_screen)
+        rt_log("VR: Flat (sh3vr.ini vr = 0): the headset starts with the game on the cinema screen all the time, the "
+               "controllers as the game's pad");
     if (!gl_caps.multiview) {
         rt_log("VR: the graphics driver has no GL_OVR_multiview2: the game runs flat");
         return 0;
@@ -2914,7 +3066,7 @@ int sh3vr_enabled(void) {
     static int known = -1;
     if (known < 0) {
         load_options();
-        known = opt.vr ? 1 : 0;
+        known = opt.vr || flat_screen_wanted() ? 1 : 0;  // 0.1.7: Flat in the headset is VR on the cinema screen
     }
     return known;
 }
@@ -3035,6 +3187,7 @@ int sh3vr_present(unsigned bb_tex, unsigned depth_tex, int w, int h) {
         show_pointer();
         show_guide_dot();
         show_wrist_bar();
+        show_hold_bar();
         if (opt.show_performance) {
             // 0.1.5: the frame's CPU work and the GPU's (gpu_timer_*), so which one holds the game back is on screen
             char line[160];
@@ -3062,6 +3215,7 @@ void sh3vr_game_state(const Sh3VrGame* g) {
 }
 
 void sh3vr_move(Sh3VrMove* out) { *out = move; }
+int sh3vr_in_play(void) { return active && in_play() ? 1 : 0; }
 
 void sh3vr_actions(Sh3VrActions* out) {
     out->equip_slot = -1;
@@ -3102,9 +3256,64 @@ int sh3vr_her_shadow(const float view[16], const float proj[16], float* out_xyz,
     return n;
 }
 
+
+// 0.1.7 (owner 123): the game's own shadow of Heather from a room lamp (sh3vr_ik.cpp her_room_shadow_tris). A volume
+// of the game's shadow pass is hers when a quarter or more of its corners are on her (within 70 cm of her feet's
+// line, from her feet to 2 m up: her kg1 model's lit side is on her, its far ends run off); kept as the game's until
+// her mesh is caught. room_seen: the last frame one of hers was seen (her mesh is then caught from her draws).
+namespace {
+int room_seen = -100000, room_left_out = 0, room_kept = 0, room_told = -100000;
+}
+int sh3vr_her_game_volume(const uint8_t* verts, uint32_t stride, uint32_t n, const float lamp[3]) {
+    if (!active || view_mode != ViewMode::kFirstPerson || !game.player_valid || !verts || stride < 12 || n < 3) return 0;
+    const uint32_t m = n < 4096 ? n : 4096;
+    uint32_t on_her = 0;
+    const float r2 = (0.7f * kUnitsPerMetre) * (0.7f * kUnitsPerMetre);
+    for (uint32_t i = 0; i < m; i++) {
+        float p[3];
+        std::memcpy(p, verts + (size_t)i * stride, sizeof p);
+        const float dx = p[0] - game.pos[0], dz = p[2] - game.pos[2], up = game.pos[1] - p[1];
+        if (dx * dx + dz * dz < r2 && up > -0.15f * kUnitsPerMetre && up < 2.0f * kUnitsPerMetre) on_her++;
+    }
+    static int dump_at = -2;
+    if (dump_at == -2) dump_at = getenv("SH3_VSC_DUMP") ? atoi(getenv("SH3_VSC_DUMP")) : -1;
+    const bool hers = on_her * 4 >= m;
+    const bool ready = hers && her_room_shadow_ready();
+    if (rt_frame == dump_at)
+        rt_log("vsc volume: frame %d: %u corners, %u on her (her feet %.0f %.0f %.0f), the lamp %.0f %.0f %.0f: %s",
+               rt_frame, n, on_her, game.pos[0], game.pos[1], game.pos[2], lamp[0], lamp[1], lamp[2],
+               !hers ? "not hers, the game's" : ready ? "hers, left out (cast from her body as drawn)"
+                                                  : "hers, kept (her mesh not caught yet)");
+    if (!hers) return 0;
+    room_seen = rt_frame;
+    if (!ready) {
+        room_kept++;
+        return 0;
+    }
+    room_left_out++;
+    return 1;
+}
+
+int sh3vr_her_room_shadow(const float view[16], const float proj[16], const float lamp[3], float* out_xyz, int max_tris) {
+    if (!active) return 0;
+    int counts[5];
+    const int n = her_room_shadow_tris(view, proj, Vec3{lamp[0], lamp[1], lamp[2]}, out_xyz, max_tris, counts);
+    if (rt_frame - room_told >= 600) {
+        room_told = rt_frame;
+        const float dx = lamp[0] - game.pos[0], dz = lamp[2] - game.pos[2];
+        rt_log("VR: frame %d: Heather's shadow from a room lamp (%.1f m off, %.1f m up): the game's own volumes of her "
+               "(her animation's pose) left out %d times, kept %d (her mesh not caught); from her body as drawn: %d "
+               "triangles (%d parts; lit faces: %d of her body, %d of the weapon or a part held; %d sides)",
+               rt_frame, std::sqrt(dx * dx + dz * dz) / kUnitsPerMetre, (game.pos[1] - lamp[1]) / kUnitsPerMetre,
+               room_left_out, room_kept, n, counts[4], counts[0], counts[1], counts[2]);
+        room_left_out = room_kept = 0;
+    }
+    return n > 0 ? n : 0;
+}
 void sh3vr_shadow_part(const uint8_t* verts48, int nverts, const uint16_t* tris, int ntris, const float* consts,
                        uint32_t key, int kind) {
-    if (active && opt.her_shadow) shadow_part(verts48, nverts, tris, ntris, consts, key, kind);
+    // 0.1.7: also while a room lamp casts her shadow (her room shadow is cast from this mesh)
+    if (active && (opt.her_shadow || rt_frame - room_seen < 120)) shadow_part(verts48, nverts, tris, ntris, consts, key, kind);
 }
 
 int sh3vr_spatial_sound(void) {
@@ -3159,6 +3368,9 @@ float sh3vr_block(const float at[3], const float way[3], const float from[3], in
 }
 
 int sh3vr_extra_hit(Sh3VrHit* out) { return active ? combat_extra_hit(out) : 0; }
+int sh3vr_test_sweep(const float pg[3], const float pt[3], const float cg[3], const float ct[3], float radius) {
+    return active ? combat_test_sweep(pg, pt, cg, ct, radius) : 0;
+}
 void sh3vr_melee_landed(const float way[3], const float point[3], uint32_t character, int battle_id) {
     if (active) combat_melee_landed(way, point, character, battle_id);
 }
@@ -3741,8 +3953,26 @@ int sh3vr_hand_action(float at[3]) {
     return 1;
 }
 
+void sh3vr_button_action_found(int event, int pass) {
+    if (active) button_action_found(event, pass);
+}
+
 void sh3vr_hand_action_found(int event) {
     if (active) hand_action_found(event);
+}
+
+// 0.1.7 (a player on 0.1.6: "I could not open the second green gate ... The first gate I could open with the A button"):
+// the game's action button looks 1.02 m along HER facing, which in first person trails the head (it turns after the
+// head only past 50 degrees). The head's place and its heading in the game's world (yaw as the action record's +0x14:
+// x = sin, z = cos), for sh3.c to try where the player looks when her facing finds nothing.
+int sh3vr_gaze(float at[3], float* yaw) {
+    if (!active || view_mode != ViewMode::kFirstPerson || !map_ready() || !head_known() || !game.player_valid) return 0;
+    const Vec3 p = world_point(fi.head.position);
+    const Vec3 f = world_dir(rotate(fi.head.orientation, Vec3{0, 0, -1}));
+    if (f.x * f.x + f.z * f.z < 0.04f) return 0;  // looking almost straight up or down: no heading
+    at[0] = p.x, at[1] = p.y, at[2] = p.z;
+    *yaw = std::atan2(f.x, f.z);
+    return 1;
 }
 
 int sh3vr_hand_reach(int hand, float at[3]) {
@@ -3754,6 +3984,13 @@ int sh3vr_hand_reach(int hand, float at[3]) {
 
 void sh3vr_hand_hover(int hand, int event) {
     if (active) hand_hover(hand, event);
+}
+
+// 0.1.7 (owner message 143): the hints' check for a door or an item within reach (sh3.c sub_004B9940)
+int sh3vr_tip_wants_use(void) { return active && tip_wants_use() ? 1 : 0; }
+
+void sh3vr_tip_use(int item) {
+    if (active) tip_event(item ? kTipItem : kTipUse);
 }
 
 void sh3vr_radio(int channel, float level) {
@@ -3794,6 +4031,7 @@ void sh3vr_crash_info(FILE* f) {
     ik_crash_info(f);
     combat_crash_info(f);
     reload_crash_info(f);
+    tips_crash_info(f);
     parts_crash_info(f);
     sounds_crash_info(f);
     struggle_crash_info(f);

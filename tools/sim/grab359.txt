@@ -1,0 +1,81 @@
+# SH3 Quest VR, the PC rig (session 29, 0.1.7, owner 140), about 3 minutes: the hall dog's grab WITH THE STICK HELD
+# (vr347's stuck case: reaction 9 never moved on while VR's walk wrote her walk factor). check298's opening exactly (the
+# dog holds her at about frame 8340-8355), but the stick stays pushed from 8200 through the grab and SH3_STEER_AT_ATTACKER
+# walks her at the dog, with knife stabs on the way as vr347's; then the stick pushed left and right (the game's struggle
+# counts newly pushed directions) and controller shakes. Must show: reaction 9 -> 10, "she is knocked down or held", the
+# bar, free, "her hit reaction over after N frames", then walking on. Run with SH3_HP=100 SH3_STATE_LOG=1
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300" SH3_STEER_AT_ATTACKER=8300 and
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+7740 left_y 1
+8106 left_y 0
+8105 shot j08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8120 left_grip 1
+8126 left_grip 0
+8130 head_yaw 55
+8140 lh_x 0
+8140 lh_y 0
+8140 lh_z 0
+8145 shot e08145-gate-left
+8150 head_yaw -55
+8165 shot e08165-gate-right
+8170 head_yaw 0
+8200 shot j08200-hall
+8200 left_y 1
+8305 head_yaw 180
+8310 rh_y 0.1
+8310 rh_z -0.15
+8312 rh_z -0.30
+8314 rh_z -0.45
+8316 rh_z -0.30
+8318 rh_z -0.15
+8320 rh_z 0
+8322 rh_z -0.15
+8324 rh_z -0.30
+8326 rh_z -0.45
+8328 rh_z -0.30
+8330 shot h08330-before
+8330 rh_z -0.15
+8332 rh_z 0
+8334 rh_z -0.15
+8336 rh_z -0.30
+8338 rh_z -0.45
+8340 rh_z -0.30
+8342 shot h08342-grab
+8342 rh_z -0.15
+8344 rh_z 0
+8346 rh_z -0.15
+8348 rh_z -0.30
+8350 shot h08350-held
+8350 rh_z -0.45
+8352 rh_z -0.30
+8354 rh_z -0.15
+8356 rh_z 0
+8356 rh_y 0
+8362 shot h08362-bar
+8400 left_x -1
+8404 left_x 1
+8408 left_x -1
+8412 left_x 1
+8416 left_x -1
+8420 left_x 1
+8424 left_x 0
+8430 shot h08430-stick-struggle
+8440 rh_x 0.15
+8444 rh_x -0.15
+8448 rh_x 0.15
+8452 rh_x -0.15
+8456 rh_x 0.15
+8460 rh_x -0.15
+8464 rh_x 0
+8470 shot h08470-shaken
+8500 shot h08500-after
+8530 shot h08530-after
+8560 shot h08560-after
+8600 head_yaw 0
+8620 shot h08620-walking-on
+8700 left_y 0
+8705 shot h08705-walked
+8800 quit 0

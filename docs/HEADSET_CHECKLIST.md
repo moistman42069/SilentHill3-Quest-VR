@@ -43,6 +43,54 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       at the hands: it follows into view, level, readable, not over the hands; small head moves leave it still.
 - [ ] 0.1.6 "Health and stamina on your wrist" (View): off, no bars on the watch and the game's HUD in first person
       (if on in Extra options); on, the bars again.
+- [ ] 0.1.7 (a player: "I could not open the second green gate at the start ... after passing the first gate I can't
+      see my hands anymore"): the park's entrance gate and the circular hall's far door each open with A while looking
+      at them, standing a little to the side or with her body turned away; sh3.log "the action button (pass 0) found
+      event N where the player looks" when her own facing missed. In the dark hall, the hands held low or at rest are
+      in sight (the chest flashlight's spill), looking ahead and glancing down; with the flashlight off they go dark
+      with the room.
+- [ ] 0.1.7 every A or hand use of a door, item or examine ticks and buzzes once; A pressed while walking: she stops
+      where she is and does not walk on through the message.
+- [ ] 0.1.7 (a player's video: stuck to the dead dog): the hall's dog holds her: the purple break-free bar under the
+      gaze (smooth, lit by each shake); knife it during the hold: the hold breaks; kill it: she is free at once and
+      never pulled back to where it died. "Break-free bar when grabbed" off: no bar.
+- [ ] 0.1.7 "Melee damage" (Hands and weapons, 200%): the hall's dog down in about six real knife slashes.
+- [ ] 0.1.7 (owner 123): walking, strafing and turning with a gun held low or in both hands: no bump, no ding, the
+      weapon never held back by nothing ("held at a surface" only at real walls). Under a room lamp, her shadow on the
+      floor moves with her body as you move it (no walking legs under you, no dark blob at the eyes). No "Heather's
+      shadow" row in Options or the VR menu.
+- [ ] 0.1.7 two-hand grip spot (VR menu, Hands and weapons): Adjust, then take the second grip where you like on the
+      maul or the shotgun: a buzz and the use sound, the spot kept for that weapon only (sh3quest_weapons.ini); "Reset
+      the weapon in your hand" brings back that one's natural spot, "Reset every weapon" all of them.
+- [ ] 0.1.7 grips (owner 129): every gun (handgun, shotgun, submachine gun, stun gun, flamethrower) from the eyes and
+      turned in the hand: her fist closed round the grip, the trigger finger at the trigger and following yours; with
+      the second hand on, the handgun's support hand round the front of the fist, the submachine gun's under its front
+      with the thumb along its side (not over the top). The knife, pipe, katana, maul and beam saber in the game's own
+      hands, nothing through the handle.
+- [ ] 0.1.7 (a player: the Flat version a black screen with sound): Play flat: the game on the big screen in the
+      headset, the controllers as its pad, the VR menu works.
+- [ ] 0.1.7 lean or step forward in your room (through a door, say), stand back and push the stick at once: the view
+      comes back to her head within a second or so as she walks (no hair or collar in view, no knock on her hair), and
+      the extra drift is comfortable (sh3.log "walking with the stick, the head N m from her: taken up as she walks").
+- [ ] 0.1.7 "Melee damage" at 400%: a fast knife slash on a dog takes off about 270 (sh3.log "took 270.0 damage from
+      her (melee: 900% ...)"), never the game's bare 30.
+- [ ] 0.1.7 (session 28, the rig's vr332/vr336): raise both hands before your face, the controllers pointing ahead,
+      then look 45 degrees left and right and turn your wrists: her elbows hang below the hands, never come up into
+      your eyes (no faded forearm before the view); sh3.log "her left elbow kept clear of the eyes" says when it acted.
+- [ ] 0.1.7 press A where nothing is: sh3.log "the action button (pass 0) found nothing along her facing ... nor where
+      the player looks", with the ways and places it tried.
+- [ ] 0.1.7 (owner 140: knife stabs spammed left her "only walking", monsters not attacking): walk into the hall's
+      dog with the stick held while stabbing it again and again; let it grab her and knock her down. Each time she must
+      go on to the struggle (the bar, shakes or the stick free her) and get up, then walk, swing and use A again, and
+      the dog must attack again. sh3.log "her hit reaction (the game's movement state N): VR's walk and turn wait" and
+      "her hit reaction over after N frames" (never hundreds of frames held).
+- [ ] 0.1.7 hints (owner 143-144), from a new install (or "Show every hint again"): as play starts, the walking line
+      then the VR menu line, each a few seconds in view, level, over where you look, fading in and out; near a door or
+      a thing to look at, "Something to use here"; an item, "An item here"; the dog's grab, "Shake both controllers
+      hard to break free" at once (before any other line), gone when she is free; the first gun and first melee weapon
+      drawn, their lines; the flashlight; health under half, her watch and the supplies; each gun's first reload, its
+      steps. Then never again (a new run too: sh3quest_tips.ini). "Hints" off: none, the reload steps too. VR menu,
+      Hints page: every line readable, none cut; "Show every hint again" brings them back.
 
 ## View and comfort
 - [ ] New Game: the opening movie plays on the big cinema screen in front of you (sharp, 4:3, no stutter), with its
@@ -195,7 +243,8 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
 - [ ] Shotgun: shells one at a time from the pouch into the port under the gun; from empty, the pump back and forward
       (seen moving) before it fires.
 - [ ] No free ammo: the release with no spare keeps the magazine in ("No spare ammo"); the inventory's counts match.
-      The hints show for the first three reloads; with the left controller lost the game reloads by itself.
+      The steps show through the first reload of each gun, once (0.1.7: "Hints"); with the left controller lost the game
+      reloads by itself.
 - [ ] Reach and grip at an item: Heather picks it up; at a door: it opens.
 
 ## Screens

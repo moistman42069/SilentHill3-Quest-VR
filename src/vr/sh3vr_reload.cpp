@@ -176,10 +176,9 @@ void save_sounds() {
     std::fclose(f);
 }
 
-// Hints (Halo's RELOAD HINTS): the step a player is at, on the screen, when it changes and again every 8 s while it
-// waits, for the first three reloads of a run; each shown 4 s.
+// Hints (Halo's RELOAD HINTS): the step a player is at, in view, when it changes and again every 8 s while it
+// waits, through the first reload of each gun (0.1.7, owner 144: once; "Hints", sh3vr_tips.cpp); each shown 4 s.
 constexpr double kHintRepeat = 8.0, kHintShow = 4.0;
-constexpr int kHintReloads = 3;
 int reloads_done = 0;
 std::string hint_wanted, hint_shown;
 double hint_at = -100, no_ammo_at = -100, dry_at = -100;
@@ -282,7 +281,7 @@ void seated(const GunProfile& g) {
         want_commit = true;
         settle_frames = 4;
         if (g.action != kNoAction && !st.chambered) needs_action[g.item] = true;
-        if (!needs_action[g.item]) reloads_done++;
+        if (!needs_action[g.item]) reloads_done++, tip_reload_done(g.item);
         rt_log("VR: a %s seated in the %s (%d loaded, %d in reserve; the game's reload commits it)%s", part_name(g.part),
                g.name, game.loaded, game.reserve,
                !needs_action[g.item] ? "" : g.action == kHandle ? ": the cocking knob next" : ": the slide next");
@@ -306,6 +305,7 @@ void seated(const GunProfile& g) {
 void worked(const GunProfile& g) {
     needs_action[g.item] = false;
     reloads_done++;
+    tip_reload_done(g.item);
     buzz(off_hand(), 0.6f, 0.045f);
     buzz(main_hand(), 0.35f, 0.035f);
     rt_log("VR: the %s's %s worked: it fires", g.name, g.action == kPump ? "pump" : g.action == kSlide ? "slide"
@@ -441,7 +441,8 @@ void update_action(const GunProfile& g, bool down, bool up) {
 
 void update_hint(const GunProfile* g) {
     hint_wanted.clear();
-    if (!opt.reload_hints || !g || !hands_ready() || reloads_done >= kHintReloads) return;
+    // 0.1.7 (owner message 144: every hint under one switch, each once): the steps through the first reload of each gun
+    if (!g || !hands_ready() || !tip_reload_due(g->item)) return;
     const bool right = !opt.left_handed;
     const char* side = right ? "left" : "right";
     char text[160] = "";
@@ -478,8 +479,11 @@ constexpr int kHintW = 1024, kHintH = 64;
 std::vector<uint32_t> hint_canvas;
 GLuint hint_tex = 0;
 std::string hint_drawn;
+std::string hint_tip_text;  // 0.1.7: the first-time hint's line as drawn (sh3vr_tips.cpp)
 
 }  // namespace
+
+bool hint_is_tip = false;  // 0.1.7: the label drawn this frame is a first-time hint (sh3vr.cpp hint_label_up)
 
 // The PC rig (xr_sim's "lh_at_reload N", session 16: reload.txt's fixed places had gone stale as the guns' holds
 // changed, vr237): where the off controller goes for the reload by hand, from this frame's places: 1 the part's top 5
@@ -695,7 +699,13 @@ unsigned reload_hint_texture(int& w, int& h, int& box_w) {
     w = kHintW;
     h = kHintH;
     box_w = drawn_box_w;
-    if (hint_shown.empty() || hint_wanted.empty() || now - hint_at > kHintShow) return 0;
+    // 0.1.7 (owner message 143): the first-time hints (sh3vr_tips.cpp) on this label when no reload step is due; the
+    // reload's step first.
+    const bool reload_due = !(hint_shown.empty() || hint_wanted.empty() || now - hint_at > kHintShow);
+    const char* tip = reload_due ? nullptr : tip_text();
+    hint_is_tip = tip != nullptr;
+    if (!reload_due && !tip) return 0;
+    const std::string& text = reload_due ? hint_shown : hint_tip_text.assign(tip);
     if (!hint_tex) {
         glGenTextures(1, &hint_tex);
         GLint prev_tex = 0;
@@ -707,8 +717,8 @@ unsigned reload_hint_texture(int& w, int& h, int& box_w) {
         glBindTexture(GL_TEXTURE_2D, (GLuint)prev_tex);
         hint_drawn.clear();
     }
-    if (hint_drawn != hint_shown) {
-        hint_drawn = hint_shown;
+    if (hint_drawn != text) {
+        hint_drawn = text;
         auto rgba = [](int r, int gg, int b, int a) {
             return (uint32_t)a << 24 | (uint32_t)b << 16 | (uint32_t)gg << 8 | (uint32_t)r;
         };

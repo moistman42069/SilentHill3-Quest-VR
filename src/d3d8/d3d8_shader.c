@@ -715,7 +715,12 @@ static Prog *build(const Key *k) {
                "    vec3 bl = bw.xyz / bw.w - uBeamPos.xyz;\n"
                "    float bd = length(bl);\n"
                "    bl /= max(bd, 1e-3);\n"
-               "    float bk = uBeamDir.w * smoothstep(uBeamCone.z, uBeamCone.w, dot(bl, uBeamDir.xyz))\n"
+               "    float bc = dot(bl, uBeamDir.xyz);\n"
+               /* 0.1.7 (owner message 134): the spill round the beam onto what is right by the lamp, her hands and
+                * arms (sh3vr_ik.cpp body_light, kHerSpill: 0.6 of the beam from 32 to 70 degrees off, to 0.75 m, none
+                * past 1.5 m) */
+               "    float bk = uBeamDir.w * max(smoothstep(uBeamCone.z, uBeamCone.w, bc),\n"
+               "               0.6 * smoothstep(0.35, 0.85, bc) * (1.0 - smoothstep(0.5 * uBeamCone.x, uBeamCone.x, bd)))\n"
                "               * (1.0 - smoothstep(uBeamCone.x, uBeamCone.y, bd));\n"
                "    gC11 = vec4(bl, 0.0); gC12.w = bk; gC13.w = bk * 0.95; gC14.w = bk * 0.85;\n"
                "    vs_main(p, vD0, vD1, vT0, vT1, vT2, vT3, vT4, vT5, vT6, vT7, fog, pts);\n"

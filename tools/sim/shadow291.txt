@@ -1,0 +1,27 @@
+# SH3 Quest VR, the PC rig (session 25, owner 123: "heathers normal shadow seems to be rendered weirdly"): her shadow
+# with the owner's settings (her_shadow 0: the game's own), the flashlight on her chest from the start. Looking down
+# standing, then walking forward looking down, then turned. Run as down.txt (QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_GIVE="0:0" SH3_EQUIP=0, the title keys).
+7318 right_grip 1
+7318 right_thumb_touch 1
+7340 shot s07340-ahead
+7345 head_pitch -55
+7370 shot s07370-down55
+7375 head_pitch -70
+7395 shot s07395-down70
+7400 head_pitch -45
+7420 shot s07420-down45
+7425 left_y 1
+7445 shot s07445-walk-down45
+7460 shot s07460-walk-down45
+7475 shot s07475-walk-down45
+7480 head_pitch -65
+7495 shot s07495-walk-down65
+7510 shot s07510-walk-down65
+7515 left_y 0
+7540 shot s07540-stop-down65
+7545 head_yaw 60
+7565 shot s07565-down65-left
+7570 head_yaw -60
+7590 shot s07590-down65-right
+7595 quit 0

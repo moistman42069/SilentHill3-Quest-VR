@@ -190,6 +190,17 @@ Mark what we confirm ourselves with (checked: how).
   action level (0x0060C370), times a factor per hold animation. 0x0712C665 is set at 0x004C721B from 0x004B47E0 (the
   reaction by animation ids). SH3 Quest VR wraps 0x004D44E0: each controller shake counts as one more press
   ("Shake to break free", on).
+- (Session 28, checked: disassembly; runs vr342, vr347, build 242's vr348) Her hit reactions run as movement states
+  0x0712C190 = 34/35 (the movement table at 0x006D8ED4: their step 0x004D9E60; action 35's own step is a bare `ret`);
+  36 takes a reaction animation from 0x004C7190 as 35 does (the picker 0x004C77D9). Step 0 (0x004DAAF5) sets her walk
+  factor +0x118/+0x11C to 0 (0x004DAB8B); step 1 switches on the reaction 0x0712C665: 9 (a grab's start) sets the time
+  to get free (0x004DAE70) and waits (sub-step 1, 0x004D9F59) for event 0x10 in 0x0712C1C4, which 0x004C6EE0 raises
+  when 0x004746C0 finds the legs' channel (+0x238) at its animation's last frame; 0x004B47E0 then gives the next
+  reaction (9 -> 10, 5/7/12 -> 6, 6 -> 7/8, 10 -> 11) and 10's sub-step 2 runs the struggle 0x004D44E0. While +0x11C
+  is not 0 the movement step 0x004D83B0 re-times her legs' animation from her walk speed (0x00474580 on channel 2, and
+  channel 1 when the action equals the movement): a walk factor written through a reaction keeps its animation from
+  ending, so the reaction never moves on (vr347: reaction 9 held to the run's end). 0x004EAE19 sets her velocity from
+  +0x11C each frame. SH3 Quest VR writes neither her walk nor her facing while the state is 34-36 (sh3.c her_reacting).
 - (Session 9, checked: run vr149) Her damage as applied is 1.5 times the pending sum (health 100 -> 85 guarded by the
   gun, 85 -> 55 unguarded, 55 -> 37 and 37 -> 19 guarded by the forearm): the guard keeps 0.5 (a gun) or 0.6 (the
   forearm) of the damage.
@@ -818,3 +829,51 @@ call 0x4B74B0 all round her every 120 frames, and none found a floor item in any
 - 0x454670 calls 0x43A0F0 BY ADDRESS (RECOMP_ICALL_SAFE in the generated code), so the wrapper is reached only through
   sh3.c's recomp_lookup_manual (its case); the dispatch table points at sub_0043A0F0_gen. Every wrapper needs its case
   (tools/build_quest.py checks; vr286 ran without it).
+
+## Sessions 25-26 (2026-11-26): 0.1.7, her room shadow, the hold, the action button, the gripping hands
+
+- **Her shadow under a room lamp is the game's own, in her animation's pose.** The map's shadow list 0x00687F00 holds
+  a type-0 record for her (its object 0x0712D260); 0x00490810 draws her kg1 shadow model's volumes z-pass, posed by
+  her ANIMATION, never by VR's IK body (legs walking under the view, the eyes inside her head's volume). SH3 Quest VR
+  0.1.7 leaves those volume draws out (d3d8.c her_game_volume) and counts her drawn mesh and the weapon in her hand
+  z-fail from the same lamp into the game's own count (sh3vr_ik.cpp her_room_shadow_tris, volumes to 16 m inside the
+  game camera's far plane); if her mesh is not caught that frame, the game's own volumes are kept.
+- **Melee damage**: the attack table 0x006CE170 (knife attacks 8/9 = 40, 10-14 = 30; the steel pipe 15/16 = 130). A
+  hit's damage is the target's +0x15C. The hall's dog at the park has about 750 HP (vr305: 747.7). 0.1.7 scales the
+  game's own damage for a swing or a punch ("Melee damage", 200% to start; the knife and fists 1.5x more; a swing up to
+  1.5x more for its speed): sh3.c's sub_004B6810 / sub_004B6A20 write `before + got * keep` for a factor from 0 to 16
+  (the most is 9: 400% x 1.5 x 1.5; build 236 took only up to 8, and a fast knife slash at 400% fell back to 1x).
+- **A hold (the struggle)**: her holder is her record's +0x17C; the time left to get free is 0x0712C608 (0 frees her
+  through the game's own release). The game's hold line, drawn in its Life Gauge, is 0x005A5E40 (0.1.7's purple
+  break-free bar takes its fill from the same count).
+- **Her walk velocity** is +0xF0 / +0xF8 of her record; an examine stops the playable update, so the last step's
+  velocity carried her on through the whole message until VR cleared it (0.1.7).
+- **The action button's check**, 0x004B9940(mode, room, request, kind, pass, record), tests a 1.02 m (500-unit)
+  segment along HER facing. The record: +0x00 x, +0x08 z, +0x14 yaw (x = sin, z = cos), +0x20 / +0x28 the front
+  point (150 units out), +0x30 / +0x38 the facing times the reach. Event 5 (the park's entrance gate) is a line at x
+  -13157 from z 22453 to 23950. Event 48 (the circular hall's far door) is a line at x 24809 from z 17840 toward +z,
+  about 0.8 m BEHIND the door's face, so standing at the door the 1.02 m meets it only facing it squarely. In VR's
+  first person her facing trails the head (she turns after it only past 50 degrees), so 0.1.7 tries the same check
+  along the head's heading (then 15, 30 and 45 degrees either side, from her place and from the head's own, 1.02 m
+  then 1.33 m) when her own facing finds nothing the button uses, and writes what it found into the record for the
+  game's own check, her own place put back after it when the head's was used (sh3.c; the rig's SH3_GAZE_TEST=1
+  leaves her facing's check out).
+- **The gripping hands**: each weapon has the game's own rigid hand groups (the handgun's right 14, the knife's 15, the
+  stun gun's 16, the shotgun's 18 and 19, the submachine gun's 21 and 22, the katana's 24, the maul's 27 and 28, the
+  steel pipe's 30 and 31, the beam saber's 34, the flamethrower's 37 and 38); her finger hands are groups 3 (right)
+  and 4 (left), the scenes'. With the weapon in her hand the game poses her hand bone at the weapon's bone 0 itself
+  (identity); the rigid hand's fist centre then sits at 24.4 -1.1 -14.3 hand units (vr301: about 3.4 cm behind where
+  the measured holds put the palm). The rigid hands are authored loose: on the handgun the index lies straight past
+  the trigger and the other fingers stand open of the grip (vr302).
+- **The game's own left hands are not always where the hold is**: on the submachine gun its left hand (group 22) holds
+  the receiver 9.4 cm from the cupped front block the hold measures (its fist at 133.1 62.5 -4.5, over the barrel's
+  top), on the shotgun 15.8 cm (its fist at -147.4 1.8 4.6, behind the pump); VR keeps her finger hand on the
+  measured second grip for both (vr309). The gaze check alone (SH3_GAZE_TEST=1) found event 5 at the park's entrance 45
+  degrees off her facing, 1.02 m out (vr311).
+- **A holder's damage written straight is not taken**: the damage added to the hall dog's +0x15C (with +0x16C set,
+  as her own damage step needs) while it held her stayed pending; its health was 731.2 of 731.2 a second later and
+  after she got free (vr316, SH3_KILL_HOLDER). Her hits reach a monster through the battle step (0x4B33E0, a swing's
+  sweep injected at 0x4ACE10) and 0x4B6810's gathering, which is where 0.1.7 breaks a holder's hold; the rig sends
+  one such sweep with SH3_HOLD_HIT=N (the N-th struggle step) or SH3_SWEEP_ATTACKER=N (every N frames at an attacker
+  within 1.5 m). The hall's dog stands at the floor (its y -9, Heather's -9) and is low: the rig's knife swings at
+  1.3 m over it never met it (vr317).

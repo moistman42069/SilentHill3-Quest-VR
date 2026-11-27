@@ -177,9 +177,6 @@ class Options {
             "Darkens the picture toward the edges of your view. 0%: off."),
         sw("smooth_edges", "Smooth edges", VIEW, false,
             "Smooths the jagged edges of the world (anti-aliasing)."),
-        sw("her_shadow", "Heather's shadow", VIEW, false,
-            "Her body, her hands and what she holds cast shadows in the flashlight's beam, in the game's own shadows. "
-            + "Off by default."),
         number("panel_distance", "Screen distance", VIEW, 0.8f, 3.0f, 0.1f, "m", 1.4f,
             "How far the menus, map and memos are."),
         number("panel_width", "Screen size", VIEW, 0.6f, 2.5f, 0.1f, "m", 1.2f, "How wide that screen is."),
@@ -193,6 +190,15 @@ class Options {
             + "pulses when it runs low), in place of the game's HUD, even before the game's own Life Gauge is unlocked. "
             + "Off: no bars on the watch, and first person shows the game's own HUD instead. Third person always shows "
             + "the game's normal HUD, its Life Gauge and Life Display when turned on in Extra options."),
+        sw("hold_bar", "Break-free bar when grabbed", VIEW, true,
+            "When a monster grabs you or knocks you down, the game's purple hold bar shows in front of you, a little "
+            + "under your gaze: it empties as you shake the controllers or press buttons, and fades away once you are "
+            + "free. In first and third person."),
+        sw("hints", "Hints", VIEW, true,
+            "A short line in front of you the first time something new comes up, shown once each and then fading away: "
+            + "how to walk and open the VR menu, a door or an item within reach, a monster's grab, your first gun and "
+            + "melee weapon, the flashlight, low health, and the reload's steps the first time you reload each gun. The "
+            + "VR menu's Hints page lists every hint to read again; its \"Show every hint again\" shows them anew."),
         // Comfort
         choice("turn", "Turning", COMFORT, new String[] {"Snap", "Smooth"}, 1, "The right stick turns."),
         number("snap_degrees", "Snap turn angle", COMFORT, 15f, 90f, 15f, "deg", 45f, ""),
@@ -220,6 +226,11 @@ class Options {
         sw("two_hand", "Two-hand grips", HANDS, true,
             "The other hand on a long weapon's foregrip steadies and aims it."),
         sw("physical_melee", "Physical melee", HANDS, true, "Swing the weapon to hit, where it really goes."),
+        number("melee_damage_pct", "Melee damage", HANDS, 50f, 400f, 25f, "%", 200f,
+            "How hard your swings and punches hit, against the game's own damage (its knife is very weak: a dog takes "
+            + "about 25 of its slashes). The knife and your fists hit half as hard again on top, since a slash takes "
+            + "as much arm as a pipe's swing; a harder swing hits up to half as hard again. At 200% a dog takes about "
+            + "6 knife slashes or 3 pipe swings."),
         sw("punches", "Punches", HANDS, true, "Empty hands punch at half the weakest weapon's damage."),
         sw("gun_club", "Guns as clubs", HANDS, true, "A gun swung hard hits like a pipe."),
         sw("holsters", "Holsters", HANDS, true,
@@ -247,8 +258,6 @@ class Options {
         number("ammo_pouch_radius_cm", "Ammo pouch radius", HANDS, 6f, 30f, 1f, "cm", 14f,
             "How near your hand has to come to the ammo pouch at the front of your belt to take a magazine, shells or "
             + "a battery."),
-        sw("reload_hints", "Reload hints", HANDS, true,
-            "The next reload step on the screen, for your first three reloads each time you play."),
         sw("hand_sounds", "Hand sounds", HANDS, true,
             "A sound for everything your hands do, heard from where they are: the slide, the pump, a magazine dropped "
             + "or pushed in, holsters, the pouch, the flashlight's pocket, a hand on a wall, a gun knocked on one."),

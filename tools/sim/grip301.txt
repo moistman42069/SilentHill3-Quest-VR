@@ -1,0 +1,69 @@
+# SH3 Quest VR, the PC rig (session 25, 0.1.7; owner message 129: "weapon grips should look natural and accurately fitted
+# to the guns ... some fingers are a bit off, or the hand position ... the pistol and smg"), about 3 minutes. Run with
+# SH3_GIVE="10:10,15:20,12:20,17:60" SH3_EQUIP="1,3" SH3_EQUIP_EVERY=500 (the handgun, the submachine gun about script
+# frame 7816). Each held close before the eyes (index finger resting on the trigger), seen from the eyes, then from its
+# left, right, front, above and below (view_free).
+7320 right_first_touch 1
+7330 rh_x -0.12
+7330 rh_y 0.22
+7330 rh_z 0.05
+7380 shot p07380-handgun-eyes
+7390 view_free 1
+7390 view_x -0.22
+7390 view_y -0.11
+7390 view_z -0.25
+7390 view_yaw -90
+7400 shot p07400-handgun-left
+7410 view_x 0.38
+7410 view_yaw 90
+7420 shot p07420-handgun-right
+7430 view_x 0.08
+7430 view_y -0.08
+7430 view_z -0.58
+7430 view_yaw 180
+7440 shot p07440-handgun-front
+7450 view_y 0.17
+7450 view_z -0.25
+7450 view_yaw 0
+7450 view_pitch -85
+7460 shot p07460-handgun-above
+7470 view_x -0.10
+7470 view_y -0.36
+7470 view_yaw -90
+7470 view_pitch 45
+7480 shot p07480-handgun-below
+7490 view_free 0
+7490 view_pitch 0
+7490 view_yaw 0
+# --- the submachine gun (equipped about 7816), the left hand on its second grip
+7850 lh_at_second 1
+7850 lh_x 0
+7850 lh_y 0
+7850 lh_z 0
+7855 left_grip 1
+7900 shot q07900-smg-eyes
+7910 view_free 1
+7910 view_x -0.22
+7910 view_y -0.11
+7910 view_z -0.30
+7910 view_yaw -90
+7920 shot q07920-smg-left
+7930 view_x 0.42
+7930 view_yaw 90
+7940 shot q07940-smg-right
+7950 view_x 0.05
+7950 view_y -0.06
+7950 view_z -0.68
+7950 view_yaw 180
+7960 shot q07960-smg-front
+7970 view_y 0.17
+7970 view_z -0.30
+7970 view_yaw 0
+7970 view_pitch -85
+7980 shot q07980-smg-above
+7990 view_x -0.10
+7990 view_y -0.38
+7990 view_yaw -90
+7990 view_pitch 45
+8000 shot q08000-smg-below
+8010 quit 0

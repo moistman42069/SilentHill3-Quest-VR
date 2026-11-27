@@ -70,6 +70,10 @@ typedef struct Sh3VrGame {
      * acts only over one, 0x601A40): how many there are and the id of the one under the game's cursor (0 none) */
     int click_zones;
     int click_zone;
+    /* 0.1.7 (owner 140): her hit reaction (a flinch, a knockdown and getting up, a monster's hold): her movement state
+     * 0x712C190 when it is one of the game's reaction states (34, 35, 36: 0x4D9E60 runs it, 0x4C7190 picks its
+     * animation), else 0. The game moves and turns her itself: VR's walk and turn wait (sh3.c her_reacting). */
+    int reacting;
 } Sh3VrGame;
 void sh3vr_game_state(const Sh3VrGame *g);
 /* What VR asks of Heather this frame (sh3.c applies it in the movement code, 0x4D83B0, and her facing). */
@@ -85,6 +89,8 @@ typedef struct Sh3VrMove {
     int hold_still;         /* a heavy swing (pipe, katana, maul) is under way: no movement (the PC VR mod's finding) */
 } Sh3VrMove;
 void sh3vr_move(Sh3VrMove *out);
+/* 0.1.7: 1 while the game is in play (its playable update, no cutscene, demo or VR menu) */
+int sh3vr_in_play(void);
 /* What VR asks of the game once (sh3.c, at the frame's end): a holster drawn from equips its weapon. */
 typedef struct Sh3VrActions {
     int equip_slot;         /* -1 nothing; else the weapon to equip (0x497A70 with its item, then 0x4711D0) */
@@ -107,6 +113,14 @@ int sh3vr_film_grain(void);
  * flashlight for the game's own stencil shadows: triangles (x y z each, world) wound as D3D's front faces outward for
  * the game camera given (view, proj: the game's volume pass's); 0 none this frame. d3d8.c draws them. */
 int sh3vr_her_shadow(const float view[16], const float proj[16], float *out_xyz, int max_tris);
+/* 0.1.7 (owner 123: "heathers normal shadow seems to be rendered weirdly"): a volume draw of the game's shadow pass
+ * (its corners: stride bytes apart, x y z first, world) and the lamp of the record it is cast from: 1 when it is
+ * Heather's own (her kg1 shadow in her animation's pose) and VR casts her shadow from that lamp itself (d3d8.c leaves
+ * the draw out and counts sh3vr_her_room_shadow's volumes before the darkening). */
+int sh3vr_her_game_volume(const uint8_t *verts, uint32_t stride, uint32_t n, const float lamp[3]);
+/* Her shadow from that lamp: her body and the weapon in her hand as drawn this frame, closed volumes (x y z each,
+ * world) wound as D3D's front faces outward for the game camera given, counted the z-fail way; 0 none. */
+int sh3vr_her_room_shadow(const float view[16], const float proj[16], const float lamp[3], float *out_xyz, int max_tris);
 /* Session 14 (owners 62-64): a skinned draw of Heather's in the eyes (her part; kind 1 the weapon or a part in her hand)
  * as drawn: its vertices (stride 48), its faces (3 local indices each) and the 96 vertex constants its shader was given;
  * key tells one draw from another across frames. Her shadow is cast from her own mesh from these. */
@@ -153,6 +167,9 @@ int sh3vr_melee_volume(int weapon_slot, Sh3VrHit *hit);
 float sh3vr_block(const float at[3], const float way[3], const float from[3], int has_from, float damage, int kind);
 /* At the battle step's start: the next hit VR adds (a punch, a gun swung as a club), 0 when none. */
 int sh3vr_extra_hit(Sh3VrHit *out);
+/* testing (0.1.7, the PC rig, SH3_HOLD_HIT): one sweep of Heather's knife attack sent to the next battle step (world, game
+ * units: the previous and the current grip-to-tip segments, its radius), as a swing's contact sweep is; 1 when sent */
+int sh3vr_test_sweep(const float pg[3], const float pt[3], const float cg[3], const float ct[3], float radius);
 /* Owner 65 (session 14): Heather's hits as the game recorded them after the battle step (0x4AEA90's records of kind 4:
  * the character hit, the point, the way = the tip's motion, the attack id): VR tells its own swings' hits from them
  * (one hit a swing; the impact's haptic, sound and log). */
@@ -361,10 +378,19 @@ void sh3vr_rumble(float strength, float seconds);
  * sh3.c's action check then tests the event regions there, and tells VR what it found (-1 nothing). */
 int sh3vr_hand_action(float at[3]);
 void sh3vr_hand_action_found(int event);
+/* 0.1.7: the action button's check found something the game uses (event; pass 0 or 1): a tick and a buzz in the hand */
+void sh3vr_button_action_found(int event, int pass);
 /* Session 11 (ask 28): 1 while hand `hand` (0 left, 1 right) is free and reaching out, its palm at `at` (world): sh3.c
  * asks the action check there each frame without the button, and tells VR what it found (sh3vr_hand_hover, -1 none). */
+/* 0.1.7: the head's place and heading in the game's world (yaw: x = sin, z = cos), first person only */
+int sh3vr_gaze(float at[3], float *yaw);
 int sh3vr_hand_reach(int hand, float at[3]);
 void sh3vr_hand_hover(int hand, int event);
+/* 0.1.7 (owner message 143, the hints): 1 when sh3.c should look for what the action button would use within her reach
+ * this frame (every 8 frames in first person while that hint is still to show); what it found: 0 a door or a thing to
+ * use or look at (an event the button uses), 1 an item to take. */
+int sh3vr_tip_wants_use(void);
+void sh3vr_tip_use(int item);
 /* The radio's static (LIST 23): one of its four voices set to `level` (0..1, before the game's volume options). */
 void sh3vr_radio(int channel, float level);
 

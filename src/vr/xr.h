@@ -134,6 +134,16 @@ struct WristLayer {
     float stamina = 1;  // owner message 37: the game's stamina, its second bar (0..1)
 };
 
+// 0.1.7 (owner message 128): the break-free bar while she is held or down (wrist.h render_hold): a quad in the room at
+// `pose` (tracking, facing the eyes), `width` x `height` metres; `fill` the time to get free still left (0..1), `alpha`
+// its fade, `glow` its light.
+struct HoldLayer {
+    bool shown = false;
+    Pose pose;
+    float width = 0, height = 0;
+    float fill = 1, alpha = 0, glow = 1;
+};
+
 class Headset {
 public:
     virtual ~Headset() = default;
@@ -211,6 +221,9 @@ public:
 
     // LIST 49 the health bar on her wrist, for the next finish_frame (not shown: none).
     virtual void show_wrist(const WristLayer& wrist) { (void)wrist; }
+
+    // 0.1.7 the break-free bar, for the next finish_frame (not shown: none).
+    virtual void show_hold(const HoldLayer& hold) { (void)hold; }
 
     virtual void foveate(int eye, unsigned texture) {
         (void)eye;

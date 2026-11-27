@@ -97,4 +97,44 @@ inline std::vector<std::uint8_t> render_wrist(float health, float alpha, float p
   return out;
 }
 
+// 0.1.7 (owner message 128: "the game has a status bar related to holds ... a purple bar"): the break-free bar's picture,
+// shown in view while a monster holds her or she is down (sh3vr.cpp show_hold_bar). The game's own Life Gauge draws the
+// time to get free (0x712C608) as a line under its bars, at most 448 long, shorter as she struggles; VR's bar is the
+// same time over what it was when the hold began, so it empties as she gets free. A dark plate with a light rim, the
+// bar in purple, its light `glow` (0..1: the hold's slow throb, brighter for a moment with each press counted).
+inline constexpr int kHoldWidth = 256;
+inline constexpr int kHoldHeight = 40;
+
+inline void hold_color(float rgb[3]) { rgb[0] = 0.66f, rgb[1] = 0.32f, rgb[2] = 0.92f; }
+
+inline std::vector<std::uint8_t> render_hold(float fill, float alpha, float glow = 1.0f) {
+  const int w = kHoldWidth, h = kHoldHeight;
+  std::vector<std::uint8_t> out(static_cast<std::size_t>(w) * h * 4, 0);
+  fill = std::clamp(std::isfinite(fill) ? fill : 0.0f, 0.0f, 1.0f);
+  alpha = std::clamp(std::isfinite(alpha) ? alpha : 0.0f, 0.0f, 1.0f);
+  glow = std::clamp(std::isfinite(glow) ? glow : 1.0f, 0.0f, 1.0f);
+  float bar[3];
+  hold_color(bar);
+  for (int y = 0; y < h; ++y) {
+    for (int x = 0; x < w; ++x) {
+      const float px = x + 0.5f, py = y + 0.5f;
+      const float plate = wrist_inside(px, py, 0.5f, 0.5f, w - 0.5f, h - 0.5f, 14.0f);
+      if (plate <= 0.0f) continue;
+      const float inner = wrist_inside(px, py, 3.0f, 3.0f, w - 3.0f, h - 3.0f, 11.5f);
+      float rgb[3] = {0.05f, 0.04f, 0.07f}, a = 0.78f;
+      if (inner < 1.0f) {  // the rim, a little purple
+        const float k = 1.0f - inner;
+        rgb[0] += (0.66f - rgb[0]) * k, rgb[1] += (0.56f - rgb[1]) * k, rgb[2] += (0.74f - rgb[2]) * k;
+        a += (0.95f - a) * k;
+      }
+      wrist_bar(px, py, 12.0f, 11.0f, w - 12.0f, h - 11.0f, fill, bar, 0.55f + 0.45f * glow, false, rgb, a);
+      a *= plate * alpha;
+      std::uint8_t* d = out.data() + (static_cast<std::size_t>(y) * w + x) * 4;
+      for (int c = 0; c < 3; ++c) d[c] = static_cast<std::uint8_t>(std::lround(std::clamp(rgb[c] * a, 0.0f, 1.0f) * 255.0f));
+      d[3] = static_cast<std::uint8_t>(std::lround(std::clamp(a, 0.0f, 1.0f) * 255.0f));
+    }
+  }
+  return out;
+}
+
 }  // namespace quest

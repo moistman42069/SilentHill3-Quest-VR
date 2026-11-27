@@ -1,0 +1,52 @@
+# SH3 Quest VR, the PC rig (session 29, 0.1.7, owner message 143: "when approaching a door"), about 2.5 minutes: gate321's
+# walk to the first green gate, with the start's and the knife's hints already shown (sh3quest_tips.ini from the run
+# before), so the label is free: as the gate comes within her reach (sh3.c's per-frame check, every 8 frames) "Something
+# to use here: press A, or reach out to it and grip" shows once ("VR: frame N: the hints' check: event 5 within her
+# reach", "hint (use)"), then A opens the gate. Pictures every 20 frames on the way. Run with QUEST_SIM_HEADSET=1
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_HP=100
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300;16541,17832"
+7740 left_y 1
+7900 shot u07900-use
+7920 shot u07920-use
+7940 shot u07940-use
+7960 shot u07960-use
+7980 shot u07980-use
+8000 shot u08000-use
+8020 shot u08020-use
+8040 shot u08040-use
+8060 shot u08060-use
+8080 shot u08080-use
+8100 left_y 0
+8100 shot u08100-use
+8102 shot h08102-before-gate
+8104 head_yaw 45
+8104 head_z -0.30
+8112 shot h08112-looking-at-gate
+8114 a 1
+8120 shot u08120-use
+8122 a 0
+8140 shot u08140-use
+8150 head_yaw 0
+8150 head_z 0
+8150 rh_y 0.25
+8150 rh_z -0.10
+8150 lh_y 0.25
+8150 lh_z -0.10
+8160 shot u08160-use
+8175 shot h08175-hands-after-gate
+8180 left_y 1
+8180 shot u08180-use
+8200 shot u08200-use
+8220 shot u08220-use
+8240 shot h08240-hands-walking
+8240 shot u08240-use
+8262 left_y 0
+8275 shot h08275-hands-standing
+8280 rh_y 0
+8280 rh_z 0
+8280 lh_y 0
+8280 lh_z 0
+8285 head_pitch -40
+8300 shot h08300-hands-looking-down
+8310 head_pitch 0
+8320 quit 0

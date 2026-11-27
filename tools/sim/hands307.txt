@@ -1,0 +1,38 @@
+# SH3 Quest VR, the PC rig (session 26, 0.1.7; a player on 0.1.6, owner message 134: "after passing the first gate I
+# can't see my hands anymore"), about 2.5 minutes. gate305's walk and A at the entrance (event 5), then in the dark
+# circular hall the hands where a player holds them: the sim's rest (35 cm under the eyes, 30 cm ahead), then lowered
+# to the waist (60 cm under), looked at with a glance (the head 25 degrees down) and looking down (45), then the
+# flashlight switched off (the off-hand trigger) and the same. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_HP=100
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300;16541,17832"
+7740 left_y 1
+8100 left_y 0
+8102 shot a08102-before-gate
+8104 head_yaw 45
+8112 shot a08112-looking-at-gate
+8114 a 1
+8122 a 0
+8150 head_yaw 0
+8200 shot h08200-rest-ahead
+8205 rh_y -0.25
+8205 lh_y -0.25
+8220 shot h08220-waist-ahead
+8222 head_pitch -25
+8237 shot h08237-waist-glance
+8239 head_pitch -45
+8254 shot h08254-waist-looking-down
+8256 head_pitch 0
+8256 rh_y 0
+8256 lh_y 0
+8260 left_trigger 1
+8266 left_trigger 0
+8290 shot h08290-light-off-rest
+8292 head_pitch -45
+8306 shot h08306-light-off-looking-down
+8308 rh_y -0.25
+8308 lh_y -0.25
+8322 shot h08322-light-off-waist-looking-down
+8324 head_pitch 0
+8326 left_trigger 1
+8332 left_trigger 0
+8340 quit 0

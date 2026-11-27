@@ -1,0 +1,34 @@
+# SH3 Quest VR, the PC rig (session 26, 0.1.7): A by the gaze FROM THE HEAD'S PLACE, about 2.5 minutes. As gate305, with
+# the head leaned 30 cm forward when A is pressed, run with SH3_GAZE_TEST=2 (her facing's check and her own place left
+# out: only the head's place along where it looks). Expected in sh3.log: "the action button (pass 0) found event 5 where
+# the player looks ... from the head's place", then "the action button's check from the head's place (N cm from hers):
+# her own place put back", and the door opens (the hall after it, as gate305). Run with QUEST_SIM_HEADSET=1
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_HP=100
+# SH3_GAZE_TEST=2 SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300;16541,17832"
+7740 left_y 1
+8100 left_y 0
+8102 shot h08102-before-gate
+8104 head_yaw 45
+8104 head_z -0.30
+8112 shot h08112-looking-at-gate
+8114 a 1
+8122 a 0
+8150 head_yaw 0
+8150 head_z 0
+8150 rh_y 0.25
+8150 rh_z -0.10
+8150 lh_y 0.25
+8150 lh_z -0.10
+8175 shot h08175-hands-after-gate
+8180 left_y 1
+8240 shot h08240-hands-walking
+8262 left_y 0
+8275 shot h08275-hands-standing
+8280 rh_y 0
+8280 rh_z 0
+8280 lh_y 0
+8280 lh_z 0
+8285 head_pitch -40
+8300 shot h08300-hands-looking-down
+8310 head_pitch 0
+8320 quit 0

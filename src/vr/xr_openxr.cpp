@@ -386,6 +386,7 @@ public:
         XrCompositionLayerQuad perf{XR_TYPE_COMPOSITION_LAYER_QUAD};  // 0.1.3 Show performance
         XrCompositionLayerQuad cross{XR_TYPE_COMPOSITION_LAYER_QUAD};  // 0.1.3 the gun's crosshair
         XrCompositionLayerQuad wrist{XR_TYPE_COMPOSITION_LAYER_QUAD};  // LIST 49 the health bar on her wrist
+        XrCompositionLayerQuad hold{XR_TYPE_COMPOSITION_LAYER_QUAD};   // 0.1.7 the break-free bar (owner message 128)
         const XrCompositionLayerBaseHeader* layers[12];
         uint32_t count = 0;
 
@@ -484,6 +485,19 @@ public:
             layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&wrist);
         }
 
+        // 0.1.7 (owner message 128) the break-free bar while she is held or down (wrist.h render_hold): in the room
+        // under the gaze, over the world
+        if (m_hold.shown && have_eyes && !m_hold_failed && draw_hold()) {
+            hold.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+            hold.space = m_local;
+            hold.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+            hold.subImage.swapchain = m_hold_chain.handle;
+            hold.subImage.imageRect.extent = {m_hold_chain.width, m_hold_chain.height};
+            hold.pose = xr_pose(m_hold.pose);
+            hold.size = {m_hold.width, m_hold.height};
+            layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&hold);
+        }
+
         // 0.1.6 (LIST-0.1.6 item 9; a tester on SteamVR, from 0.1.4 to 0.1.5: "pause menu behind me", "jak2 pause still
         // behind me"): the games' pause menus are on the HUD, a layer that follows the head (the head's own space,
         // XR_REFERENCE_SPACE_TYPE_VIEW), and a menu brings the menu pointer's beam and dot, layers in the room's space
@@ -491,7 +505,7 @@ public:
         // it, the menu was seen behind. On a PC a frame's quads are now all in one space: a head-following layer is put
         // in the room where the head is at this frame's display time (begin_frame's m_head_local, the pose the eyes are
         // drawn for), which the runtime holds to the head as it does the eyes. The Quest's own runtime: as before.
-        bool room_quads = (m_cross.shown && have_eyes) || (m_wrist.shown && have_eyes) || m_pointer.beam ||
+        bool room_quads = (m_cross.shown && have_eyes) || (m_wrist.shown && have_eyes) || (m_hold.shown && have_eyes) || m_pointer.beam ||
                           m_pointer.dot || m_pointer.beam2 || m_pointer.dot2;
 #if defined(__ANDROID__)
         room_quads = false;
@@ -683,6 +697,7 @@ public:
 
     void show_crosshair(const CrosshairLayer& crosshair) override { m_cross = crosshair; }
     void show_wrist(const WristLayer& wrist) override { m_wrist = wrist; }
+    void show_hold(const HoldLayer& hold) override { m_hold = hold; }
 
     bool wants_exit() const override { return m_exiting; }
 
@@ -727,6 +742,11 @@ public:
                 m_wrist_chain.handle = XR_NULL_HANDLE;
             }
             m_wrist_key = -1;
+            if (m_hold_chain.handle != XR_NULL_HANDLE) {
+                xrDestroySwapchain(m_hold_chain.handle);
+                m_hold_chain.handle = XR_NULL_HANDLE;
+            }
+            m_hold_key = -1;
             if (m_pointer_chain.handle != XR_NULL_HANDLE) {
                 xrDestroySwapchain(m_pointer_chain.handle);
                 m_pointer_chain.handle = XR_NULL_HANDLE;
@@ -2632,6 +2652,30 @@ private:
         return true;
     }
 
+    // 0.1.7 the break-free bar's picture (wrist.h render_hold), made again only when its fill, fade or light changes (each
+    // in steps too small to see), written into the next image every frame it shows as the wrist's is.
+    bool draw_hold() {
+        if (m_hold_chain.handle == XR_NULL_HANDLE) {
+            std::string why;
+            if (!create_target(m_hold_chain, kHoldWidth, kHoldHeight, why)) {
+                m_hold_failed = true;
+                warn("the break-free bar could not be made: " + why);
+                return false;
+            }
+        }
+        const long long key =
+            static_cast<long long>(std::lround(std::clamp(m_hold.fill, 0.0f, 1.0f) * 255.0f)) * 4096 +
+            static_cast<long long>(std::lround(std::clamp(m_hold.alpha, 0.0f, 1.0f) * 63.0f)) * 64 +
+            static_cast<long long>(std::lround(std::clamp(m_hold.glow, 0.0f, 1.0f) * 63.0f));
+        if (key == m_hold_key) {
+            return fill_chain(m_hold_chain, kHoldWidth, kHoldHeight, m_hold_pixels.data(), "hold", true);
+        }
+        m_hold_pixels = render_hold(m_hold.fill, m_hold.alpha, m_hold.glow);
+        if (!fill_chain(m_hold_chain, kHoldWidth, kHoldHeight, m_hold_pixels.data(), "hold")) return false;
+        m_hold_key = key;
+        return true;
+    }
+
     // 0.1.3: the performance line's picture, as the warning's (made again when its words change, twice a second),
     // into every image of its chain (0.1.5: fill_chain).
     bool draw_perf() {
@@ -2902,6 +2946,12 @@ private:
     long long m_wrist_key = -1;
     std::vector<std::uint8_t> m_wrist_pixels;
     bool m_wrist_failed = false;
+    // 0.1.7 the break-free bar (show_hold), its swapchain and the picture last made (-1: none)
+    HoldLayer m_hold;
+    Swapchain m_hold_chain;
+    long long m_hold_key = -1;
+    std::vector<std::uint8_t> m_hold_pixels;
+    bool m_hold_failed = false;
 
     bool m_refresh_extension = false;
     bool m_performance_extension = false;

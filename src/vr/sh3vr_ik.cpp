@@ -530,6 +530,24 @@ void solve_two(Bone* B, int a, int b, int c, Vec3 target, Vec3 hint, float stret
     turn_sub(B, b, arc(B[c].o - E, T - E), E);
     if (s > 1.0f) move_sub(B, c, T - B[c].o);
 }
+// Where solve_two puts the middle joint for `hint` (the chain from A, bones l1 and l2, its end to `target`), as it
+// computes it: for checking an elbow before it is placed.
+bool joint_for(Vec3 A, Vec3 target, float l1, float l2, float stretch, Vec3 hint, Vec3& E) {
+    if (!(l1 > 1.0f && l2 > 1.0f)) return false;
+    const Vec3 to = target - A;
+    float d = length(to);
+    if (d < 1e-3f) return false;
+    const Vec3 dir = to * (1.0f / d);
+    const float s = std::clamp(d / (0.999f * (l1 + l2)), 1.0f, std::max(1.0f, stretch));
+    const float L1 = l1 * s, L2 = l2 * s;
+    d = std::clamp(d, 0.15f * (L1 + L2), 0.999f * (L1 + L2));
+    const float along = (L1 * L1 - L2 * L2 + d * d) / (2.0f * d);
+    const float h = std::sqrt(std::max(0.0f, L1 * L1 - along * along));
+    const Vec3 side = hint - dir * dot(hint, dir);
+    if (length(side) < 1e-4f) return false;
+    E = A + dir * along + normalized(side) * h;
+    return true;
+}
 
 // The bones under `top` (not top) put back to their rest relations, each from its parent (a parent's number is always
 // below its children's in her skeleton).
@@ -801,6 +819,47 @@ void arm_to(Bone* B, int h, const Pose& pose, const float curl[5], bool ghost) {
         }
         const float mix = 1.0f - 0.75f * clear;
         Vec3 hint = normalized(hint_point - S) + (Vec3{0, 1, 0} * 0.6f + out * 0.3f) * mix;
+        // 0.1.7 (session 28, vr332 and vr336: both hands raised before the face, the controllers pointing ahead, the
+        // left hand on the middle line 40 cm before the eyes): the elbow where the wrist is straight lies a forearm's
+        // length behind the hand along the controller, there 10 cm before her eyes and 5 cm under them (12 cm from
+        // them): her forearm ran into the eyes, faded, a sheet before the view (the player's "arms go crazy sometimes",
+        // 125.4, may be this). A real elbow there hangs below the hand, the wrist bent back. So an elbow that would come
+        // within 18 cm of the eyes is turned toward down and out, round the shoulder-hand line where an elbow can go,
+        // until it is clear of them (or as far from them as it gets); in the poses that looked right it stood 15 to
+        // 33 cm off (15: an arm all but straight, passing under the eyes, which this cannot move and leaves).
+        const Vec3 eyes_w = world_point(fi.head.position);
+        const float keep_eyes = 0.18f * kU;
+        {
+            const float a1 = length(B[el].o - S), a2 = length(B[hd].o - B[el].o);
+            Vec3 E;
+            if (joint_for(S, want.o, a1, a2, 1.12f, hint, E) && length(E - eyes_w) < keep_eyes) {
+                const float was = length(E - eyes_w);
+                const Vec3 h0 = normalized(hint), away = normalized(Vec3{0, 1, 0} * 0.8f + out * 0.6f);
+                Vec3 best = hint;
+                float best_d = was;
+                for (int i = 1; i <= 10; i++) {
+                    const Vec3 mixed = lerp(h0, away, 0.1f * i);
+                    if (length(mixed) < 1e-3f || !joint_for(S, want.o, a1, a2, 1.12f, normalized(mixed), E)) continue;
+                    const float d = length(E - eyes_w);
+                    if (d > best_d) best = normalized(mixed), best_d = d;
+                    if (d >= keep_eyes) break;
+                }
+                hint = best;
+                // logged as each stretch of it starts, 12 times an arm (the rig's grips313: one hold's frames had
+                // used up a shared 8 lines, and the katana's right elbow then went unsaid)
+                static int told[2] = {0, 0}, last[2] = {-10, -10};
+                if (!ghost && best_d > was + 0.005f * kU) {
+                    if (rt_frame - last[h] > 1 && told[h] < 12) {
+                        told[h]++;
+                        rt_log("VR body: frame %d: her %s elbow kept clear of the eyes: it would have come %.0f cm from "
+                               "them, now %.0f (turned down and out)%s", rt_frame, h ? "right" : "left",
+                               was / kU * 100.0f, best_d / kU * 100.0f,
+                               told[h] == 12 ? "; no more of these lines for this arm" : "");
+                    }
+                    last[h] = rt_frame;
+                }
+            }
+        }
         const Bone& chest = B[kChest];
         const Vec3 local = normalized(local_dir(chest, hint));
         if (!ghost) {
@@ -855,7 +914,30 @@ void arm_to(Bone* B, int h, const Pose& pose, const float curl[5], bool ghost) {
             const float over = (twist - mid) - std::clamp(twist - mid, -kRange, kRange);
             const float want_swing = std::clamp(over / c, -kSwingMost, kSwingMost);
             if (!ghost) st.swivel[h] += (want_swing - st.swivel[h]) * ease(8.0f);
-            const float swing = std::clamp(st.swivel[h], -kSwingMost, kSwingMost);
+            float swing = std::clamp(st.swivel[h], -kSwingMost, kSwingMost);
+            // 0.1.7 (session 28, vr335: a hand turned past its range swung the elbow the most, 60 degrees, with both
+            // hands raised before the face): the swing never takes the elbow into the eyes (within 18 cm, nearer than
+            // it was): halved until it does not, so the hand's turn goes to the forearm instead
+            {
+                const Vec3 E0 = B[el].o;
+                const float d0 = length(E0 - eyes_w), asked = swing;
+                for (int i = 0; i < 5 && std::fabs(swing) > 1e-4f; i++) {
+                    const float d = length(S + rotate(axis_angle(line, swing), E0 - S) - eyes_w);
+                    if (d >= keep_eyes || d >= d0) break;
+                    swing = i == 4 ? 0.0f : swing * 0.5f;
+                }
+                static int told[2] = {0, 0}, last[2] = {-10, -10};
+                if (!ghost && std::fabs(swing) < std::fabs(asked) - 0.02f) {
+                    if (rt_frame - last[h] > 1 && told[h] < 12) {
+                        told[h]++;
+                        rt_log("VR body: frame %d: her %s elbow's swing for the hand's turn held to %.0f degrees (it "
+                               "asked %.0f): it would have come within %.0f cm of the eyes%s", rt_frame,
+                               h ? "right" : "left", swing * 180.0f / kPi, asked * 180.0f / kPi,
+                               keep_eyes / kU * 100.0f, told[h] == 12 ? "; no more of these lines for this arm" : "");
+                    }
+                    last[h] = rt_frame;
+                }
+            }
             if (!ghost) st.swivel_deg[h] = swing * 180.0f / kPi;
             if (std::fabs(swing) > 1e-4f) {
                 turn_sub(B, sh, axis_angle(line, swing), S);
@@ -1740,20 +1822,18 @@ int shadow_mesh(Vec3 lp, Vec3 ld, bool flip, float cone, float reach, float clea
 // round a held lamp), one over 3 m from it or more than 50 degrees off the beam, and one whose volume the eyes are in.
 // Session 14: cast from her own mesh (shadow_mesh) whenever her draws were caught; these capsules are only for a frame
 // without them. Both are counted the z-fail way now, so no caster is left out for the eyes being in its shadow.
-int her_shadow_tris(const float view[16], const float proj[16], float* out, int max_tris, int counts[5]) {
-    counts[0] = counts[1] = counts[2] = counts[3] = counts[4] = 0;
-    if (view_mode != ViewMode::kFirstPerson || sk.state != 1 || st.bones_frame < rt_frame - 1) return 0;
-    Vec3 lp, ld;
-    float level = 0;
-    if (!combat_beam(lp, ld, level)) return 0;
-    ld = normalized(ld);
+namespace {
+// The game camera of its shadow volumes' pass (its view and projection, D3D rows: world row vector times the matrix):
+// which way round a triangle facing it comes out on its screen (flip: every outward-wound triangle turned over for
+// D3D's clockwise fronts) and its far plane (units; 1e9 when the projection has none). False: no usable camera.
+bool shadow_view(const float view[16], const float proj[16], bool& flip, float& zfar) {
     // The game's camera from its view matrix (D3D rows: world row vector times the matrix): its place and axes.
     float m[3][3], inv[3][3];
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++) m[i][j] = view[i * 4 + j];
     const float det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
                       m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
-    if (std::fabs(det) < 1e-12f) return 0;
+    if (std::fabs(det) < 1e-12f) return false;
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++) {
             const int a1 = (j + 1) % 3, a2 = (j + 2) % 3, b1 = (i + 1) % 3, b2 = (i + 2) % 3;
@@ -1779,25 +1859,40 @@ int her_shadow_tris(const float view[16], const float proj[16], float* out, int 
     };
     // Which way round a triangle facing the camera comes out on its screen: clockwise (D3D's front) keeps the outward
     // winding, else every triangle is turned over.
-    bool flip;
+    flip = false;
     {
         const float k = 0.5f * kU;
         const Vec3 a = cam + fwd * k;
         Vec3 b = a + right * (0.2f * k), c = a + up * (0.2f * k);
         if (dot(cross(b - a, c - a), cam - a) < 0) std::swap(b, c);
         float ax, ay, bx, by, cx, cy;
-        if (!screen(a, ax, ay) || !screen(b, bx, by) || !screen(c, cx, cy)) return 0;
+        if (!screen(a, ax, ay) || !screen(b, bx, by) || !screen(c, cx, cy)) return false;
         const float area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
-        if (std::fabs(area) < 1e-9f) return 0;
+        if (std::fabs(area) < 1e-9f) return false;
         flip = area < 0;
     }
-    // How far the volumes run on from the lamp: z-fail counts their far ends, so those stay this side of the game
-    // camera's far plane (D3D's projection: z' = z A + B, w = z; far = -B / (A - 1)), 6 m at most.
-    float zfar = 1e9f;
+    // Its far plane (D3D's projection: z' = z A + B, w = z; far = -B / (A - 1)).
+    zfar = 1e9f;
     if (std::fabs(proj[10] - 1.0f) > 1e-6f && proj[11] > 0.5f) {
         const float f = -proj[14] / (proj[10] - 1.0f);
         if (f > 0.0f) zfar = f;
     }
+    return true;
+}
+}  // namespace
+
+int her_shadow_tris(const float view[16], const float proj[16], float* out, int max_tris, int counts[5]) {
+    counts[0] = counts[1] = counts[2] = counts[3] = counts[4] = 0;
+    if (view_mode != ViewMode::kFirstPerson || sk.state != 1 || st.bones_frame < rt_frame - 1) return 0;
+    Vec3 lp, ld;
+    float level = 0;
+    if (!combat_beam(lp, ld, level)) return 0;
+    ld = normalized(ld);
+    bool flip;
+    float zfar;
+    if (!shadow_view(view, proj, flip, zfar)) return 0;
+    // How far the volumes run on from the lamp: z-fail counts their far ends, so those stay this side of the game
+    // camera's far plane (D3D's projection: z' = z A + B, w = z; far = -B / (A - 1)), 6 m at most.
     const float kFar = std::clamp(zfar * 0.85f - 1.5f * kU, 1.0f * kU, 6.0f * kU);
     {
         static int told = 0;
@@ -1985,6 +2080,35 @@ int her_shadow_tris(const float view[16], const float proj[16], float* out, int 
     return n;
 }
 
+// 0.1.7 (owner 123: "heathers normal shadow seems to be rendered weirdly"). In a lit place the game casts Heather's
+// own shadow itself: its map list (0x687F00) has a record of type 0 for her (the object 0x0712D260, inside her work
+// struct; its first row the lamp's place: the park's lamp 3.4 m off and 2.1 m up) and 0x490810 draws her kg1 shadow
+// model's volumes from that lamp, z-pass, in her ANIMATION's pose: in first person it never matched the body drawn
+// (her legs walking where the IK's stood, arms down while the hands held a gun), the eyes sat inside her own head's
+// volume (a z-pass count turns over there) and, with the body hidden, a shadow of legs walked about under the view
+// (vr294). d3d8.c now leaves those volumes out (sh3vr_her_game_volume) and counts these in their place, into the
+// game's own count before its darkening, at its full strength: her body and the weapon in her hand as drawn this frame
+// (her mesh, shadow_mesh), every face of hers that faces the lamp, closed and counted the z-fail way so the eyes
+// inside her volume leave it right. -1: her mesh not caught (the game's own volumes are kept then).
+bool her_room_shadow_ready() {
+    return view_mode == ViewMode::kFirstPerson && sk.state == 1 && st.bones_frame >= rt_frame - 1 &&
+           shadow_parts_frame >= rt_frame - 1;
+}
+
+int her_room_shadow_tris(const float view[16], const float proj[16], Vec3 lamp, float* out, int max_tris,
+                         int counts[5]) {
+    counts[0] = counts[1] = counts[2] = counts[3] = counts[4] = 0;
+    if (!her_room_shadow_ready()) return -1;
+    bool flip;
+    float zfar;
+    if (!shadow_view(view, proj, flip, zfar)) return -1;
+    // A room lamp throws her shadow far (her head's from a lamp 2 m up and 3.4 m off reaches 11 m across the floor):
+    // the volumes run up to 16 m, their far ends still this side of the game camera's far plane.
+    const float len = std::clamp(zfar * 0.85f - 2.0f * kU, 1.0f * kU, 16.0f * kU);
+    // every face facing the lamp, all round it (cone -2: no beam), to 40 m, all but a face at the lamp itself
+    return shadow_mesh(lamp, Vec3{0.0f, 1.0f, 0.0f}, flip, -2.0f, 40.0f * kU, 0.02f * kU, len, out, max_tris, counts);
+}
+
 // Her own draws lit by her flashlight in first person (session 8; run vr116: her hand reaching into the beam stayed
 // dark, grey 23 against the lit wall's 91, and moving the beam's shadow caster changed nothing, vr117/vr118). The game
 // never lights her by her own lamp: her skinned shaders (F0000030 in the flashlight run's numbering) light her by four
@@ -2050,7 +2174,16 @@ int body_light(float vsc[96][4], int pal_count, Sh3VrBeam* beam) {
         const float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
         return t * t * (3.0f - 2.0f * t);
     };
-    const float cone = smooth(std::cos(30.0f * kPi / 180.0f), std::cos(15.0f * kPi / 180.0f), dot(v, ld));
+    // 0.1.7 (owner message 134, a player on 0.1.6: "after passing the first gate I can't see my hands anymore"): in a
+    // dark place her hands held at rest or low were outside the beam's 30 degrees and stayed black (vr305, the circular
+    // hall past the entrance: the hands at rest barely seen, lit only when raised into the beam). A flashlight worn on
+    // the chest spills light round its beam onto what is right by it. As the PC VR mod lights its hand (a cone from
+    // cos 0.35 to 0.85 round the view, d3d9_hook.cpp DrawLeftHandEye8), her own draws within about a metre of the lamp
+    // take kHerSpill of the beam from 32 to 70 degrees off its line (d3d8_shader.c does the same per point).
+    constexpr float kHerSpill = 0.6f;
+    const float c = dot(v, ld);
+    const float spill = kHerSpill * smooth(0.35f, 0.85f, c) * (1.0f - smooth(0.75f * kU, 1.5f * kU, d));
+    const float cone = std::max(smooth(std::cos(30.0f * kPi / 180.0f), std::cos(15.0f * kPi / 180.0f), c), spill);
     const float k = kHerLight * level * cone * (1.0f - smooth(1.5f * kU, 3.0f * kU, d));
     if (beam && level > 0.0f && d < 3.5f * kU && clip_to_world(beam->clip_to_world)) {
         beam->pos[0] = lp.x, beam->pos[1] = lp.y, beam->pos[2] = lp.z, beam->pos[3] = 1.0f;

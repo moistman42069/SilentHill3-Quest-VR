@@ -2,7 +2,7 @@ IN PLAY (first person; third person where it differs)
 Move: left stick (towards where the head looks, or the left hand: Options, Comfort, Walk towards). Walking in the room moves Heather too.
 Turn: right stick (smooth, or snap 45 degrees: Options, Comfort).
 Run: left stick click (Sprint toggle on: she runs until you click again or let the stick go; off: hold it in; Options, Comfort).
-Action, examine, talk: A. Or reach out and grip.
+Action, examine, talk: A (what you look at, when the way Heather faces misses it; a tick and a buzz when it is used). Or reach out and grip.
 Ready the weapon: main trigger held (third person: main grip or trigger).
 Attack, fire: main trigger. Melee weapons: swing them. Empty hands: punch.
 Stomp a monster that is down: stand by it with the trigger released and press A (the game's own stomp or kick).
@@ -13,6 +13,7 @@ Strafe (third person): off grip held with the left stick left or right.
 Pause, skip a scene: left menu button, a short press.
 VR menu (every VR option): hold the left menu button for a second, anywhere; in play the game pauses under it.
 First / third person: VR menu, View, First person.
+Hints: a short line the first time something new comes up, each shown once; every hint to read again: VR menu, Hints page.
 Recentre the view: click both sticks together (a click of one stick alone does what it always did).
 
 WEAPONS (first person)
@@ -22,13 +23,17 @@ shoulder" off swaps them). Each gives back the one you last put there; drawing o
 own holster. Left-handed: the left side. How near your hand must come: "Weapon holster radius" and "Ammo pouch
 radius" (Options, Hands and weapons).
 Put away: hold it at its holster and let go.
-Two hands: off grip on the foregrip of a long gun, the pipe, katana or maul (under the handgun to steady it).
+Two hands: off grip on the foregrip of a long gun, the pipe, katana or maul (under the handgun to steady it). Where the
+second hand takes hold, per weapon: VR menu, Hands and weapons, "Two-hand grip spot" (Adjust, then take hold where
+you want it; or reset the weapon in your hand, or every weapon).
 Aim: where the gun points; the red guide dot shows it.
 Melee: a real swing hits where the weapon went. Punches land half the weakest weapon's hit; a gun swung hard hits like
 a pipe.
 Block: hold the weapon, or your forearm, up between you and a monster (Options, Hands and weapons).
 Health and stamina: in first person, turn your left wrist toward you and look at her watch (third person: the game's HUD; "Health and stamina on your wrist" off, View: the game's HUD in first person too).
-Get free when knocked down or held: shake both controllers hard (Options, Hands and weapons), or press buttons fast.
+Get free when knocked down or held: shake both controllers hard (Options, Hands and weapons), or press buttons fast, or push the left stick side to side.
+The purple break-free bar shows how far along you are ("Break-free bar when grabbed", View). Hitting the monster
+that holds her breaks its hold.
 
 RELOAD (Manual reload, on)
 Drop the magazine: right stick down. A new one: left hand to the ammo pouch at the front of your belt, grip; push it

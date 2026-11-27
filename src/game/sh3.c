@@ -409,6 +409,20 @@ void sub_0045ED40(void) {
      * the game holds it, sh3vr_combat.cpp), its finger hand off. */
     for (int h = 0; h < 2; h++) {
         const int g = sh3vr_native_hand(h);
+        {
+            /* 0.1.7 (owner message 129, the grips): which hand VR draws on each side, told when it changes */
+            static int told[2] = {-2, -2};
+            const int shown = (g >= 12 && g <= 38) ? g : -1;
+            if (shown != told[h]) {
+                told[h] = shown;
+                if (shown >= 0)
+                    rt_log("parts: frame %d: her %s hand drawn as the game's own gripping hand (group %d), weapon %d",
+                           rt_frame, h ? "right" : "left", shown, MEM8(0x712C656));
+                else
+                    rt_log("parts: frame %d: her %s hand drawn as her finger hand (group %d), weapon %d", rt_frame,
+                           h ? "right" : "left", h ? 3 : 4, MEM8(0x712C656));
+            }
+        }
         if (g < 12 || g > 38) continue;
         new_lo &= ~(h == 1 ? 0x08u : 0x10u);  /* group 3 her right finger hand, 4 her left */
         if (g < 32) new_lo |= 1u << g;
@@ -827,6 +841,32 @@ void sub_004B9940(void) {
             }
             sh3vr_hand_hover(h, ev);
         }
+        /* 0.1.7 (owner message 143, the hints): what the action button would use within her reach now, every 8 frames
+         * while that hint is still to show (sh3vr_tip_wants_use): along her facing, then where the player looks (the
+         * head's heading and 30 degrees either side, as the button's own check below), the game's 1.02 m; the events
+         * the button uses (trigger 1), then the floor items. Only read (action_check_at); the record is put back
+         * after, as above. */
+        if (sh3vr_tip_wants_use()) {
+            float gaze_at[3], gaze_yaw = saved[5];
+            const int gaze = sh3vr_gaze(gaze_at, &gaze_yaw);
+            int found = -1, item = 0;
+            for (int k = 0; k < (gaze ? 4 : 1) && found < 0; k++) {
+                const float y = k == 0 ? saved[5] : gaze_yaw + (k == 2 ? 0.5236f : k == 3 ? -0.5236f : 0.0f);
+                for (int check = 0; check < 3 && found < 0; check++) {
+                    const int ev = action_check_at(rec, saved, saved[0], saved[2], y, 500.0f, NULL, check);
+                    if (ev < 0 || (check < 2 && ev < 0x400 && event_trigger(ev) != 1)) continue;
+                    found = ev;
+                    item = check == 2;
+                }
+            }
+            if (found >= 0) {
+                static int told = 0;
+                if (told++ < 20)
+                    rt_log("VR: frame %d: the hints' check: %s %d within her reach", rt_frame,
+                           item ? "floor item" : "event", found);
+                sh3vr_tip_use(item);
+            }
+        }
         memcpy(GPTR(rec), saved, sizeof saved);
     }
     const int hand = sh3vr_active() && rec && sh3vr_hand_action(at);
@@ -852,8 +892,124 @@ void sub_004B9940(void) {
         MEMF(rec + 0x38) = cosf(yaw) * reach;
     }
     const uint32_t mode = ARG(0), kind = ARG(3), pass = ARG(4);
+    /* her place, when the check below used the head's (put back after it), and the head's place it used */
+    float gaze_from[2] = {0.0f, 0.0f}, gaze_used[2] = {0.0f, 0.0f};
+    int gaze_moved = 0;
+    /* where the check along the player's look found nothing either (logged below if the game's own finds nothing) */
+    int gaze_none = 0;
+    float none_yaw = 0.0f, none_her = 0.0f, none_at[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    if (!hand && sh3vr_active() && rec && mode && kind == 0 && pass < 2) {
+        /* 0.1.7 (a player on 0.1.6: "I could not open the second green gate at the start of the game. The first gate I
+         * could open with the A button"): the button's check looks 1.02 m along HER facing, which in first person
+         * trails the head (she turns after it only past 50 degrees), so a gate the player looks at can lie beside her
+         * facing's line. When her own facing finds nothing the button uses, the same check along where the player
+         * looks (the head's heading, then 15, 30 and 45 degrees either side of it; from her place, then from the head's
+         * own place when it stands apart from hers): what it finds first is what the game's own check gets (the
+         * record's facing turned to it), so the door, item or examine runs as the game's own. */
+        float gaze_at[3], gaze_yaw;
+        if (sh3vr_gaze(gaze_at, &gaze_yaw)) {
+            float saved[15];
+            memcpy(saved, GPTR(rec), sizeof saved);
+            /* testing (the PC rig, whose steering holds her facing): SH3_GAZE_TEST=1 leaves her own facing's check out,
+             * so only the check along where the player looks can find what the button uses; SH3_GAZE_TEST=2 also leaves her
+             * place out of that, so the head's place is tried alone (when it stands 5 to 70 cm from hers) */
+            static int gaze_test = -1;
+            if (gaze_test < 0) gaze_test = getenv("SH3_GAZE_TEST") ? (atoi(getenv("SH3_GAZE_TEST")) == 2 ? 2 : 1) : 0;
+            int ev = gaze_test ? -1 : action_check_at(rec, saved, saved[0], saved[2], saved[5], 500.0f, NULL, (int)pass);
+            if (ev >= 0 && ev < 0x400 && event_trigger(ev) != 1) ev = -1;
+            if (ev < 0) {
+                static const float fan[7] = {0.0f, 0.2618f, -0.2618f, 0.5236f, -0.5236f, 0.7854f, -0.7854f};
+                const float hx = gaze_at[0] - saved[0], hz = gaze_at[2] - saved[2], hd = sqrtf(hx * hx + hz * hz);
+                const int places = hd > 0.05f * 490.0f && hd < 0.7f * 490.0f ? 2 : 1;
+                /* the game's own 1.02 m first, then 1.33 m: the hall's far door (event 48) has its line about 0.8 m
+                 * behind the door's face, so standing at the door the game's reach meets it only facing it squarely */
+                static const float reaches[2] = {500.0f, 650.0f};
+                float use_yaw = 0.0f, use_x = saved[0], use_z = saved[2], use_reach = 500.0f;
+                for (int r = 0; r < 2 && ev < 0; r++)
+                    for (int pl = gaze_test == 2 && places == 2 ? 1 : 0; pl < places && ev < 0; pl++)
+                        for (int k = 0; k < 7 && ev < 0; k++) {
+                            const float px = pl ? gaze_at[0] : saved[0], pz = pl ? gaze_at[2] : saved[2];
+                            const float y = gaze_yaw + fan[k];
+                            ev = action_check_at(rec, saved, px, pz, y, reaches[r], NULL, (int)pass);
+                            if (ev >= 0 && ev < 0x400 && event_trigger(ev) != 1) ev = -1;
+                            if (ev >= 0) use_yaw = y, use_x = px, use_z = pz, use_reach = reaches[r];
+                        }
+                memcpy(GPTR(rec), saved, sizeof saved);
+                if (ev < 0) {
+                    gaze_none = 1;
+                    none_yaw = gaze_yaw, none_her = saved[5];
+                    none_at[0] = saved[0], none_at[1] = saved[2], none_at[2] = gaze_at[0], none_at[3] = gaze_at[2];
+                }
+                if (ev >= 0) {
+                    /* the record as the game's own check reads it: her place (or the head's), facing the found way;
+                     * the head's place only for the check: she is put back at her own after it (a head leaning up to
+                     * 0.7 m out, into a wall even, never moves her) */
+                    if (use_x != saved[0] || use_z != saved[2]) {
+                        gaze_from[0] = saved[0];
+                        gaze_from[1] = saved[2];
+                        gaze_used[0] = use_x;
+                        gaze_used[1] = use_z;
+                        gaze_moved = 1;
+                    }
+                    MEMF(rec) = use_x;
+                    MEMF(rec + 8) = use_z;
+                    MEMF(rec + 0x14) = use_yaw;
+                    MEMF(rec + 0x20) = use_x + sinf(use_yaw) * 150.0f;
+                    MEMF(rec + 0x28) = use_z + cosf(use_yaw) * 150.0f;
+                    MEMF(rec + 0x30) = sinf(use_yaw) * use_reach;
+                    MEMF(rec + 0x38) = cosf(use_yaw) * use_reach;
+                    static int told = 0;
+                    if (told++ < 40)
+                        rt_log("VR: frame %d: the action button (pass %u) found event %d where the player looks: %.0f "
+                               "degrees from her facing, %.2f m out%s", rt_frame, pass, ev,
+                               fabsf(remainderf(use_yaw - saved[5], 6.2831853f)) * 57.29578f, use_reach / 490.0f,
+                               use_x != saved[0] || use_z != saved[2] ? ", from the head's place" : "");
+                }
+            } else {
+                memcpy(GPTR(rec), saved, sizeof saved);
+            }
+        }
+    }
     sub_004B9940_gen();
-    if (!hand) return;
+    /* 0.1.7 (session 28, the rig's vr335: A at the hall's far door found nothing and said nothing): a press that finds
+     * nothing, along her facing nor where the player looks, is logged with the ways and places it tried (a player's log
+     * then tells a door the check never reached from one it reached), at most 20 times, once a second */
+    if (gaze_none && (int)g_eax < 0) {
+        static int told = 0, told_at = -100;
+        if (told < 20 && rt_frame - told_at >= 60) {
+            told++;
+            told_at = rt_frame;
+            rt_log("VR: frame %d: the action button (pass %u) found nothing along her facing (%.0f degrees) nor where the "
+                   "player looks (%.0f degrees and 15/30/45 either side, 1.02 and 1.33 m) from her place %.0f %.0f "
+                   "(the head's %.0f %.0f)%s", rt_frame, pass, none_her * 57.29578f, none_yaw * 57.29578f, none_at[0],
+                   none_at[1], none_at[2], none_at[3], told == 20 ? "; no more of these lines" : "");
+        }
+    }
+    /* her own place back, unless the game's check moved her itself (then its place stands) */
+    if (gaze_moved) {
+        const int kept = MEMF(rec) == gaze_used[0] && MEMF(rec + 8) == gaze_used[1];
+        if (kept) {
+            MEMF(rec) = gaze_from[0];
+            MEMF(rec + 8) = gaze_from[1];
+        }
+        static int told_back = 0;
+        if (told_back++ < 20)
+            rt_log("VR: frame %d: the action button's check from the head's place (%.0f cm from hers): %s", rt_frame,
+                   hypotf(gaze_used[0] - gaze_from[0], gaze_used[1] - gaze_from[1]) / 4.9f,
+                   kept ? "her own place put back" : "the game moved her itself: its place kept");
+    }
+    if (!hand) {
+        /* 0.1.7 (a player on 0.1.6: "Sometimes it's not very clear if one has properly interacted with a door or
+         * object ... Perhaps adding feedback on successful interaction could fix this?"): the action button's check
+         * (mode set) found something the game now uses (a door, an item, a thing to examine): a tick and a buzz in the
+         * hand, once a press (a hand's own use has its own, sh3vr_hand_action_found) */
+        static int fed_at = -100;
+        if (sh3vr_active() && rec && mode && kind == 0 && (int)g_eax >= 0 && rt_frame - fed_at > 30) {
+            fed_at = rt_frame;
+            sh3vr_button_action_found((int)g_eax, (int)pass);
+        }
+        return;
+    }
     int ev = (int)g_eax;
     if (ev < 0 && pass == 0 && mode && kind == 0) {
         /* what 0x4B9D60 asks next, asked here first to know whether the hand found a floor item (the stack as the
@@ -993,13 +1149,32 @@ extern void sub_004D83B0_gen(void);
  * health words are logged once (what it is), and its place goes to the combat's sweep log (sh3_rig_attacker_at). */
 static uint32_t rig_attacker;
 float sh3_rig_attacker_at[4];  /* testing: the kept attacker's place (w 1 while kept), for sh3vr_combat's sweep log */
+/* testing (0.1.7, the PC rig): one sweep of her knife across a character, 35 cm over its place, from side to side as
+ * seen from her, sent through the game's own battle step as a swing's contact sweep goes (sh3vr_test_sweep) */
+static void rig_sweep_across(uint32_t p, uint32_t a, const char *why) {
+    const float cx = MEMF(a), cy = MEMF(a + 4) - 0.35f * 490.0f, cz = MEMF(a + 8);
+    float dx = cx - MEMF(p), dz = cz - MEMF(p + 8);
+    const float d = sqrtf(dx * dx + dz * dz);
+    if (d > 1.0f) dx /= d, dz /= d;
+    else dx = 0.0f, dz = 1.0f;
+    const float sx = -dz, sz = dx, back = 0.3f * 490.0f, side = 0.4f * 490.0f;
+    const float pg[3] = {cx - dx * back + sx * side, cy, cz - dz * back + sz * side};
+    const float pt[3] = {cx + dx * back + sx * side, cy, cz + dz * back + sz * side};
+    const float cg[3] = {cx - dx * back - sx * side, cy, cz - dz * back - sz * side};
+    const float ct[3] = {cx + dx * back - sx * side, cy, cz + dz * back - sz * side};
+    rt_log("%s: frame %d: %08X (health %.1f) at %.0f %.0f %.0f, %.2f m from her: a knife sweep across it", why, rt_frame,
+           a, MEMF(a + 0x180), MEMF(a), MEMF(a + 4), MEMF(a + 8), d / 490.0f);
+    sh3vr_test_sweep(pg, pt, cg, ct, 0.1f * 490.0f);
+}
 static int steer_at_attacker(uint32_t p, float *heading) {
     static int on = -1, logged_at = -1000;
     static uint32_t described;
     if (on < 0) on = getenv("SH3_STEER_AT_ATTACKER") ? atoi(getenv("SH3_STEER_AT_ATTACKER")) : 0;
     const uint32_t a = rig_attacker;
     sh3_rig_attacker_at[3] = 0.0f;
-    if (!on || !a || a == p) return 0;
+    /* 0.1.7 (vr308-310: a second monster at the hall's far door drew her away from the door A was tried at): a value
+     * over 1 is the last game frame she goes for an attacker */
+    if (!on || !a || a == p || (on > 1 && rt_frame > on)) return 0;
     const float ax = MEMF(a), az = MEMF(a + 8), hp = MEMF(a + 0x180), x = MEMF(p), z = MEMF(p + 8);
     const float yaw = MEMF(p + 0x14), dx = ax - x, dz = az - z, d = sqrtf(dx * dx + dz * dz);
     if (!isfinite(d) || !(hp > 0.0f) || d > 8.0f * 490.0f) {
@@ -1031,6 +1206,17 @@ static int steer_at_attacker(uint32_t p, float *heading) {
                rt_frame, a, ax, MEMF(a + 4), az, d / 490.0f,
                fmodf((atan2f(dx, dz) - yaw) * 57.29578f + 540.0f, 360.0f) - 180.0f, hp, MEMF(a + 0x184), x,
                MEMF(p + 4), z);
+    }
+    {
+        /* testing (0.1.7, vr317: the script's knife swings went 1.29 m over the hall's low dog, which then kept her
+         * from the far door): SH3_SWEEP_ATTACKER=N sends a sweep of her knife across the attacker every N frames while
+         * it is within 1.5 m, through the game's own hits (its damage, "Melee damage" and all) */
+        static int every = -2, sent_at = -100000;
+        if (every == -2) every = getenv("SH3_SWEEP_ATTACKER") ? atoi(getenv("SH3_SWEEP_ATTACKER")) : 0;
+        if (every > 0 && d < 1.5f * 490.0f && rt_frame - sent_at >= every) {
+            sent_at = rt_frame;
+            rig_sweep_across(p, a, "steer test");
+        }
     }
     if (ex * ex + ez * ez < 40.0f * 40.0f) return -1;  /* in front of it: stand and swing */
     *heading = atan2f(ex, ez);
@@ -1099,12 +1285,51 @@ static int steer_rig(uint32_t p, float *heading) {
     return 1;
 }
 
+/* 0.1.7 (a player's report on 0.1.6: "If you are moving and press "a" to interact with anything on the environment the
+ * character keeps moving on the same direction you were last facing, even if you stop all your inputs, you need to
+ * press "a" again to stop examining"): VR writes her walk's velocity (+0xF0/+0xF8, which 0x4D83B0 applies) each frame
+ * it steers; the game's own walk and stand set it from her animation each frame in play, but an examine (the action
+ * button's message: the playable update stops, so VR stops steering) sets nothing, and the last step's velocity carried
+ * her on through the whole message. Now the frame VR's steering stops she is stopped once (in play her stand sets its
+ * own the next frame, as before). */
+static int vr_walked;
+/* 0.1.7 (owner 140, the PC VR mod's maker: "if you spam motion controls like knife stabs, game animations would break
+ * and i can't do anything besides only walking and even enemies won't attack me"; their mod's fix: no heading or
+ * walking writes while she is knocked down or getting up). Run vr347 (stabs at the hall's dog with the stick held): the
+ * dog's grab left her held for good, reaction 9 (the grab's start) never moving on to 10 (the struggle), no bar. The
+ * grab waits for its animation (206) to end on her legs' channel (0x4D9F59: event 0x10, which 0x4C6EE0 raises when
+ * 0x4746C0 finds the channel at its last frame). The reaction's start sets her walk factor +0x11C to 0 (0x4DAB8B); VR's
+ * walk set it each frame (1.8 walking), and while it is not 0 the movement step 0x4D83B0 re-times her legs' animation
+ * from her walk's speed (0x474580, her body's too when the action and the movement are one state, as in a reaction):
+ * the grab's animation never reached its end. So while the game has her in a hit reaction (her movement state 34 or 35,
+ * which run her reaction step 0x4D9E60, or 36, which 0x4C7190 gives a reaction animation as 35) VR writes neither her
+ * walk (+0xF0/+0xF8, +0x11C) nor her facing: the game moves and turns her itself, as it does on the PC. */
+static int her_reacting(void) {
+    const uint32_t m = MEM32(0x712C190u);
+    return m == 34u || m == 35u || m == 36u ? (int)m : 0;
+}
 void sub_004D83B0(void) {
     Sh3VrMove mv;
     uint32_t p = sh3vr_active() ? vr_player() : 0;
     if (p) {
         sh3vr_move(&mv);
+        const int reacting = her_reacting();
+        if (reacting) mv.steer = 0, mv.face = 0;
         const int rig = mv.steer ? steer_rig(p, &mv.heading) : 0;
+        if (!mv.steer && vr_walked) {
+            static int told_play, told_out, told_hit;
+            const int playing = sh3vr_in_play();
+            if (reacting ? told_hit++ < 10 : playing ? told_play++ < 2 : told_out++ < 10)
+                rt_log("VR: frame %d: walking stopped (%s): her velocity %.2f %.2f %s", rt_frame,
+                       reacting ? "her hit reaction: the game moves her"
+                       : playing ? "the stick let go" : "the game is not in play: a message, an examine or a menu",
+                       MEMF(p + 0xF0), MEMF(p + 0xF8), reacting ? "left to the game" : "cleared");
+            if (!reacting) {  /* a reaction sets its own (from its +0x11C, 0x4EAE19) */
+                MEMF(p + 0xF0) = 0.0f;
+                MEMF(p + 0xF8) = 0.0f;
+            }
+        }
+        vr_walked = mv.steer && rig >= 0;
         if (rig < 0) {
             MEMF(p + 0xF0) = 0.0f;
             MEMF(p + 0xF8) = 0.0f;
@@ -1638,10 +1863,52 @@ void sub_004ACE10(void) {
  * 120 Hz as at the PC game's steady 60: in VR each press, a shake or a button the step counted (read back from what it
  * took off), is worth 1/60 s, as on the PC. The fifth of a frame it takes by itself is time, the same at any rate. */
 extern void sub_004D44E0_gen(void);
+/* 0.1.7 (a player on 0.1.6: "When the dog grabs you on the intro sequence ... it will keep you stuck to the dog's last
+ * position even if he dies"; their video: shaking frees her while the dog lives, never after it died): the game never
+ * lets a monster die while it holds her (she cannot attack then), but VR's physical melee can, and a holder dead in its
+ * hold never lets her go. The frame the struggle step last ran (she is held or down now): sub_004B6810 keeps her
+ * holder alive through a hit and the hit breaks the hold instead; and a holder found dead here frees her. */
+static int struggle_step_frame = -100;
 void sub_004D44E0(void) {
     if (!sh3vr_active()) {
         sub_004D44E0_gen();
         return;
+    }
+    {
+        /* testing (0.1.7, the PC rig): SH3_KILL_HOLDER=N: the N-th struggle step of a hold gives her holder a deadly
+         * hit's damage straight (+0x15C, as 0.1.6's physical melee could), so a holder dying in its hold is seen and
+         * whether she is freed after it */
+        static int kill_at = -2, steps = 0, last = -100;
+        if (kill_at == -2) kill_at = getenv("SH3_KILL_HOLDER") ? atoi(getenv("SH3_KILL_HOLDER")) : -1;
+        steps = rt_frame - last <= 2 ? steps + 1 : 1;
+        last = rt_frame;
+        const uint32_t p = vr_player(), a = p ? MEM32(p + 0x17C) : 0;
+        if (kill_at > 0 && steps == kill_at && a && a != p && a >= 0x400000u && a < 0x0F000000u &&
+            MEMF(a + 0x180) > 0.0f) {
+            rt_log("hold test: frame %d: her holder %08X (health %.1f) given %.1f damage in its hold", rt_frame, a,
+                   MEMF(a + 0x180), MEMF(a + 0x180) + 10.0f);
+            MEMF(a + 0x15C) += MEMF(a + 0x180) + 10.0f;
+            if (!MEM16(a + 0x16C)) MEM16(a + 0x16C) = 4;
+            MEM32(a + 0x17C) = p;
+        }
+        /* SH3_HOLD_HIT=N (vr316: the dog never took the damage above while it held her, its health stayed 731.2 of
+         * 731.2): the N-th struggle step sends one sweep of her knife across her holder, 35 cm over its place, through
+         * the game's own battle step as a swing's contact sweep goes (sh3vr_test_sweep): the hit 0x4B6810 gathers on it
+         * is what a real swing at a holder gives */
+        static int hit_at = -2;
+        if (hit_at == -2) hit_at = getenv("SH3_HOLD_HIT") ? atoi(getenv("SH3_HOLD_HIT")) : -1;
+        if (hit_at > 0 && steps == hit_at && a && a != p && a >= 0x400000u && a < 0x0F000000u)
+            rig_sweep_across(p, a, "hold test: her holder");
+    }
+    struggle_step_frame = rt_frame;
+    {
+        const uint32_t p = vr_player(), a = p ? MEM32(p + 0x17C) : 0;
+        if (a && a != p && a >= 0x400000u && a < 0x0F000000u && !(MEMF(a + 0x180) > 0.0f) &&
+            MEMF(0x712C608) > 0.0f) {
+            rt_log("VR: frame %d: her holder %08X is dead (health %.1f): she is freed (the time to get free %.2f -> 0)",
+                   rt_frame, a, MEMF(a + 0x180), MEMF(0x712C608));
+            MEMF(0x712C608) = 0.0f;
+        }
     }
     const float press = 1.0f / 60.0f, dt = MEMF(0x712C108);
     const int shakes = sh3vr_struggle_presses(MEMF(0x712C608));
@@ -1701,7 +1968,7 @@ void sub_004B6A20(void) {
             memcpy(at, GPTR(chr + 0x134), 12);
             memcpy(way, GPTR(chr + 0x144), 12);
             const float keep = sh3vr_hit_given(chr, way, at, got, MEM16(chr + 0x154));
-            if (keep < 1.0f && keep >= 0.0f) MEMF(chr + 0x15C) = before_other + got * keep;
+            if (keep >= 0.0f && keep <= 16.0f && keep != 1.0f) MEMF(chr + 0x15C) = before_other + got * keep;  /* 0.1.7: over 1 for "Melee damage" (at most 9: 400% x the knife 1.5 x a fast swing 1.5) */
         }
         return;
     }
@@ -1828,7 +2095,33 @@ void sub_004B6810(void) {
         memcpy(at, GPTR(chr + 0x134), 12);
         memcpy(way, GPTR(chr + 0x144), 12);
         const float keep = sh3vr_hit_given(chr, way, at, got, MEM16(chr + 0x154));
-        if (keep < 1.0f && keep >= 0.0f) MEMF(chr + 0x15C) = before + got * keep;
+        if (keep >= 0.0f && keep <= 16.0f && keep != 1.0f) MEMF(chr + 0x15C) = before + got * keep;  /* 0.1.7: over 1 for "Melee damage" (at most 9: 400% x the knife 1.5 x a fast swing 1.5) */
+        /* 0.1.7: she is held (the struggle step ran this frame or the last) and this is her holder (her attacker
+         * +0x17C): the hit breaks its hold (the time to get free to 0: the next struggle step frees her, as shaking
+         * free does) and leaves it at least 1 health, so the game's own release runs; it dies to the next hit after. */
+        if (rt_frame - struggle_step_frame <= 2 && MEM32(p + 0x17C) == chr) {
+            const float hp = MEMF(chr + 0x180);
+            float most = hp - 1.0f;
+            if (!(most > 0.0f)) most = 0.0f;
+            const int capped = MEMF(chr + 0x15C) > most;
+            if (capped) MEMF(chr + 0x15C) = most;
+            rt_log("VR: frame %d: her holder %08X hit while it holds her (health %.1f%s): its hold broken (the time to "
+                   "get free %.2f -> 0)", rt_frame, chr, hp, capped ? ", kept alive until she is free" : "",
+                   MEMF(0x712C608));
+            MEMF(0x712C608) = 0.0f;
+        }
+        {
+            /* testing (0.1.7, session 28, owner 140; the PC rig): SH3_NO_KILL=1: her hits on monsters do no damage
+             * (their reactions and stun stay), so a monster lives and attacks through a long spam of swings */
+            static int no_kill = -2, told;
+            if (no_kill == -2) no_kill = getenv("SH3_NO_KILL") ? atoi(getenv("SH3_NO_KILL")) : 0;
+            if (no_kill > 0) {
+                if (told++ < 5)
+                    rt_log("testing: frame %d: SH3_NO_KILL: her hit's %.1f damage on %08X taken back", rt_frame,
+                           MEMF(chr + 0x15C) - before, chr);
+                MEMF(chr + 0x15C) = before;
+            }
+        }
     }
 }
 
@@ -1899,6 +2192,43 @@ void sh3_vr_frame(void) {
                            MEM32(0x712C1A0u), MEM32(0x712C1A4u), MEM32(0x712C1A8u), MEM32(0x712C1ACu),
                            s >= 0x400000u && s < 0x7FFF0000u ? MEM8(s + 0xB) : -1);
                 last_flag = flag;
+            }
+        }
+        {
+            /* testing (0.1.7, session 28, owner 140: knife stabs spammed left her only walking, monsters not
+             * attacking): SH3_STATE_LOG=1 logs her states whenever one changes, 600 lines at most: the action
+             * 0x712C18C, its steps 0x712C189 / 0x712C18A, the movement state 0x712C190, the reaction 0x712C665 and the
+             * bytes beside it, the weapon 0x712C656, and the animation playing and next on her two channels */
+            static int state_log = -2, told;
+            static uint32_t last[12];
+            if (state_log == -2) state_log = getenv("SH3_STATE_LOG") ? atoi(getenv("SH3_STATE_LOG")) : 0;
+            if (state_log > 0 && told < 600) {
+                uint32_t now[12];
+                now[0] = MEM32(0x712C18Cu), now[1] = MEM8(0x712C189u), now[2] = MEM8(0x712C18Au);
+                now[3] = MEM32(0x712C190u), now[4] = MEM8(0x712C665u), now[5] = MEM8(0x712C666u);
+                now[6] = MEM8(0x712C663u), now[7] = MEM8(0x712C656u);
+                for (int c = 0; c < 2; c++) {
+                    const uint32_t e0 = MEM32(p + 0x1B8 + 0x88 * (uint32_t)c + 0x38);
+                    const uint32_t e1 = MEM32(p + 0x1B8 + 0x88 * (uint32_t)c + 0x3C);
+                    now[8 + 2 * c] = e0 >= 0x6C0000u && e0 < 0x6E0000u ? MEM16(e0) : 0xFFFFu;
+                    now[9 + 2 * c] = e1 >= 0x6C0000u && e1 < 0x6E0000u ? MEM16(e1) : 0xFFFFu;
+                }
+                /* and in a reaction every 30 frames: its sub-step 0x712C18B, the time to get free, her walk factor
+                 * +0x11C, the event flags 0x712C1C0/C4 and her legs' channel (+0x238: its time +0x18 in 1/4096
+                 * frames, the end 0x4746C0 waits for, (last - first) of its entry +0x44) */
+                if (memcmp(now, last, sizeof now) != 0 || (now[4] && frame_no % 30 == 0)) {
+                    told++;
+                    const uint32_t le = MEM32(p + 0x238 + 0x44);
+                    const int lvalid = le >= 0x400000u && le < 0x0F000000u;
+                    rt_log("her state: frame %d: action %u steps %u %u, movement %u, reaction %u (%u %u), weapon %u, "
+                           "animations %03X next %03X | %03X next %03X; sub-step %u, free in %.2f, walk factor %.2f, "
+                           "events %02X %02X, legs at %.2f of %d", rt_frame, now[0], now[1], now[2], now[3],
+                           now[4], now[5], now[6], now[7], now[8], now[9], now[10], now[11], MEM8(0x712C18Bu),
+                           MEMF(0x712C608u), MEMF(p + 0x11C), MEM32(0x712C1C0u) & 0xFFu, MEM32(0x712C1C4u) & 0xFFu,
+                           (int32_t)MEM32(p + 0x238 + 0x18) / 4096.0f,
+                           lvalid ? (int)MEM16(le + 8) - (int)MEM16(le + 6) : -1);
+                    memcpy(last, now, sizeof now);
+                }
             }
         }
         {
@@ -2019,6 +2349,7 @@ void sh3_vr_frame(void) {
         g.reserve = GUN_COUNT(g.gun_item + 5);
         g.capacity = (int8_t)MEM8(0x6BDD17u + (uint32_t)g.gun_item);
     }
+    g.reacting = p ? her_reacting() : 0;
     g.playable = playable_frame;
     playable_frame = 0;
     g.cutscene = MEM8(0x81FAB5) != 0;
@@ -2083,7 +2414,7 @@ void sh3_vr_frame(void) {
     /* Her body turns with the head while she stands (first person). */
     Sh3VrMove mv;
     sh3vr_move(&mv);
-    if (p && mv.face && !mv.steer) set_heather_yaw(p, mv.face_yaw);
+    if (p && mv.face && !mv.steer && !her_reacting()) set_heather_yaw(p, mv.face_yaw);
     MEMF(0x0EC00000u) = 0.0f;  /* no cutscene borders in VR */
     /* A weapon drawn from a holster: equipped between frames, in play only. */
     Sh3VrActions act;

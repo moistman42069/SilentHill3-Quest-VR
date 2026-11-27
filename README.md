@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.6</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.7</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -23,7 +23,10 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.6's release notes](docs/RELEASE-NOTES-0.1.6.md): monsters seen at their
+with everything you need to install it ([0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md): A opens what you look
+at, your hands in sight in the dark, her hands closed round the guns' grips, no sticking to the dead dog, no false
+weapon bumps or dings, her shadow following her body, a tick and a buzz when something is used, harder melee, the
+break-free bar, a two-hand grip spot per weapon, Flat on the Quest, no getting stuck in a grab or a knockdown, hints shown once each (and a VR menu page to read them again); [0.1.6's](docs/RELEASE-NOTES-0.1.6.md): monsters seen at their
 distance, the best performance options set once (120 Hz), the gun on the hip and the melee weapon on the shoulder,
 holster and ammo pouch radius options, a sprint toggle, the watch's bars on a switch, no twisted arms backing up, the
 reload hint in view; [0.1.5's](docs/RELEASE-NOTES-0.1.5.md): no black screen or
@@ -32,9 +35,9 @@ the world, both sticks to recentre; [0.1.4's](docs/RELEASE-NOTES-0.1.4.md): ever
 among them; [0.1.3's](docs/RELEASE-NOTES-0.1.3.md): no screen filters
 or fuzz by default, smooth turning, gentler melee, a softer shadow, no crash on quitting; [0.1.2's](docs/RELEASE-NOTES-0.1.2.md);
 [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short:
-install SH3QuestVR-0.1.6.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
+install SH3QuestVR-0.1.7.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
 headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. Already on an earlier version? The launcher
-offers 0.1.6 itself (Updates). Reports from a headset are very welcome
+offers 0.1.7 itself (Updates). Reports from a headset are very welcome
 (the launcher's "Save a report to Download" holds the game's own logs).
 
 ## Which copies of Silent Hill 3 work
@@ -54,7 +57,7 @@ the check is not sure, **Play in VR anyway** still tries it, and `sh3.log` says 
 launcher took only the unprotected exe; that is where "wrong version" came from. Not these: the PlayStation 2 game,
 and the PS3 or Xbox 360 HD Collection. A player's European disc has played it; no Asian exe has been tried yet:
 reports are welcome.
-More in [0.1.6's release notes](docs/RELEASE-NOTES-0.1.6.md#which-copies-of-silent-hill-3-work).
+More in [0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md#which-copies-of-silent-hill-3-work).
 
 ## Features
 
@@ -65,10 +68,11 @@ More in [0.1.6's release notes](docs/RELEASE-NOTES-0.1.6.md#which-copies-of-sile
   game's camera otherwise (or always at the camera, first person, or a cinema screen: the VR menu's "Cutscenes"). The **movies** play on a big cinema screen
   with their sound.
 - **Heather's own body**, full-body IK: her head at the headset, her hands at the controllers, her arms, trunk and legs
-  following you; look down and see her. **Her shadow** if you want it: her body as you move it, her fingers and what
-  she holds cast shadows in the flashlight's beam, in the game's own stencil shadows ("Heather's shadow" in the VR
-  menu, off to start).
-- **The flashlight on her chest** goes where you look and lights your hands where they are in its beam.
+  following you; look down and see her. **Her shadow** where the game casts one (under the rooms' lamps): from her body
+  as you move it and the weapon in her hand, in the game's own stencil shadows (0.1.7; the old "Heather's shadow"
+  switch is gone).
+- **The flashlight on her chest** goes where you look and lights your hands where they are in its beam; its spill keeps
+  them in sight close by, even in the darkest rooms (0.1.7).
 - **Her watch**: turn your left wrist to you for her health and stamina bars (first person; "Health and stamina on
   your wrist" turns them off); third person shows the game's own HUD.
 - **Monsters drawn from your head's view**: the game picks what to draw with its own camera, so a character it leaves
@@ -77,7 +81,8 @@ More in [0.1.6's release notes](docs/RELEASE-NOTES-0.1.6.md#which-copies-of-sile
   Heather faces where you look while she walks, backing up included (the PC VR mod's camera-relative strafe).
 - **Blocking** with a weapon or a forearm held up, and **shake to break free** when a monster grabs her.
 - **Weapons in your hand**, each at its size and grip (the PC mod's calibration, sh3quest_weapons.ini), aimed where
-  the gun points with a guide dot; **two-hand grips** on long guns, the pipe, the katana and the maul.
+  the gun points with a guide dot, her fist closed round each gun's grip with her trigger finger on its trigger (0.1.7);
+  **two-hand grips** on the guns, the pipe, the katana and the maul, the second hand's spot yours to set per weapon.
 - **Physical melee** with everything: real swings hit where the weapon went (the game's own hit volumes, damage,
   knock-backs and sounds); **punches** at half the weakest weapon's hit; **guns as clubs**.
 - **Holsters** on the body: your gun on your right hip, your melee weapon over your right shoulder (each gives back
@@ -109,7 +114,7 @@ More in [0.1.6's release notes](docs/RELEASE-NOTES-0.1.6.md#which-copies-of-sile
 - **Every input mapped**, none missing, no conflicts: [docs/CONTROLS.md](docs/CONTROLS.md).
 - **The VR menu** (hold the left menu button for a second, anywhere; in play the game pauses under it) in the game and
   **the launcher** (game files import and check, Options, PC saves import, logs and a
-  report, What's new, updates from GitHub releases); every VR feature on (except Smoother frames, the ghost hands and Heather's shadow) and the best performance options
+  report, What's new, updates from GitHub releases); every VR feature on (except Smoother frames and the ghost hands) and the best performance options
   by default.
 - **Crash records that explain themselves**: sh3-crash.log with the guest and host stacks, the game's state and VR's.
 

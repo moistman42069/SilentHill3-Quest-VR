@@ -1,0 +1,36 @@
+# SH3 Quest VR, the PC rig (session 26, 0.1.7; a player on 0.1.6, owner message 134: "I could not open the second green
+# gate at the start of the game. The first gate I could open with the A button ... Also after passing the first gate I
+# can't see my hands anymore"), about 2.5 minutes. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312
+# QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_HP=100
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16450,19300;16541,17832"
+# The walk to the entrance (event 5, a line at x -13157 from z 22453 to 23950) ends facing about 22 degrees (along her
+# last leg), where the game's own 1.02 m along her facing falls short of the door's line. The head then turns 45
+# degrees right, toward the door (her body follows only past 50), and A is pressed: 0.1.7's button check along the
+# gaze finds event 5 and the door opens (sh3.log "the action button (pass 0) found event 5 where the player looks").
+# Past it, in the circular hall: both hands raised before the eyes, pictured standing, walking and standing again,
+# then lowered and looked at (the player's hands gone after the first gate).
+7740 left_y 1
+8100 left_y 0
+8102 shot a08102-before-gate
+8104 head_yaw 45
+8112 shot a08112-looking-at-gate
+8114 a 1
+8122 a 0
+8150 head_yaw 0
+8150 rh_y 0.25
+8150 rh_z -0.10
+8150 lh_y 0.25
+8150 lh_z -0.10
+8175 shot a08175-hands-after-gate
+8180 left_y 1
+8240 shot a08240-hands-walking
+8262 left_y 0
+8275 shot a08275-hands-standing
+8280 rh_y 0
+8280 rh_z 0
+8280 lh_y 0
+8280 lh_z 0
+8285 head_pitch -40
+8300 shot a08300-hands-looking-down
+8310 head_pitch 0
+8320 quit 0

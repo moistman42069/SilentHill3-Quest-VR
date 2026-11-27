@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SH3 Quest VR: the in-game VR menu (LIST 17). Every VR option (sh3vr.cpp's rows, the same keys the launcher writes)
-// as a row on six pages, opened by holding the left menu button a second in any of the game's menus (the pause menu,
+// as a row on seven pages (0.1.7: the Hints page, owner message 144: the "Hints" switch, "Show every hint again", and
+// every hint's line to read again), opened by holding the left menu button a second in any of the game's menus (the pause menu,
 // the inventory, the title) and closed by B, a short press of the menu button, or holding it again. Either stick
 // moves and changes; A or the trigger changes; the pointer picks pages and rows (its left half of a value steps it
 // down, its right half up) with a haptic tick for each row crossed. Each change is saved to sh3vr.ini at once; the
@@ -40,21 +41,36 @@ float stick_hold = 0, stick_x_hold = 0;
 int stick_dir = 0, stick_x_dir = 0;
 std::string note;             // a line at the foot (what changed)
 
-// The rows of a page (and the action rows the View page starts with).
+// The rows of a page (and the action rows the View page starts with; the Hints page's action and its lines).
+constexpr const char* kRecentre = "Recentre the view now";
+constexpr const char* kHintsAgain = "Show every hint again";
 struct Item {
-    const OptionRow* row;     // null: an action
-    const char* action;
+    const OptionRow* row;     // null: an action, or a line to read
+    const char* action;       // null with no row: `line`
+    std::string line;
 };
 std::vector<Item> items;
+
+bool hints_page() {
+    int np = 0;
+    const char* const* pages = option_pages(np);
+    return page >= 0 && page < np && !std::strcmp(pages[page], "Hints");
+}
 
 void build_items() {
     items.clear();
     int n = 0, np = 0;
     const OptionRow* rows = option_rows(n);
     const char* const* pages = option_pages(np);
-    if (page == 1) items.push_back({nullptr, "Recentre the view now"});
+    if (page == 1) items.push_back({nullptr, kRecentre, ""});
     for (int i = 0; i < n; i++)
-        if (!std::strcmp(rows[i].page, pages[page])) items.push_back({&rows[i], nullptr});
+        if (!std::strcmp(rows[i].page, pages[page])) items.push_back({&rows[i], nullptr, ""});
+    if (hints_page()) {
+        items.push_back({nullptr, kHintsAgain, ""});
+        std::vector<std::string> lines;
+        tip_lines(lines);
+        for (const std::string& l : lines) items.push_back({nullptr, nullptr, l});
+    }
     sel = std::clamp(sel, -1, (int)items.size() - 1);
 }
 
@@ -111,6 +127,11 @@ void draw() {
             fill(40, y, 5, kRowH - 4, kRust);
         }
         const Item& it = items[i];
+        if (!it.row && !it.action) {
+            // a hint's line (0.1.7): smaller, to fit the row
+            text(64, y + 30, 18, on ? kBright : kText, it.line.c_str());
+            continue;
+        }
         if (!it.row) {
             text(64, y + 32, 26, on ? kBright : kText, it.action);
             continue;
@@ -145,9 +166,16 @@ void draw() {
 void change(int dir) {
     if (sel < 0 || sel >= (int)items.size()) return;
     const Item& it = items[sel];
+    if (!it.row && !it.action) return;  // a hint's line: only to read
     if (!it.row) {
-        request_recentre();
-        note = "View recentred";
+        if (it.action == kHintsAgain) {
+            tip_reset_all();
+            note = "Every hint will show again";
+        } else {
+            request_recentre();
+            note = "View recentred";
+        }
+        buzz(point_hand, 0.2f, 0.02f, 200.0f);
         dirty = true;
         return;
     }

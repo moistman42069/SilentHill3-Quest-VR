@@ -1,3 +1,51 @@
+0.1.7:
+
+- A opens what you look at: the game's action button looks about a metre along the way Heather faces, and in first
+  person she turns after your head only once you look 50 degrees away, so a gate or door you looked at could lie
+  beside her line (the second green gate at the start). When the way she faces finds nothing, A now looks where you
+  look, a little either side and a little further, and uses the door, item or thing to examine that is there.
+- Your hands in the dark: past the first gate, hands held low or at rest were outside the flashlight's narrow beam and
+  stayed black. The chest flashlight now spills light onto what is right by it, as a real one does: your hands and arms
+  stay in sight. With the flashlight off they go dark with the room, as Heather does.
+- A tick and a buzz in your hand each time A or your hand uses a door, an item or something to examine.
+- A no longer keeps Heather walking: let go of the stick and press A, and she stops where she is.
+- No more sticking to the dead dog: hitting a monster that holds Heather breaks its hold, and one that dies holding her
+  lets her go at once (she was pulled back to where it died).
+- No more getting stuck in a grab, a knockdown or a flinch: hit or grabbed while walking with the stick (knife stabs
+  one after another, say), she could be left there for good, only walking, the monsters no longer attacking. VR's
+  walk and turn now wait while the game has her reacting, and the left stick goes to the game (its struggle counts
+  each push). A swing that hits at contact presses the game's attack no faster than each weapon's own pace.
+- The purple break-free bar: when a monster holds her, the game's own bar shows in front of you, filling down as you
+  shake, lit by each shake ("Break-free bar when grabbed", View, on).
+- Hints, each shown once: the first time something new comes up, a short line fades in front of you and away again:
+  the controls as you start, something to use or an item within reach, a monster's grab (shake to break free), your
+  first gun and melee weapon, the flashlight, low health, and the reload's steps on each gun's first reload. One
+  switch, "Hints" (on; it takes the place of "Reload hints"). The VR menu's new Hints page lists every hint to read
+  again; "Show every hint again" brings them back.
+- Melee damage (Hands and weapons, 200% to start, 50 to 400%): every swing and punch hits harder, the knife and your
+  fists a further 1.5x. About six knife slashes or three pipe swings put the park's first dog down.
+- No more false weapon bumps or dings: her own body (skirt, chest, shoulders) was sometimes taken for a wall, holding
+  the weapon back mid-walk. Her body is now known exactly, and a bump needs a real surface twice in a row.
+- Heather's shadow under the rooms' lamps now follows her body as you move it (the game drew it from her animation:
+  walking legs under you, a dark blob at the eyes). The old "Heather's shadow" switch is gone: the game's own shadow is
+  the one now.
+- Two-hand grip spot, per weapon (VR menu, Hands and weapons): "Adjust: take hold where you want it" keeps the spot
+  where your second hand takes hold for the weapon in your hand; "Reset the weapon in your hand" and "Reset every
+  weapon" bring the natural spots back. The game's own second hand follows it too.
+- Her hands on the guns: on the handgun, shotgun, submachine gun, stun gun and flamethrower her hand holds each gun
+  where the game's own hand does, her fist closed round the grip and her trigger finger on the trigger, following
+  yours (her hand sat 3 cm ahead of the grip, closed on air). The second hand wraps round the front of your fist on
+  the handgun, and under the submachine gun's and the flamethrower's front its thumb lies along the side (it stood up
+  over the top). The melee weapons keep the game's own hands.
+- Play flat on the Quest: the Flat version showed a black screen with sound. It now plays on a big screen in the
+  headset, the controllers as the game's pad.
+- The view stays at Heather's head when you walk with the stick right after stepping or leaning in your room (your
+  eyes stayed behind her head, her hair in view).
+- Your arms stay out of your eyes: with both hands raised before your face and the controllers pointing ahead, her
+  elbow could come up in front of her eyes, the forearm running into the view. Her elbow now stays clear of your eyes,
+  hanging below the hand as a real one does.
+- A hand that closes, or a press of A, that uses nothing says so in sh3.log, with where it looked.
+
 0.1.6:
 
 - Monsters are seen at their distance: the game picked which characters to draw with its own camera, not your head,

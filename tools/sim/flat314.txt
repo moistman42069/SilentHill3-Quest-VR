@@ -1,0 +1,14 @@
+# SH3 Quest VR, the PC rig (session 26, 0.1.7; a player on 0.1.6, owner message 126: the Flat version showed a black
+# screen with sound): sh3vr.ini's vr = 0 with SH3_FLAT_SCREEN=1, the headset's Flat on the rig: the game on the cinema
+# screen all the time, the controllers as the game's pad. A scene, then play standing and walking, pictured. About
+# 2 minutes. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=-1 (Flat never sends VR play's set-up mark, so with 7312 the script
+# stops there: vr318) SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_FLAT_SCREEN=1 (vr = 0 in the game folder's sh3vr.ini for the run).
+3000 shot f03000-scene
+7400 shot f07400-play
+7410 left_y 1
+7470 left_y 0
+7480 shot f07480-walked
+7490 head_yaw 40
+7520 shot f07520-head-turned
+7540 quit 0

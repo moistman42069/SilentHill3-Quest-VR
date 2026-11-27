@@ -7,8 +7,9 @@ Your hands are hers
 Her arms, hands and fingers follow yours. Her fingers stop on walls and objects; close your hand on an item, a handle
 or a door to take or use it. Turn your left wrist toward you and look at her watch: her health and stamina show there
 ("Health and stamina on your wrist", View, turns them off).
-A ghost of her hand where yours goes into a wall, and her shadow in the flashlight's beam, are on the VR menu (off to
-start). Your head in a wall darkens the view; held there 2 seconds, the view goes back to Heather.
+A ghost of her hand where yours goes into a wall is on the VR menu (off to start). Under the rooms' lamps her shadow
+follows her body as you move it, the weapon in her hand too.
+Your head in a wall darkens the view; held there 2 seconds, the view goes back to Heather.
 
 Weapons
 Grip at your right hip for your gun, over your right shoulder for your melee weapon ("Gun on the hip, melee on the
@@ -17,7 +18,8 @@ your hand must come. Supplies
 are in the pouch at your belt, the flashlight in your chest pocket. Swing to hit; hold a weapon or your forearm up
 between you and a monster to block. Reload by hand: right stick down drops the magazine, take a new one from the front
 of your belt and push it in, then rack the slide. When a monster knocks you down or grabs you, shake your controllers to
-get free.
+get free. The first time something new comes up a short hint shows once in front of you; the VR menu's Hints page
+lists every hint to read again.
 
 Controls
 Left stick walks (click it to run until you click again or let go: Sprint toggle), right stick turns. The main trigger fires; melee weapons you swing. A is the action
@@ -46,7 +48,7 @@ the muzzle; in first person the lamps' glows are left out, as the PC VR mod leav
 Film grain, Drifting fog (far off in the world, not in front of your eyes), Smooth edges, Brightness, Contrast, Color saturation and Darker edges
 are on the Options tab, View, or in the VR menu in the game.
 
-Every VR feature is on from the start except Smoother frames, the ghost hands and Heather's shadow, the screen
+Every VR feature is on from the start except Smoother frames and the ghost hands, the screen
 filters off; each one can be changed on the Options tab or in
 the VR menu in the game (hold the left menu button for a second).
 

@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <vector>
 
 #include "sh3vr.h"
 #include "hand.h"  // dot, Mat3; before pointer.h, whose beam_pose uses dot
@@ -91,7 +92,8 @@ struct Options {
     bool smooth_edges = false;   // FXAA (the PC VR mod's EnableFXAA); 0.1.3 off (owner 84: no screen filters by default)
     bool her_shadow = false;     // LIST 56 (session 12, owner messages 49-50): her IK body, her weapon and a part held cast
                                  // shadows from the flashlight in the game's own stencil shadows (her_shadow_tris, d3d8.c);
-                                 // 0.1.5 off by default (owner 100: "turn the ik body shadow off by default too")
+                                 // 0.1.5 off by default (owner 100: "turn the ik body shadow off by default too");
+                                 // 0.1.7 no longer offered (owner 135): the game's own shadow, cast from her body as drawn
     float panel_distance = 1.4f;
     float panel_width = 1.2f;
     bool panel_follow = true;    // the screen comes round when the head turns far from it
@@ -118,7 +120,12 @@ struct Options {
     bool laser = true;           // the guide dot
     bool auto_aim_first_person = false;
     bool two_hand = true;
+    int grip_spot = 0;           // 0.1.7 (owner message 124): the two-hand grip spot: 0 as saved, 1 adjust (taking hold
+                                 // sets it), 2 the weapon in the hand reset, 3 every weapon reset (then 0 again;
+                                 // sh3vr_combat.cpp update_two_hand)
     bool physical_melee = true;
+    float melee_damage_pct = 200.0f;  // 0.1.7 (a player on 0.1.6: "The enemies seem to take an absurd amount of knifing to
+                                      // kill"): physical melee and punches deal this much of the game's damage
     bool punches = true;
     bool gun_club = true;
     bool holsters = true;
@@ -134,13 +141,16 @@ struct Options {
     bool grabbing = true;
     bool take_by_hand = true;    // LIST 45: items taken by closing the hand on them (the game's own pick-up runs)
     bool manual_reload = true;   // LIST 46: guns reloaded with the hands (sh3vr_reload.cpp)
-    bool reload_hints = true;    // LIST 46: the reload's next step on the screen, the first three reloads of a run
     bool hand_sounds = true;     // a sound for every hand action (holsters, the pouch, the slide, a hand on a wall...: sh3vr_sounds.cpp)
     bool wrist_health = true;    // LIST 49: the health and stamina bars on her left wrist, where her watch is, shown when
                                  // looked at; 0.1.6 "Health and stamina on your wrist", on the View page (owner 111: a toggle)
     bool blocking = true;        // LIST 50: a raised weapon or arm takes a monster's hit (less damage)
     bool shake_free = true;      // owner message 38: shaking the controllers counts as the game's button mashing to get free
                                  // when she is knocked down or held (sh3vr_combat.cpp struggle_frame; sh3.c 0x4D44E0)
+    bool hold_bar = true;        // 0.1.7 (owner message 128): the purple break-free bar in view while she is held or down
+    bool hints = true;           // 0.1.7 (owner messages 143, 144): every hint, each shown once (sh3vr_tips.cpp): the start,
+                                 // a door or an item in reach, a grab, the first gun and melee weapon, the flashlight, low
+                                 // health, and the reload's steps (the first reload of each gun); the VR menu's Hints page
     // Vibration (LIST 23, 44; the keys stay haptics* so earlier sh3vr.ini files keep their settings)
     bool haptics = true;
     float haptics_strength = 100.0f;  // %
@@ -202,6 +212,7 @@ int main_hand();               // kRight, or kLeft when left-handed
 // LIST 45: the spot (world) a closing hand asks the game's action at this frame, and the event the game found there.
 bool hand_action_at(Vec3& world);
 void hand_action_found(int event);
+void button_action_found(int event, int pass);  // 0.1.7: the action button used something (a tick and a buzz)
 // Session 11: a free hand reaching out (its palm, world) for the action check without the button, and what it found.
 bool hand_reach_point(int hand, Vec3& world);
 // Session 11: where a hand last used something (world) if within `seconds`; the GL link helper (sh3vr_body.cpp).
@@ -389,6 +400,9 @@ bool weapon_reach(Vec3& from, Vec3& to);
 // The drawn weapon's shape (world capsules): the probes take it for the weapon, not the world.
 int weapon_capsules(Capsule* out, int max, bool with_flash = true);  // with_flash: the muzzle flash just after a shot (not for shadows)
 int her_shadow_tris(const float view[16], const float proj[16], float* out, int max_tris, int counts[5]);  // LIST 56 (session 12)
+// 0.1.7 (owner 123): her shadow from a room lamp in place of the game's own (her mesh as drawn; -1 not caught)
+bool her_room_shadow_ready();
+int her_room_shadow_tris(const float view[16], const float proj[16], Vec3 lamp, float* out, int max_tris, int counts[5]);
 // LIST 56 (session 14): a skinned draw of hers in the eyes (kind 1: the weapon or a part in her hand) for her shadow
 void shadow_part(const uint8_t* v48, int nv, const uint16_t* tris, int nt, const float* c, uint32_t key, int kind);
 bool ik_chest_carry(Vec3 p, Vec3& out);  // a point on her chest as the game posed it, where VR's pose puts it (the chest lamp)
@@ -401,6 +415,7 @@ float weapon_clearance(int hand, Vec3 a, Vec3 b);
 int weapon_hand_role(int hand);
 float weapon_two_share(int hand);  // the other hand's share of the second grip, eased (0 .. 1)
 float weapon_hold_curl(int hand);
+float weapon_hold_thumb(int hand);  // 0.1.7: the second hand's thumb curl on its grip (-1: as its fingers)
 // The game's own gripping hand shown for hand h on the weapon held (its group in Heather's model), -1 her finger hand.
 int native_hand_group(int hand);
 bool weapon_is_gun();
@@ -420,6 +435,7 @@ bool body_light_place(int h, Vec3& centre, Vec3& lens);  // the flashlight box's
                                                          // (the lens' clear part) in hand h's grip space
 // The weapon against the world (its probes, sh3vr_body.cpp): the free part of its line (1: free).
 float weapon_wall_free();
+const char* weapon_wall_line();  // 0.1.7: what the weapon's line probes said when its last contact started
 int combat_flashlight_place(float* pos, float* dir, float* pos2, float* dir2);
 int combat_flashlight_bone(float m[16]);
 int combat_light_hand();  // the hand holding the flashlight, -1 on her chest
@@ -430,6 +446,7 @@ int body_light(float vsc[96][4], int pal_count, Sh3VrBeam* beam);  // her own dr
 bool last_draw_was_weapon();
 int combat_melee_volume(int weapon_slot, Sh3VrHit* hit);
 int combat_extra_hit(Sh3VrHit* out);
+int combat_test_sweep(const float* pg, const float* pt, const float* cg, const float* ct, float radius);
 void combat_melee_landed(const float way[3], const float point[3], uint32_t character, int battle_id);
 float combat_hit_given(uint32_t character, const float way[3], const float point[3], float damage, int reaction);
 // LIST 50: what a monster's hit on her keeps of its damage (0..1) as her raised weapon or arm guards it (world: the
@@ -458,6 +475,22 @@ int reload_held_part(int hand);         // the part (PartKind) the hand holds, -
 // The other hand on the slide or the cocking knob: where it is shown (it stays on the part as the part moves).
 bool reload_hand_spot(int hand, Pose& shown);
 void reload_crash_info(FILE* f);
+
+// ---------------------------------------------------------------- hints (sh3vr_tips.cpp, owner messages 143, 144)
+
+enum TipKind { kTipStart, kTipFlashlight, kTipUse, kTipItem, kTipHeld, kTipGun, kTipMelee, kTipHealth, kTipCount };
+void tip_event(int kind);       // something a hint is about came up (a grab: kTipHeld; within reach: kTipUse, kTipItem)
+void tip_moment_over(int kind); // ... and is over (she is free): its line ends, its waiting lines go
+bool tip_wants_use();           // sh3.c asks whether to look for a door or an item within reach this frame
+void tips_frame();              // each frame, after combat_frame: what starts a hint, the line up now
+const char* tip_text();         // the line for the hint label now (reload_hint_texture, when no reload step is due), or null
+bool hint_label_up();           // the hint label is up in full showing a first-time hint (sh3vr.cpp ui)
+extern bool hint_is_tip;        // the hint label drawn this frame is a first-time hint (sh3vr_reload.cpp)
+bool tip_reload_due(int gun_item);   // the reload's steps still to show for this gun (its item: 9 stun gun ... 12)
+void tip_reload_done(int gun_item);  // ... a reload of it done with them: not again
+void tip_reset_all();                // the VR menu's "Show every hint again"
+void tip_lines(std::vector<std::string>& out);  // every hint, for the VR menu's Hints page (the options as they are)
+void tips_crash_info(FILE* f);
 
 // ---------------------------------------------------------------- the weapon's passes, the parts (sh3vr_parts.cpp)
 
@@ -512,6 +545,7 @@ enum HandSound {
     kSoundHandSurface,      // a hand laid on a wall, a table or the floor (session 8)
     kSoundStruggle,         // a shake of a controller counted toward breaking free of a hold (owner message 38)
     kSoundMenu,             // the VR menu opened (detail 1) or closed (0) (owner 80, session 16: held left menu button)
+    kSoundUse,              // 0.1.7: the action button (or a hand) used something: a door, an item, a thing examined
     kSoundCount
 };
 // A hand action's sound at a place (world), heard from there (session 9: mixed over the game's sound, src/win32/dsound.c
@@ -527,6 +561,15 @@ void struggle_frame();
 int struggle_presses(float left);
 void struggle_done(int freed, int buttons);
 void struggle_crash_info(FILE* f);
+// 0.1.7 (owner message 128): the break-free bar's state (sh3vr.cpp show_hold_bar). `held` while she is held or down,
+// `start` the game's time to get free as the hold began and `left` what is left of it, `presses` every press counted
+// this hold (shakes given and buttons), `freed` the holds she got free from and `holds` all holds so far.
+struct StruggleBar {
+    bool held = false;
+    float start = 0, left = 0;
+    int presses = 0, freed = 0, holds = 0;
+};
+StruggleBar struggle_bar();
 
 // ---------------------------------------------------------------- the VR menu (sh3vr_menu.cpp)
 

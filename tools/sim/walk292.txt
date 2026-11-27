@@ -1,0 +1,51 @@
+# SH3 Quest VR, the PC rig (session 25, owner 123: "weapons are acting like theyre colliding with things mid walk/in the
+# air despite there being nothing ... a ding happens too"): the submachine gun held low at the hip and in front, walking
+# forward, strafing, backing up and turning in the park's open start, one-handed then with the left hand on its second
+# grip, looking ahead and down. Every "held at a surface" line is a false one here unless the pictures show a surface.
+# Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_GIVE="12:20,17:60" SH3_EQUIP=3
+7318 shot w07318-start
+7320 right_x -1
+7350 right_x 0
+7360 rh_x 0.05
+7360 rh_y -0.30
+7360 rh_z -0.20
+7360 hand_pitch -20
+7365 head_pitch -25
+7380 shot w07380-hip
+7385 left_y 1
+7420 shot w07420-walk-hip
+7460 shot w07460-walk-hip
+7470 left_y 0
+7470 left_x 1
+7500 shot w07500-strafe-hip
+7520 left_x -1
+7550 shot w07550-strafe-hip-left
+7560 left_x 0
+7560 left_y -1
+7600 shot w07600-back-hip
+7610 left_y 0
+7615 rh_y -0.15
+7615 rh_z -0.35
+7615 hand_pitch 0
+7615 head_pitch -10
+7620 left_grip 1
+7621 lh_at_second 1
+7640 shot w07640-two-hands
+7645 left_y 1
+7680 shot w07680-walk-two
+7700 left_y 0
+7700 left_x 1
+7730 shot w07730-strafe-two
+7740 left_x 0
+7740 left_y -1
+7770 shot w07770-back-two
+7780 left_y 0
+7780 head_pitch -45
+7785 left_y 1
+7810 shot w07810-walk-two-down
+7830 left_y 0
+7830 right_x 1
+7850 right_x 0
+7860 shot w07860-turned
+7870 quit 0

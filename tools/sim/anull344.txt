@@ -1,0 +1,14 @@
+# SH3 Quest VR, the PC rig (session 28, 0.1.7 build 238), about 1.5 minutes: A pressed at the opening's start where
+# nothing is to use, the head level and ahead, then turned 40 degrees right: sh3.log "the action button (pass 0) found
+# nothing along her facing (N degrees) nor where the player looks (...)" with the ways and places it tried (build 238),
+# once a second at most. Run with QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50
+# SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+7400 a 1
+7408 a 0
+7420 shot n07420-a-ahead
+7480 head_yaw -40
+7500 a 1
+7508 a 0
+7520 shot n07520-a-right40
+7540 head_yaw 0
+7560 quit 0

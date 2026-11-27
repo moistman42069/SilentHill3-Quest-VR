@@ -166,6 +166,13 @@ struct Hold {
     Vec3 second_rod;       // model (unit): its rod
     Vec3 second_palm;      // model (unit): the way its palm faces
     float curl, second_curl;  // the fingers round each grip (0 open .. 1 a full fist): thicker grips, less
+    // 0.1.7 (owner messages 129, 133: "weapon grips should look natural and accurately fitted to the guns", "whichever
+    // looks best"): the second hand's thumb (0 straight .. 1 curled; -1: as its fingers, at most 0.7), and the second
+    // hand moved from its point (model units: from the game's own left hand's place where there is one, else from
+    // second_at) while the main hand holds at the game's own place (second_nudge(profile)), as the rig's pictures
+    // showed best (vr312: the handgun's six ways and the submachine gun's).
+    float second_thumb = -1.0f;
+    Vec3 second_nudge{};
 };
 // By profile (kWeapons' order). Session 5's measurements (the meshes in tools/gun_view.py's pictures):
 // - Handgun, bone 0: barrel +x, top +y; the grip's back strap from (20.8, -24) to (32.4, 30), its front strap from
@@ -174,6 +181,8 @@ struct Hold {
 //   109) is the slide's front (bone 1, posed at 139.6 38.1 -13.1 in bone 0's frame: vr188), x 137.0 round y 38.1,
 //   z -13.1: muzzle_point. At the tip the flash sat 7 cm back inside the slide. The second hand wraps round the main hand's
 //   fingers from the left front, its palm against the grip's left side.
+//   0.1.7 (vr312): with her main hand at the game's place (its fist 3 cm behind the measured one) the second hand sits
+//   4 cm back and 1.4 cm up (second_nudge), its palm on the grip's left panel, its fingers round the main fist's front.
 // - Submachine gun, bone 0: barrel +x, top +y; the grip (the magazine up through it) x 26.4-56.7, y -21 to 29, raked 6
 //   degrees; the muzzle x 115.6, y 40-50. The second hand cups the receiver's front under the barrel, palm up, thumb
 //   forward: the front block x 84-112 (z -23.8 to -0.2), its floor at y 29-31, ahead of the trigger guard (x 56-84,
@@ -181,6 +190,8 @@ struct Hold {
 //   space: the palm 1.9 cm behind the fist's centre), so a centre at y 16 left the palm at the guard's floor, 4.7 cm
 //   under the receiver, the guard drawn across her fingers; at y 38.5 the palm lies on the floor, the fingers up its
 //   right side, the little finger over the guard's front where it meets the receiver.
+//   0.1.7 (vr312): at y 32.5 (the palm 1.2 cm under the floor) her fingers up its right side end at its top instead of
+//   2 cm over it, and the thumb lies straight along its left side (curled, it stood up over the top).
 // - Stun gun, bone 0: its body a box 13 x 6 x 3.8 cm whose long axis lies along (0.451, 0.891, -0.051) from (25, -40)
 //   to (55, 19); the electrode head (bone 1) on its upper end. Held like a flashlight: the fist round the box's lower
 //   half, the electrodes out of the thumb side.
@@ -199,11 +210,11 @@ struct Hold {
 // and the palm point here is only used until that is read (the first frames after the weapon is drawn).
 const Hold kHolds[kProfiles] = {
     {true, false, 0, {1, 0, 0}, {0, 1, 0}, {39.3f, -8.0f, -13.9f}, {0.210f, 0.978f, 0}, {101.4f, 28.0f, -13.9f}, true,
-     {58.0f, -10.0f, -18.0f}, {0.300f, 0.954f, 0}, {0, 0, 1}, 0.80f, 0.74f},
+     {58.0f, -10.0f, -18.0f}, {0.300f, 0.954f, 0}, {0, 0, 1}, 0.80f, 0.74f, -1.0f, {-20.0f, 7.0f, -2.0f}},
     {true, false, 1, {1, 0, 0}, {0, -1, 0}, {-282.0f, 33.0f, 0}, {0.28f, -0.96f, 0}, {0, 0, 0}, true,
      {-72.0f, 18.0f, 0}, {1, 0, 0}, {0, -1, 0}, 0.80f, 0.70f},
     {true, false, 0, {1, 0, 0}, {0, 1, 0}, {41.5f, 3.0f, -10.6f}, {0.105f, 0.994f, 0}, {115.6f, 45.0f, -11.9f}, true,
-     {95.0f, 38.5f, -14.5f}, {1, 0, 0}, {0, 1, 0}, 0.78f, 0.70f},
+     {95.0f, 32.5f, -14.5f}, {1, 0, 0}, {0, 1, 0}, 0.78f, 0.70f, 0.15f},
     {true, true, 0, {0.451f, 0.891f, -0.051f}, {-0.892f, 0.452f, 0}, {34.9f, -19.8f, -12.1f}, {0.451f, 0.891f, -0.051f},
      {59.0f, 28.0f, -13.0f}, false, {}, {}, {}, 0.70f, 0},
     {true, true, 0, {0.28f, 0.955f, 0.098f}, {-0.96f, 0.28f, 0}, {41.0f, 5.0f, -11.0f}, {0.28f, 0.955f, 0.098f},
@@ -226,11 +237,47 @@ const Hold kHolds[kProfiles] = {
     // game's own left hand (group 38) is taken instead when it lies within 4 cm of it. Session 14 (vr197): its centre
     // at y 3 left the palm 4.7 cm under the body, as the submachine gun's; at y 26 the palm lies under the floor.
     {true, false, 0, {1, 0, 0}, {0, 1, 0}, {24.4f, -1.1f, -14.3f}, {0.21f, 0.978f, 0}, {231.0f, 26.0f, -20.0f}, true,
-     {155.0f, 26.0f, -18.0f}, {1, 0, 0}, {0, 1, 0}, 0.80f, 0.70f},
+     {155.0f, 26.0f, -18.0f}, {1, 0, 0}, {0, 1, 0}, 0.80f, 0.70f, 0.15f},
 };
 const Hold* hold_of(int w) {
     const int p = profile_of(w);
     return p >= 0 && kHolds[p].known ? &kHolds[p] : nullptr;
+}
+
+// Testing (0.1.7, the rig's grip pictures): SH3_SECOND_TEST="frame:profile,dx,dy,dz,curl,thumb;..." each entry from its
+// game frame on, for its profile: the second hand moved dx dy dz (model units) from its point, its fingers' curl and
+// its thumb's (-1: the hold's own). Entries in frame order; the latest begun is used, logged as it begins.
+struct SecondTest {
+    int from, profile;
+    Vec3 shift;
+    float curl, thumb;
+};
+const SecondTest* second_test(int profile) {
+    static SecondTest tests[48];
+    static int n = -1, last[kProfiles];
+    if (n < 0) {
+        n = 0;
+        for (int& l : last) l = -1;
+        const char* s = getenv("SH3_SECOND_TEST");
+        while (s && *s && n < 48) {
+            SecondTest t{};
+            if (std::sscanf(s, "%d:%d,%f,%f,%f,%f,%f", &t.from, &t.profile, &t.shift.x, &t.shift.y, &t.shift.z, &t.curl,
+                            &t.thumb) == 7)
+                tests[n++] = t;
+            s = std::strchr(s, ';');
+            if (s) s++;
+        }
+    }
+    int at = -1;
+    for (int i = 0; i < n; i++)
+        if (tests[i].profile == profile && tests[i].from <= rt_frame) at = i;
+    if (profile >= 0 && profile < kProfiles && at != last[profile]) {
+        last[profile] = at;
+        if (at >= 0)
+            rt_log("VR: frame %d: second hand test %d (profile %d): moved %.1f %.1f %.1f, curl %.2f, thumb %.2f", rt_frame,
+                   at, profile, tests[at].shift.x, tests[at].shift.y, tests[at].shift.z, tests[at].curl, tests[at].thumb);
+    }
+    return at >= 0 ? &tests[at] : nullptr;
 }
 
 // Where the shot leaves the gun (the held bone's model units): the hold's tip, but the handgun's muzzle is the front
@@ -363,9 +410,41 @@ int native_group_of(int profile, int h) {
     return h == kRight ? kNativeGroup[profile].right : kNativeGroup[profile].left;
 }
 // The native grip for hand h on the weapon of `profile`, when read and usable (a right-handed player).
+// 0.1.7 (owner messages 129, 133: "weapon grips should look natural and accurately fitted to the guns", "whichever
+// looks best"): a hand on a weapon with the game's own gripping hand is placed where the game holds it (its hand bone in
+// the weapon's), and drawn either as that rigid hand (as Team Silent made it for the third-person view: vr302, the
+// trigger finger straight past the trigger, the other fingers loose) or as her finger hand there, its fingers closed on
+// the weapon and the trigger finger following the controller's trigger: kFingerHandOn says which, by profile.
+// vr303: her finger hand round the old measured hold sat 3 cm ahead of the grip, its fingers closed on air.
+// Testing: SH3_GRIP_HAND=0 her finger hand at the measured hold (the old way), 1 the game's own hand on every weapon
+// that has one, 2 her finger hand at the game's place on every weapon (the rig's comparisons).
+// Chosen from the rig's pictures (vr302 the game's hands, vr309 her finger hand at the game's place): the guns take her
+// finger hand (her fist closed round the grip, the trigger finger at the trigger; the game's own has it straight past the
+// trigger and the other fingers loose); the knife keeps the game's hand (her fingers splayed through its thin handle),
+// and the pipe, katana, maul and beam saber too (alike either way, the game's made for them).
+bool kFingerHandOn[kProfiles] = {true, true, true, true, false, false, false, false, false, true};
+int grip_hand_test() {
+    static int t = -2;
+    if (t == -2) t = getenv("SH3_GRIP_HAND") ? atoi(getenv("SH3_GRIP_HAND")) : -1;
+    return t;
+}
+bool finger_drawn(int profile) {
+    const int t = grip_hand_test();
+    if (t == 0 || t == 2) return true;
+    if (t == 1) return false;
+    return profile >= 0 && profile < kProfiles && kFingerHandOn[profile];
+}
 const NativeGrip* native_of(int profile, int h) {
-    if (opt.left_handed || native_group_of(profile, h) < 0) return nullptr;
+    if (opt.left_handed || native_group_of(profile, h) < 0 || grip_hand_test() == 0) return nullptr;
     return native[profile][h].have ? &native[profile][h] : nullptr;
+}
+// The second hand moved by the hold's second_nudge, which is set for the main hand at the game's own place (its fist
+// there lies about 3 cm behind the measured hold's): a left-handed player's main hand keeps the measured hold, and the
+// second hand its own point.
+Vec3 second_nudge(int profile) {
+    if (profile < 0 || profile >= kProfiles) return Vec3{};
+    if (const SecondTest* t = second_test(profile)) return t->shift;
+    return native_of(profile, main_hand()) ? kHolds[profile].second_nudge : Vec3{};
 }
 
 struct WeaponFrame {
@@ -395,12 +474,16 @@ Vec3 frame_point(const WeaponFrame& f, Vec3 model) {
 }
 Vec3 frame_dir(const WeaponFrame& f, Vec3 model) { return normalized(rotate(f.turn, frame_local(f, normalized(model)))); }
 // The second grip's point (model units): the fist's centre of the game's own left hand where it holds the weapon (the
-// shotgun's pump, ...), else the hold's (mirrored for a left-handed player).
-Vec3 second_point(const WeaponFrame& f) {
+// shotgun's pump, ...), else the hold's (mirrored for a left-handed player); 0.1.7: moved by the player's own two-hand
+// grip spot (second_offset, "Two-hand grip spot").
+Vec3 second_offset(const WeaponFrame& f);
+Vec3 second_natural(const WeaponFrame& f) {
     const NativeGrip* ng = native_of(f.profile, kLeft);
-    if (ng && !f.mirror && main_hand() == kRight) return ng->palm;
-    return mirrored_point(f, f.hold->second_at);
+    const Vec3 nudge = second_nudge(f.profile);
+    if (ng && !f.mirror && main_hand() == kRight) return ng->palm + nudge;
+    return mirrored_point(f, f.hold->second_at + nudge);
 }
+Vec3 second_point(const WeaponFrame& f) { return second_natural(f) + second_offset(f); }
 
 // A hand's pose round a grip of the weapon: its fist's centre at `at` (tracking), its rod along `rod`, its palm facing
 // `palm` (tracking, unit) — OpenXR's grip pose: -Z the rod, +X out of the palm on the left hand and into it on the right.
@@ -425,6 +508,7 @@ struct Calib {
     float turn_deg[3]{};     // muzzle up (about its right), muzzle left (about its up), roll right (about its forward)
     float aim_pitch = 0, aim_yaw = 0;  // degrees: the shot's line from the barrel
     bool guide_dot = true;
+    float second_cm[3]{};    // 0.1.7 (owner message 124): the two-hand grip moved from its natural spot (right, up, forward)
 };
 Calib calib[kProfiles];  // by profile
 bool calib_loaded = false;
@@ -432,6 +516,17 @@ const Calib& calib_of(int w) {
     static const Calib kNone{};
     const int p = profile_of(w);
     return p >= 0 ? calib[p] : kNone;
+}
+
+// 0.1.7 (owner message 124: "two hand grip calibration which makes it so you can adjust where it locks to as needed"):
+// the player's own two-hand grip spot, per weapon, as moved from its natural one in the weapon's own axes (model units;
+// "right" the weapon's right as a right-handed player holds it, mirrored for a left-handed one).
+constexpr float kSecondMostCm[3] = {10.0f, 10.0f, 30.0f};  // right, up, forward: each way
+Vec3 second_offset(const WeaponFrame& f) {
+    if (f.profile < 0 || f.profile >= kProfiles) return Vec3{};
+    const float* cm = calib[f.profile].second_cm;
+    const float u = 0.01f * kUnitsPerMetre;
+    return (f.right * (f.mirror ? -cm[0] : cm[0]) + f.up * cm[1] + f.fwd * cm[2]) * u;
 }
 
 void default_calibration() {
@@ -446,6 +541,8 @@ void write_default_calibration() {
                     "; these move and turn it from there (the hand follows it). Read when the game starts.\n"
                     "; Move: cm along the weapon (right, up, forward). Turn: degrees (muzzle up, muzzle left, roll\n"
                     "; right). Aim: degrees the shot's line (and the guide dot) leaves the barrel's.\n"
+                    "; SecondGrip: cm your other hand's grip lies from its natural spot (right, up, forward); the VR\n"
+                    "; menu's \"Two-hand grip spot\" sets it where you take hold, or puts every weapon's back.\n"
                     "Version=%d\n", kCalibVersion);
     for (int s = 0; s < kProfiles; s++) {
         const Calib& c = calib[s];
@@ -456,6 +553,9 @@ void write_default_calibration() {
         if (kWeapons[s].kind == kGun || kWeapons[s].kind == kStun)
             std::fprintf(f, "ShowGuideDot=%d\nAimPitchDegrees=%g\nAimYawDegrees=%g\n", c.guide_dot ? 1 : 0, c.aim_pitch,
                          c.aim_yaw);
+        if (kHolds[s].second)
+            std::fprintf(f, "SecondGripRightCm=%g\nSecondGripUpCm=%g\nSecondGripForwardCm=%g\n", c.second_cm[0],
+                         c.second_cm[1], c.second_cm[2]);
     }
     std::fclose(f);
 }
@@ -499,6 +599,9 @@ void load_calibration() {
         else if (k == "AimPitchDegrees") c.aim_pitch = std::clamp(v, -30.0f, 30.0f);
         else if (k == "AimYawDegrees") c.aim_yaw = std::clamp(v, -30.0f, 30.0f);
         else if (k == "ShowGuideDot") c.guide_dot = v != 0;
+        else if (k == "SecondGripRightCm") c.second_cm[0] = std::clamp(v, -kSecondMostCm[0], kSecondMostCm[0]);
+        else if (k == "SecondGripUpCm") c.second_cm[1] = std::clamp(v, -kSecondMostCm[1], kSecondMostCm[1]);
+        else if (k == "SecondGripForwardCm") c.second_cm[2] = std::clamp(v, -kSecondMostCm[2], kSecondMostCm[2]);
     }
     std::fclose(f);
     if (version != kCalibVersion) {
@@ -697,6 +800,9 @@ struct Swing {
     double landed_at = -10;
     int sweeps = 0;             // the sweeps sent this swing (the log)
     float fast_for = 0;         // 0.1.3: real seconds the hand has kept the swing's speed (a short hold before it counts)
+    // 0.1.7 (owner 140): the most this swing reached (the line telling why a fast swing gave no game attack)
+    float most_speed = 0, most_fast = 0, most_net = 0;
+    bool was_armed = false;
 };
 Swing swings[2];
 
@@ -756,7 +862,9 @@ struct {
     Vec3 world;
     int frames = 0;
     bool found = false;
+    int hover = -1;  // 0.1.7: what the hand could use as it closed (hand_hover's), for the log when nothing was used
 } hand_action;
+int hover_event[2] = {-1, -1};  // what each reaching hand can use now (hand_hover), -1 nothing
 float prev_grip_value[2]{};
 bool grip_held[2]{};
 bool stowing[2]{};              // this grip closed at a holster of the held weapon's kind: letting go puts it away
@@ -1014,6 +1122,34 @@ void update_two_hand() {
                    length(d) * 100.0f);
         }
     }
+    // 0.1.7 (owner messages 124, 130: "make two hand grip calibration PER GUN/weapon"): "Two-hand grip spot" on "Reset
+    // the weapon in your hand": that weapon's own spot again (with none in the hand, nothing changes); on "Reset every
+    // weapon": every weapon's. Either way the row goes back to "As saved", with a buzz and the use sound when done.
+    if (opt.grip_spot == 2 || opt.grip_spot == 3) {
+        const int p = in_hand && game.weapon > 0 ? profile_of(game.weapon) : -1;
+        int reset = 0;
+        if (opt.grip_spot == 3) {
+            for (Calib& c : calib) c.second_cm[0] = c.second_cm[1] = c.second_cm[2] = 0.0f;
+            reset = kProfiles;
+        } else if (p >= 0) {
+            calib[p].second_cm[0] = calib[p].second_cm[1] = calib[p].second_cm[2] = 0.0f;
+            reset = 1;
+        }
+        if (reset) write_default_calibration();
+        const bool all = opt.grip_spot == 3;
+        opt.grip_spot = 0;
+        const bool saved = save_options();
+        if (reset && hands[mh].valid) {
+            buzz(mh, 0.4f, 0.05f);
+            hand_sound(kSoundUse, world_point(hands[mh].grip.position), 0);
+        }
+        rt_log("VR: frame %d: %s (sh3quest_weapons.ini %s%s)", rt_frame,
+               all ? "every weapon's two-hand grip is back at its natural spot"
+                   : reset ? "the weapon in the hand has its two-hand grip back at its natural spot"
+                           : "no weapon in the hand: no two-hand grip reset",
+               reset ? "written" : "unchanged", saved ? "" : "; sh3vr.ini could not be saved");
+        if (!all && reset) rt_log("VR: the reset weapon: %s", weapon_name(game.weapon));
+    }
     // A magazine or shell in the off hand, or the slide in it (LIST 46): not on the foregrip.
     if (!opt.two_hand || !w || !in_hand || !o.valid || !hands[mh].valid || view_mode != ViewMode::kFirstPerson ||
         g < 0.5f || reload_owns_hand(oh) || (wf_one_hand.placed && !wf_one_hand.hold->second)) {
@@ -1029,7 +1165,21 @@ void update_two_hand() {
     }
     bool on;
     float away = 0, limit = 0;
-    if (wf_one_hand.placed) {
+    // 0.1.7 (owner message 124): "Two-hand grip spot" on "Adjust": the other hand takes hold anywhere along the weapon
+    // (within 10 cm of its line from the main hand to its far end), and where it took hold is that weapon's two-hand
+    // grip from then on (sh3quest_weapons.ini).
+    const bool adjusting = opt.grip_spot == 1 && wf_one_hand.placed && !o.on_foregrip;
+    if (adjusting) {
+        // The weapon's whole length: from its tip back past the main hand, or past its natural second grip where that
+        // lies behind the main hand (the pipe, the katana, the maul: down the handle below it; vr302 never took hold
+        // there), 10 cm more.
+        const Vec3 tip = frame_point(wf_one_hand, wf_one_hand.hold->tip);
+        const Vec3 nat = frame_point(wf_one_hand, second_natural(wf_one_hand));
+        Vec3 back = wf_one_hand.base;
+        if (length(nat - tip) > length(back - tip)) back = nat;
+        back = back + normalized(back - tip) * 0.10f;
+        away = seg_seg(body_shown[oh].position, body_shown[oh].position, back, tip), limit = 0.10f;
+    } else if (wf_one_hand.placed) {
         const Vec3 spot = second_spot(wf_one_hand);
         if (o.on_foregrip && w->aims_two_handed) {
             const float L = length(spot - wf_one_hand.base);
@@ -1048,6 +1198,20 @@ void update_two_hand() {
         hand_sound(kSoundGrabWeapon, world_point(o.grip.position), game.weapon);
         rt_log("VR: frame %d: the %s hand took %s's second grip (%.2f m from it)", rt_frame,
                oh == kLeft ? "left" : "right", weapon_name(game.weapon), away);
+        if (adjusting) {
+            const WeaponFrame& f = wf_one_hand;
+            const Vec3 d = model_of(f, body_shown[oh].position) - second_natural(f);
+            const float u = 0.01f * kUnitsPerMetre;
+            const float cm[3] = {dot(d, f.right) / u * (f.mirror ? -1.0f : 1.0f), dot(d, f.up) / u, dot(d, f.fwd) / u};
+            Calib& c = calib[f.profile];
+            for (int k = 0; k < 3; k++) c.second_cm[k] = std::clamp(cm[k], -kSecondMostCm[k], kSecondMostCm[k]);
+            write_default_calibration();
+            buzz(oh, 0.5f, 0.06f);
+            hand_sound(kSoundUse, world_point(o.grip.position), 0);
+            rt_log("VR: frame %d: %s's two-hand grip set where the %s hand took hold: %.1f cm right, %.1f up, %.1f "
+                   "forward of its natural spot (saved in sh3quest_weapons.ini)", rt_frame, weapon_name(game.weapon),
+                   oh == kLeft ? "left" : "right", c.second_cm[0], c.second_cm[1], c.second_cm[2]);
+        }
     } else if (!on && o.on_foregrip)
         rt_log("VR: frame %d: the %s hand left %s's second grip: %.2f m out (over %.2f)", rt_frame,
                oh == kLeft ? "left" : "right", weapon_name(game.weapon), away, limit);
@@ -1088,11 +1252,16 @@ void place_weapon() {
     if (wall_back > 0.002f) {
         if (!wall_touching) {
             wall_touching = true;
-            rt_log("VR: frame %d: %s held at a surface", rt_frame, weapon_name(game.weapon));
-            // Its knock on the surface where its line met it (louder the faster it came: detail, cm a second).
-            hand_sound(kSoundWeaponWall, world_point(reach_valid ? lerp(reach_from, reach_to, free_t)
-                                                                 : hands[mh].grip.position),
-                       (int)(hands[mh].speed * 100.0f));
+            rt_log("VR: frame %d: %s held at a surface (%s)", rt_frame, weapon_name(game.weapon), weapon_wall_line());
+            // Its knock on the surface where its line met it (louder the faster it came: detail, cm a second); 0.1.7:
+            // not again within 0.4 s (a weapon resting at a wall's edge, its line on and off it).
+            static double knocked_at = -10.0;
+            if (now - knocked_at > 0.4) {
+                knocked_at = now;
+                hand_sound(kSoundWeaponWall, world_point(reach_valid ? lerp(reach_from, reach_to, free_t)
+                                                                     : hands[mh].grip.position),
+                           (int)(hands[mh].speed * 100.0f));
+            }
             // A swing into the wall: a thump.
             if (opt.haptic_surfaces && hands[mh].speed > 1.0f) {
                 buzz(mh, std::min(0.9f, 0.45f + hands[mh].speed * 0.12f), 0.06f, 80.0f);
@@ -1130,7 +1299,7 @@ void place_weapon() {
     const NativeGrip* nm = native_of(wf.profile, mh);
     if (nm && native_pose(mh, *nm, Vec3{}, np)) {
         hands[mh].shown = np;
-        native_shown[mh] = native_group_of(wf.profile, mh);
+        if (!finger_drawn(wf.profile)) native_shown[mh] = native_group_of(wf.profile, mh);
     } else hands[mh].shown = hand_round(mh, wf.base, frame_dir(wf, hd.rod), right_t * -mxm);
     hand_role[mh] = 1;
     // The other hand on the second grip: there, posed as that grip is held (the game's own left hand on it, else her
@@ -1144,7 +1313,9 @@ void place_weapon() {
     if (two) {
         const NativeGrip* no = mh == kRight ? native_of(wf.profile, oh) : nullptr;
         const float pump = reload_pump_back();
-        if (no && native_pose(oh, *no, wf.fwd * -(pump * kUnitsPerMetre), np)) on = np, native_on = true;
+        // (0.1.7, owner message 124: the game's own other hand follows the player's two-hand grip spot too)
+        if (no && native_pose(oh, *no, wf.fwd * -(pump * kUnitsPerMetre) + second_offset(wf) + second_nudge(wf.profile), np))
+            on = np, native_on = true;
         else
             on = hand_round(oh, second_spot(wf), frame_dir(wf, mirrored_dir(wf, hd.second_rod)),
                             frame_dir(wf, mirrored_dir(wf, hd.second_palm)));
@@ -1192,7 +1363,7 @@ void place_weapon() {
             const Pose from = hands[oh].shown;
             hands[oh].shown = Pose{lerp(from.position, on.position, two_w), q_mix(from.orientation, on.orientation, two_w)};
         }
-        if (native_on && two_w >= 0.5f) native_shown[oh] = native_group_of(wf.profile, oh);
+        if (native_on && two_w >= 0.5f && !finger_drawn(wf.profile)) native_shown[oh] = native_group_of(wf.profile, oh);
         if (hands[oh].on_foregrip || two_w >= 0.5f) hand_role[oh] = 2;
         // The rig's record (session 13, the owner: "be sure two hand grip works/looks smoothly on all guns/weapons"):
         // each frame of a take or a let-go, how far along the ease is; once a take settles, how the hand is turned on
@@ -1548,6 +1719,8 @@ void update_swings() {
                 sw.fast_for = 0;
                 sw.fired = sw.landed = false;
                 sw.sweeps = 0;
+                sw.most_speed = sw.most_fast = sw.most_net = 0;
+                sw.was_armed = sw.armed;
                 // the path from where the weapon was the frame before the hand sped up
                 sw.start_grip_w = sw.seg_valid ? sw.seg_grip : g_now;
                 sw.start_tip_w = sw.seg_valid ? sw.seg_tip : tip_now;
@@ -1555,6 +1728,18 @@ void update_swings() {
             if (s.speed >= t.speed * 0.6f) sw.travel = std::min(0.75f, sw.travel + s.speed * motion_dt());
             sw.fast_for = s.speed >= t.speed ? sw.fast_for + motion_dt() : 0.0f;
         } else {
+            if (sw.active && !sw.fired && (what == kLight || what == kHeavy || what == kStun) &&
+                sw.most_speed >= t.speed && sw.most_fast >= 0.025f && sw.travel >= t.travel) {
+                // 0.1.7 (owner 140): a swing fast and long enough that pressed no game attack, and why
+                static int told = 0;
+                if (told++ < 20)
+                    rt_log("VR: frame %d: the %s %s's swing ended without the game's attack: armed %d (at its start %d), "
+                           "%.2f s since the last (it asks %.2f), the most speed %.2f m/s held %.0f ms, the fast travel "
+                           "%.2f m, %.2f m from its start (it asks %.2f), the game's attack still pressed %d%s", rt_frame,
+                           h == kLeft ? "left" : "right", weapon_name(slot), sw.armed, sw.was_armed, now - sw.last,
+                           slot == 7 ? 0.56f : t.cooldown, sw.most_speed, sw.most_fast * 1000.0f, sw.travel,
+                           sw.most_net, t.net, pending.armed, told == 20 ? "; no more of these lines" : "");
+            }
             if (sw.active && sw.sweeps > 0 && !sw.landed) {
                 static int told = 0;  // the rig (no one to hit at the start): the sweeps a swing sent, met no one
                 if (told++ < 30)
@@ -1567,6 +1752,11 @@ void update_swings() {
             sw.fast_for = 0;
         }
         const float net = sw.active ? length(s.grip.position - sw.start) : 0.0f;
+        if (sw.active) {
+            sw.most_speed = std::max(sw.most_speed, s.speed);
+            sw.most_fast = std::max(sw.most_fast, sw.fast_for);
+            sw.most_net = std::max(sw.most_net, net);
+        }
         const float cooldown = slot == 7 ? 0.56f : t.cooldown;
         const bool game_attack = what == kLight || what == kHeavy || what == kStun;
         // The swing felt once it is a real one (the PC mod's speed, travel and distance): a melee weapon's swing
@@ -1690,6 +1880,7 @@ void update_grabbing() {
                 hand_action.world = world_point(s.shown.position + rotate(s.shown.orientation, Vec3{0, -0.06f, 0}));
                 hand_action.frames = 4;
                 hand_action.found = false;
+                hand_action.hover = hover_event[h];
             } else if (opt.haptic_extra >= 1) buzz(h, 0.3f, 0.04f);  // "Extra vibration": pickups and doors
         }
     }
@@ -1720,7 +1911,23 @@ void combat_frame() {
     }
     place_weapon();
     update_swings();
-    if (hand_action.frames > 0) hand_action.frames--;
+    if (hand_action.frames > 0 && --hand_action.frames == 0 && !hand_action.found && hand_action.hand >= 0) {
+        // 0.1.7 (a player's 0.1.6 log: the left hand could use the hall's far door, event 48, again and again and no
+        // use was ever logged): a closing hand's use that found nothing says so, with what the hand could use then
+        // (every time it could use something; a hand closed on nothing only the first 20 times, so grabs at the air
+        // never fill the log)
+        static int told_nothing = 0;
+        if (hand_action.hover >= 0 || told_nothing < 20) {
+            if (hand_action.hover < 0) told_nothing++;
+            rt_log("VR: frame %d: the %s hand closed at %.0f %.0f %.0f and the game used nothing there (the hand could "
+                   "use %s%d as it closed)%s", rt_frame, hand_action.hand == kLeft ? "left" : "right",
+                   hand_action.world.x, hand_action.world.y, hand_action.world.z,
+                   hand_action.hover >= 0 ? "event " : "nothing: ", hand_action.hover,
+                   hand_action.hover < 0 && told_nothing == 20 ? "; no more of these lines for a hand that could use nothing"
+                                                                : "");
+        }
+        hand_action.hand = -1;
+    }
     update_grabbing();
     kick = std::max(0.0f, kick - 90.0f * frame_dt());
     parts_frame();
@@ -1748,6 +1955,11 @@ bool sim_holster_spot(int n, float out[3]) {
     const Vec3 s = holster_place(n - 1);
     out[0] = s.x, out[1] = s.y, out[2] = s.z;
     return true;
+}
+// The PC rig (xr_sim's "grip_spot N", 0.1.7): the VR menu's "Two-hand grip spot" set as the menu would.
+void sim_grip_spot(int v) {
+    opt.grip_spot = std::clamp(v, 0, 3);
+    rt_log("[sim] Two-hand grip spot set to %d", opt.grip_spot);
 }
 Quat quat_from_axes(Vec3 x, Vec3 y, Vec3 z) { return quat_of_axes(x, y, z); }
 
@@ -1826,7 +2038,14 @@ float weapon_two_share(int hand) { return hand == off_hand() ? two_w : 0.0f; }
 int native_hand_group(int hand) { return hand >= 0 && hand < 2 && wf.placed ? native_shown[hand] : -1; }
 float weapon_hold_curl(int hand) {
     if (!wf.placed) return 0.8f;
-    return hand_role[hand] == 2 ? wf.hold->second_curl : wf.hold->curl;
+    if (hand_role[hand] != 2) return wf.hold->curl;
+    const SecondTest* t = second_test(wf.profile);
+    return t && t->curl >= 0 ? t->curl : wf.hold->second_curl;
+}
+float weapon_hold_thumb(int hand) {
+    if (!wf.placed || hand_role[hand] != 2) return -1.0f;
+    const SecondTest* t = second_test(wf.profile);
+    return t && t->thumb >= 0 ? t->thumb : wf.hold->second_thumb;
 }
 bool weapon_is_gun() {
     const WeaponInfo* w = info_of(game.weapon);
@@ -1857,7 +2076,7 @@ bool hand_reach_point(int h, Vec3& world) {
 // What hand_reach_point's check found (an event, a floor item as 0x400 + its place, or -1): a light tick when a hand
 // comes onto something it can use ("Extra vibration": pickups and doors), once until it leaves it.
 void hand_hover(int h, int event) {
-    static int on[2] = {-1, -1};
+    int* on = hover_event;
     if (h < 0 || h > 1 || event == on[h]) return;
     if (event >= 0) {
         rt_log("VR: frame %d: the %s hand can use event %d (closing it uses it)", rt_frame, h == kLeft ? "left" : "right",
@@ -1878,6 +2097,18 @@ void hand_action_found(int event) {
     hand_sound(kSoundTake, hand_action.world);
     hand_used_at = now;
     hand_used_world = hand_action.world;
+}
+
+// 0.1.7 (a player on 0.1.6: "Sometimes it's not very clear if one has properly interacted with a door or object"): the
+// action button found something the game uses now (a door, an item, a thing to examine): a soft knock and tick from the
+// hand that pressed it (A: the right controller's) and a short buzz in it, before the game's own door, chime or message.
+void button_action_found(int event, int pass) {
+    const int h = kRight;
+    const Vec3 at = hands[h].valid ? world_point(hands[h].grip.position) : world_point(fi.head.position);
+    rt_log("VR: frame %d: the action button used event %d (pass %d): a tick and a buzz in the %s hand", rt_frame, event,
+           pass, h == kLeft ? "left" : "right");
+    buzz(h, 0.40f, 0.05f, 160.0f);
+    hand_sound(kSoundUse, at);
 }
 
 // Session 11 (owners 42-43): the game's message after a hand used something stands by that thing (sh3vr.cpp's UI).
@@ -2590,6 +2821,54 @@ int combat_extra_hit(Sh3VrHit* out) {
     return 1;
 }
 
+// testing (0.1.7, the PC rig, sh3.c's SH3_HOLD_HIT): one sweep of the knife's attack (as learned from the game; else the
+// nearest known) sent to the game's battle step the way a swing's contact sweep is (queue_extra), so the game takes it
+// as a hit of Heather's through its own test, damage and hit records.
+int combat_test_sweep(const float* pg, const float* pt, const float* cg, const float* ct, float radius) {
+    if (!learned_loaded) load_learned();
+    const int ls = learned[4].id >= 0 ? 4 : borrow(false);
+    const bool sent = queue_extra(ls, Vec3{pg[0], pg[1], pg[2]}, Vec3{pt[0], pt[1], pt[2]}, Vec3{cg[0], cg[1], cg[2]},
+                                  Vec3{ct[0], ct[1], ct[2]}, radius);
+    rt_log("hold test: frame %d: a sweep of attack %d (kind %d, learned slot %d) %s", rt_frame,
+           ls >= 0 ? learned[ls].id : -1, ls >= 0 ? learned[ls].kind : -1, ls, sent ? "sent to the battle step" : "not sent");
+    return sent ? 1 : 0;
+}
+
+// 0.1.7 (a player on 0.1.6: "The enemies seem to take an absurd amount of knifing to kill"): the game's own damage is
+// light for a swing that took a whole arm (its table 0x6CE170, 24 bytes a kind: the knife's slashes 30, its strong 40;
+// the hall's dog has about 712 health, so 25 stabs, vr242; in the game a button mashed them). Physical melee and punches
+// deal "Melee damage" of it (200%), and a swing faster than its kind asks up to half as much again (at twice the speed).
+// The characters a swing hit, with that swing's own factor, until the game takes the damage (sh3vr_hit_given).
+namespace {
+struct MeleeHit {
+    uint32_t character = 0;
+    double at = -10;
+    float speed_factor = 1.0f;
+};
+MeleeHit melee_hits[4];
+float swing_speed_factor(int what, float speed) {
+    const float ask = thresholds(what).speed;
+    if (!(ask > 0.0f) || !std::isfinite(speed)) return 1.0f;
+    return 1.0f + 0.5f * std::clamp(speed / ask - 1.0f, 0.0f, 1.0f);
+}
+// Owner message 128 ("make sure the melee damage option is on by default and adjusted to make combat feel better in
+// VR"): in VR a knife's slash or a punch takes a whole arm, as a pipe's swing does, and the game's knife deals a third
+// of the pipe's (its table: 40 against 130), so the light weapons hit half as hard again on top: at the default 200%
+// the hall's dog takes about 6 slashes of the knife (4 hard ones), 3 swings of the pipe (2 hard ones), 12 punches.
+float melee_class_factor(int what) { return what == kLight || what == kUnknown ? 1.5f : 1.0f; }
+void note_melee_hit(uint32_t character, float factor) {
+    MeleeHit* slot = &melee_hits[0];
+    for (MeleeHit& m : melee_hits) {
+        if (m.character == character) {
+            slot = &m;
+            break;
+        }
+        if (m.at < slot->at) slot = &m;
+    }
+    *slot = {character, now, factor};
+}
+}  // namespace
+
 // Owner 65: one of Heather's hits as the game recorded it (sh3.c after the battle step). A sweep's own way tells it
 // was that sweep's: that swing has hit (no more sweeps; a melee weapon's game attack pressed now if the swing had not
 // yet, for her motion and its sound, its own volumes dropped), a knock in that hand, a fist's thud. Else it was the
@@ -2609,6 +2888,10 @@ void combat_melee_landed(const float way[3], const float point[3], uint32_t char
     const float wl = std::sqrt(way[0] * way[0] + way[1] * way[1] + way[2] * way[2]);
     const float wn = wl > 1e-4f ? 1.0f / wl : 0.0f;
     if (found < 0) {
+        if (pending.armed) {  // 0.1.7: the swing's own game attack ("Melee damage")
+            const WeaponInfo* pw = info_of(pending.slot);
+            note_melee_hit(character, pw ? melee_class_factor(pw->kind) : 1.0f);
+        }
         if (pending.armed && !pending.landed) {
             pending.landed = true;
             const int mh = main_hand();
@@ -2628,6 +2911,7 @@ void combat_melee_landed(const float way[3], const float point[3], uint32_t char
            rt_frame, s.hand == kLeft ? "left" : "right", s.what == kUnknown ? "fist" : weapon_name(s.slot), character,
            battle_id, sw.sweeps, s.speed, at.x, at.y, at.z, way[0] * wn, way[1] * wn, way[2] * wn, wl,
            again ? " (another in the same sweep)" : "");
+    note_melee_hit(character, swing_speed_factor(s.what, s.speed) * melee_class_factor(s.what));  // 0.1.7: "Melee damage"
     if (s.what == kUnknown)
         for (FistHit& f : fist_hits)
             if (f.character == character || now - f.at > 1.0) {
@@ -2647,8 +2931,13 @@ void combat_melee_landed(const float way[3], const float point[3], uint32_t char
         hand_sound(kSoundWeaponWall, at, s.slot);
     // A melee weapon's swing that hit before it was fast enough to press the game's attack presses it now (her
     // swing's sound and stamina as the game's own), its volumes dropped (the hit is done).
+    // 0.1.7 (owner 140, the PC VR mod's maker: knife stabs spammed broke the game's animations; their mod's fix: a
+    // cooldown a weapon, and no new swing while a heavy one's sequence or its hit is pending): this press keeps the same
+    // limits as a swing that counted (update_swings), so contact hits never press the game's attack faster than it.
+    const float landed_cooldown = s.slot == 7 ? 0.56f : thresholds(s.what).cooldown;
+    const bool landed_busy = s.what == kHeavy && (now < still_until || pending.armed);
     if ((s.what == kLight || s.what == kHeavy) && !sw.fired && s.hand == main_hand() && s.slot == game.weapon &&
-        !(s.what == kHeavy && now < still_until)) {
+        !landed_busy && now - sw.last >= landed_cooldown) {
         sw.fired = true;
         sw.armed = false;
         sw.last = now;
@@ -2665,15 +2954,30 @@ void combat_melee_landed(const float way[3], const float point[3], uint32_t char
 // bare hands at half the weakest melee weapon's damage, the knife's attack borrowed).
 float combat_hit_given(uint32_t character, const float way[3], const float point[3], float damage, int reaction) {
     float keep = 1.0f;
+    bool fist = false;
     for (FistHit& f : fist_hits)
         if (f.character == character && now - f.at <= 1.0) {
             keep = 0.5f;
+            fist = true;
             f = {};
             break;
         }
+    // 0.1.7: a swing's or a punch's hit (never a shot): "Melee damage" of the game's, a harder swing more
+    float melee = 0.0f;
+    for (MeleeHit& m : melee_hits)
+        if (m.character == character && now - m.at <= 1.0) {
+            melee = m.speed_factor;
+            m = {};
+            break;
+        }
+    if (melee > 0.0f) keep *= std::clamp(opt.melee_damage_pct, 50.0f, 400.0f) * 0.01f * melee;
+    char why[96] = "";
+    if (melee > 0.0f)
+        std::snprintf(why, sizeof why, " (%s: %.0f%% of the game's, the swing's speed and kind x%.2f)",
+                      fist ? "a fist's, half of a knife's" : "melee", keep * 100.0f, melee);
     rt_log("VR: frame %d: %08X took %.1f damage from her%s (reaction %d) at %.0f %.0f %.0f, the way %.2f %.2f %.2f",
-           rt_frame, character, damage * keep, keep < 1.0f ? " (a fist's: half)" : "", reaction, point[0], point[1],
-           point[2], way[0], way[1], way[2]);
+           rt_frame, character, damage * keep, melee > 0.0f ? why : fist ? " (a fist's: half)" : "", reaction, point[0],
+           point[1], point[2], way[0], way[1], way[2]);
     return keep;
 }
 
@@ -2954,6 +3258,7 @@ void struggle_frame() {
         rt_log("VR: frame %d: the hold ended after %.1f s (%d shakes counted, %d given as presses, %d buttons)", rt_frame,
                struggle_clock - struggle_began, struggle_shakes, struggle_given, struggle_buttons);
         struggling = false;
+        tip_moment_over(kTipHeld);
     }
     for (int h = 0; h < 2; h++) {
         ShakeHand& s = shake_hand[h];
@@ -3000,6 +3305,7 @@ int struggle_presses(float left) {
         rt_log("VR: frame %d: she is knocked down or held: the game's time to get free %.2f; %s", rt_frame, left,
                opt.shake_free ? "shake the controllers (or press the buttons) to get free sooner"
                               : "\"Shake to break free\" is off: the buttons only");
+        tip_event(kTipHeld);  // 0.1.7 (owner message 143): how to get free, the first holds
     }
     struggle_left = left;
     const int n = opt.shake_free ? std::min(struggle_pending, kStruggleMostAStep) : 0;
@@ -3020,6 +3326,7 @@ void struggle_done(int freed, int buttons) {
     if (!freed || !struggling) return;
     struggling = false;
     struggle_freed++;
+    tip_moment_over(kTipHeld);  // 0.1.7: the break-free hint ends with the hold
     if (opt.shake_free) {
         buzz(kLeft, 0.8f, 0.2f);
         buzz(kRight, 0.8f, 0.2f);
@@ -3034,6 +3341,17 @@ void struggle_crash_info(FILE* f) {
                     "time to get free %.2f of %.2f\n",
                  opt.shake_free ? "on" : "off", struggling ? "held now" : "not held", struggle_holds, struggle_freed,
                  struggle_shakes, struggle_given, struggle_buttons, struggle_left, struggle_left_first);
+}
+
+StruggleBar struggle_bar() {
+    StruggleBar b;
+    b.held = struggling;
+    b.start = struggle_left_first;
+    b.left = struggle_left;
+    b.presses = struggle_given + struggle_buttons;
+    b.freed = struggle_freed;
+    b.holds = struggle_holds;
+    return b;
 }
 
 }  // namespace sh3q

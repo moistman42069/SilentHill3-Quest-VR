@@ -1,0 +1,40 @@
+# SH3 Quest VR, the PC rig (session 26, 0.1.7; a player on 0.1.6, owner message 134: "I pass the dog and want to go
+# through the next green gate. But I can't"), about 3 minutes. gate305's walk and A at the park's entrance (event 5),
+# then the steering takes her to the hall's other event the scans found, event 49 (by 16823 22681, the button's way +z,
+# 3.5 m left of the hall's start), the head turned 90 degrees left to it, and A pressed every 40 frames: what the game
+# does there (sh3.log "the action button used event 49", the pictures). Run with QUEST_SIM_HEADSET=1
+# QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return" SH3_HP=100
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244;16823,22681"
+7740 left_y 1
+8100 left_y 0
+8102 shot a08102-before-gate
+8104 head_yaw 45
+8112 shot a08112-looking-at-gate
+8114 a 1
+8122 a 0
+8150 head_yaw 0
+8380 shot e08380-at-event-49
+8390 head_yaw -90
+8420 shot e08420-looking-at-49
+8430 a 1
+8438 a 0
+8460 shot e08460-after-a
+8470 a 1
+8478 a 0
+8500 shot e08500-after-a
+8510 a 1
+8518 a 0
+8540 shot e08540-after-a
+8550 a 1
+8558 a 0
+8580 shot e08580-after-a
+8590 a 1
+8598 a 0
+8620 shot e08620-after-a
+8630 a 1
+8638 a 0
+8660 shot e08660-after-a
+8670 a 1
+8678 a 0
+8700 shot e08700-after-a
+8720 quit 0

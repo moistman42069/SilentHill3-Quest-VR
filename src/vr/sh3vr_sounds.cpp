@@ -40,7 +40,7 @@ const char* const kSoundNames[] = {
     "magazine released", "part taken", "magazine seated", "shell in", "slide back", "slide forward", "pump back",
     "pump forward", "holster draw", "holster put", "supplies pouch", "flashlight pocket", "item taken", "dry click",
     "part on the floor", "weapon on a wall", "second grip taken", "hand on a surface", "struggle shake",
-    "the VR menu",
+    "the VR menu", "something used",
 };
 static_assert(sizeof kSoundNames / sizeof *kSoundNames == kSoundCount, "a name for every VR sound");
 
@@ -284,6 +284,11 @@ void make_clip(int what, int variant, Maker& m) {
         m.noise(0.02f, 0.08f, 700, 0.8f, 0.6f, 0.5f, 0.5f);
         m.thump(0.03f, 150, 100, 0.03f, 0.35f);
         break;
+    case kSoundUse:  // 0.1.7 (a player on 0.1.6: "Sometimes it's not very clear if one has properly interacted with a
+                     // door or object"): the action found something to use: a soft low knock and a bright tick over it
+        m.thump(0.0f, 210, 160, 0.02f, 0.5f);
+        m.modes(0.006f, {1900, 2850}, {0.014f, 0.009f}, 0.55f);
+        break;
     case kSoundMenu:  // the VR menu (owner 80): a soft two-note tick, rising as it opens (variant 0), falling as it
                       // closes (1); 0.1.5: the view recentred (both sticks clicked together), two even notes (2)
         if (variant == 2) {
@@ -325,6 +330,7 @@ float base_gain(int what) {
     case kSoundHandSurface: return 0.22f;
     case kSoundStruggle: return 0.24f;
     case kSoundMenu: return 0.20f;
+    case kSoundUse: return 0.18f;
     default: return 0.25f;
     }
 }

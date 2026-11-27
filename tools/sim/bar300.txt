@@ -1,0 +1,31 @@
+# SH3 Quest VR, the PC rig (session 25, 0.1.7), about 2.5 minutes, with SH3_STRUGGLE_TEST="7460:0.8" (the game's own
+# struggle step run from game frame 7460, about script frame 7505, the time to get free 0.8 s). Owner message 128: the
+# break-free bar comes in under the gaze, empties with the shakes (each lights it), follows the gaze when the head
+# turns, and leaves rising when she is free (about 4 s less the shakes).
+7500 shot k07500-before
+7510 shot k07510-coming
+7520 shot k07520-in
+7545 shot k07545-bar
+7550 rh_x 0.15
+7554 rh_x -0.15
+7558 rh_x 0.15
+7562 rh_x -0.15
+7566 rh_x 0.15
+7570 rh_x -0.15
+7574 rh_x 0.15
+7578 rh_x -0.15
+7580 rh_x 0
+7584 shot k07584-shaken
+7600 head_yaw 40
+7608 shot k07608-turning
+7640 shot k07640-turned
+7660 head_yaw 0
+7700 shot k07700-bar
+7730 shot k07730-bar
+7745 shot k07745
+7755 shot k07755
+7765 shot k07765
+7775 shot k07775
+7790 shot k07790
+7810 shot k07810-gone
+7820 quit 0
