@@ -24,8 +24,9 @@ added owners 164-166 to 0.1.9 before releasing it. GAME_FACTS "Session 34" has t
 ## Owner 165: storage
 
 - C: had 13 GB free; the pictures of vr287-vr412 were deleted (logs kept): 50 GB free. Each run's pictures are deleted
-  once checked (memory feedback-clear-as-you-go). Kept: vr413-422 (0.1.8's release set, the baseline) and
-  vr436-440 (0.1.9's first build) until 0.1.9 is out. Not this session's, so not touched: shots/an146, video123,
+  once checked (memory feedback-clear-as-you-go). Kept: vr413-422 (0.1.8's release set, still the baseline: 0.1.9's
+  release-build weapon runs matched them, and 0.1.9's own pictures were deleted as each was checked); vr436-440 are
+  gone. Not this session's, so not touched: shots/an146, video123,
   video127, video146 (show the owner first).
 
 ## Owner 166: her shadow at Happy Burger's table from her eyes
@@ -139,9 +140,10 @@ added owners 164-166 to 0.1.9 before releasing it. GAME_FACTS "Session 34" has t
   "a fade or black: no pointer".
 - **SH3QuestVR-0.1.9.apk: 9,630,950 bytes, SHA-256 ee3e10b52609ebfe16cff1a319bfb5e447e7a6f21ba25fd8ace6a1aa29fc05c2**
   (C:/SH3Quest/SH3QuestVR-0.1.9.apk).
-- Commit on main (message C:/SH3Quest/commit_019.txt), annotated tag v0.1.9, both pushed; the release "Silent Hill 3
-  Quest VR 0.1.9" with docs/RELEASE-NOTES-0.1.9.md and the APK, marked latest. The commit's hash and the published
-  asset's digest check are in the handoff commit after it.
+- Commit a4c33e3 on main (message C:/SH3Quest/commit_019.txt), annotated tag v0.1.9 (39140bc), both pushed; the
+  release "Silent Hill 3 Quest VR 0.1.9" with docs/RELEASE-NOTES-0.1.9.md and the APK, marked latest. Checked after:
+  releases/latest is v0.1.9 (not a draft or prerelease), its asset's digest sha256:ee3e10b5...29fc05c2 and 9,630,950
+  bytes, and a copy downloaded with gh hashes the same.
 
 ## Next
 
