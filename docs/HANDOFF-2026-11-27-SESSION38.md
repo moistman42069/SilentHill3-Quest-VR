@@ -277,8 +277,10 @@ sh3vr_body.cpp.bak-s38.
 
 ## State at the end of session 38
 
-- **0.1.10 is released from build 312** (the tree as committed; nothing in src/ changed after build 312, checked with
-  find -newer). SH3QuestVR-0.1.10.apk: 9,680,214 bytes, SHA-256
+- **0.1.10 is published (2026-11-28): main 382c2b6, annotated tag v0.1.10, the GitHub release marked latest
+  (https://github.com/moistman42069/SilentHill3-Quest-VR/releases/tag/v0.1.10) with the notes and the APK; releases/latest
+  is v0.1.10, the asset's digest and a downloaded copy's hash match.** Built from build 312's tree (nothing in src/
+  changed after build 312, checked with find -newer). SH3QuestVR-0.1.10.apk: 9,680,214 bytes, SHA-256
   01d8919e62cd373901f11ec399503a266bbd275716463dc0ab325c98369f328a (C:/SH3Quest/SH3QuestVR-0.1.10.apk for the next
   release's apkcheck). apkcheck against 0.1.9: only the manifest (versionCode 11, "0.1.10"), whats_new.txt,
   classes.dex and libmain.so changed, the same release certificate 38811d96...cd416e6a. The Android build compiled the
