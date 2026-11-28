@@ -144,6 +144,7 @@ struct Options {
     bool ghost_hands = false;    // owner 98: off by default ("annoying seeing it every time i feel a wall")
     bool grabbing = true;
     bool take_by_hand = true;    // LIST 45: items taken by closing the hand on them (the game's own pick-up runs)
+    bool door_by_hand = true;    // 0.1.10 (owner 170, 171): a door's handle taken and pulled or pushed to open it
     bool manual_reload = true;   // LIST 46: guns reloaded with the hands (sh3vr_reload.cpp)
     bool hand_sounds = true;     // a sound for every hand action (holsters, the pouch, the slide, a hand on a wall...: sh3vr_sounds.cpp)
     bool wrist_health = true;    // LIST 49: the health and stamina bars on her left wrist, where her watch is, shown when
@@ -222,7 +223,7 @@ bool hand_reach_point(int hand, Vec3& world);
 // Session 11: where a hand last used something (world) if within `seconds`; the GL link helper (sh3vr_body.cpp).
 bool recent_hand_use(Vec3& world, float seconds);
 unsigned gl_link_program(const char* vs, const char* fs, const char* what);
-void hand_hover(int hand, int event);
+void hand_hover(int hand, int event, bool door);  // (0.1.10: door, sh3.c sh3_event_is_door)
 int off_hand();
 
 Vec3 to_game(Vec3 v);
@@ -313,6 +314,10 @@ extern float index_spread[2];
 // Session 31: each hand's thumb swung sideways at its root as drawn (degrees, the same rotation; body_fingers sets it,
 // the thumb laid along a gun's frame or round a handle: sh3vr_body.cpp thumb_rest).
 extern float thumb_spread[2];
+// Session 36 (owner message 169: "shape the fucking hand around them with no clipping"): each joint's curl over its
+// finger's as drawn (0: every joint at the finger's curl; body_fingers sets it, a finger round a weapon's grip closed
+// joint by joint; sh3vr_ik.cpp pose_fingers draws it, sh3vr_body.cpp finger_points3 bends the same).
+extern float finger_joint_off[2][5][3];
 // A finger bent back (a curl below 0: pressed flat on a surface, or poked at a wall, as Jak's and Ratchet's fingers
 // are): each joint by this share of its fist bend per unit of curl, most at the knuckle, down to kFingerBackMost.
 // sh3vr_body.cpp's finger_points and sh3vr_ik.cpp's pose_fingers bend them alike. Her model's open hand is a relaxed
@@ -350,11 +355,25 @@ bool own_hands_now();          // her own finger hands are posed this frame (sh3
 int ghost_bones(float* out, int n);
 void ghost_pass(bool on);
 void item_pass(bool on);  // the flashlight drawn in the hand (sh3.c)
+bool ik_plain_pass();      // 0.1.10: neither of those two passes is being drawn
 int body_cut(const float vsc[96][4], uint32_t stride, int main_cam, int ffp, int pal_count, Sh3VrCut* out);
 // Her arms, hands and fingers this frame (world): the probes leave out what they see of her.
 int own_capsules(Capsule* out, int max);
 bool ik_forearm(int h, Vec3& elbow, Vec3& wrist, Vec3* watch_out = nullptr);  // LIST 50: her forearm as drawn this
 // frame (world); `watch_out`: out of the back of her wrist as its twist bone turns it (LIST 49; zero when not solved)
+bool ik_hand_drawn(int h, Vec3& wrist, Vec3 knuckle[4], Vec3 thumb[3]);  // 0.1.10: her hand's bones as last drawn
+float ik_wrist_bend(int h);  // session 38: hand h's wrist bend as last drawn (degrees; -1 before her arms are solved)
+// Session 38 (owner 178): how far hand h drawn at `pose` turns its wrist-to-knuckles line from the controller's, her real
+// hand's (degrees): the bend her drawn wrist takes there, her arm following the controller's forearm (sh3vr_body.cpp).
+float body_wrist_swing(int h, const Pose& pose);
+bool ik_fingers_drawn(int h, Vec3 joint[5][3]);  // ... and each finger's joints (its segments' bones' origins)
+// 0.1.10: which hand of hers a palette bone (its origin; `axes`, its axes, when given, must match too: a forearm bone
+// shares her wrist's origin) is, -1 neither; `own`: the hand's own bone; `seg`: the finger segment it is or rides on
+// (finger * 3 + segment), else -1
+int ik_hand_of_bone(Vec3 o, bool* own = nullptr, int* seg = nullptr, const Vec3* axes = nullptr);
+// Session 38 (vr549: the maul's end through her left forearm): which forearm of hers a palette bone is (its origin on
+// her forearm's line as drawn, elbow to wrist, and not a bone of her hand's: ik_hand_of_bone), -1 neither
+int ik_forearm_of_bone(Vec3 o, const Vec3* axes = nullptr);
 void ik_crash_info(FILE* f);
 Vec3 tracking_dir(Vec3 world_dir);
 
@@ -395,6 +414,33 @@ void combat_crash_info(FILE* f);
 int combat_weapon_draw(uint32_t nv, uint32_t np, uint32_t stride, int pal_count, const int* pal_bone, float vsc[96][4]);
 // 0.1.8: a draw of the weapon just made in the hand (its vertices, faces and constants as drawn): its own shape's faces
 void combat_weapon_mesh(const uint8_t* v48, int nv, const uint16_t* tris, int nt, const float* c, uint32_t key);
+// 0.1.10 (owner 172): each skinned draw of hers or of the weapon in her hand (her hands as drawn, against the weapon)
+void combat_hand_mesh(const uint8_t* v48, int nv, const uint16_t* tris, int ntris, const float* c, int kind);
+// ... hand h's drawn palm, fingers and thumb against the weapon, for the rig's picture lines (0: nothing to say)
+int combat_hand_mesh_report(int h, char* out, int n);
+// Session 38 (vr555/556: the left-handed maul's end 10 mm into her left forearm, the right-handed flamethrower's body
+// 6.4 mm into her right, the left-handed beam saber's hilt 5.1 mm into her right): hand h's forearm as last drawn, turned
+// about her elbow to where hand h drawn at `pose` (tracking) puts her wrist, against the weapon as drawn: its nearest
+// (metres, below 0 in it); 1e9 when not known (the rig only: her forearm is taken there alone)
+float combat_forearm_clear(int h, const Pose& pose);
+// ... hand h's vertices on one finger's segment alone as last drawn (world; `seg`: finger * 3 + segment), with its bones
+// as drawn then: how many (0: none caught in the last two frames)
+int combat_hand_finger_mesh(int h, const Vec3** v, const uint8_t** seg, Vec3 joint[5][3], Vec3& wrist, Vec3 knuckle[4],
+                            Vec3 thumb[3]);
+// ... hand h as last drawn, whole: every vertex (world); each one's bones as skinned, 4 a vertex (`it`: the finger's
+// segment it is or rides on, finger * 3 + segment, -1 the hand's own bone, -2 another, her forearm's; `iw` its weight,
+// 0 none; `iq` where that bone alone puts it, world); its triangles (3 a triangle, indices into v); its bones as drawn
+// then. False: none caught in the last two frames.
+struct HandDrawn {
+    int n = 0, ntri = 0, frame = -1;
+    const Vec3* v = nullptr;
+    const int8_t* it = nullptr;
+    const float* iw = nullptr;
+    const Vec3* iq = nullptr;
+    const int* tri = nullptr;
+    Vec3 wrist, knuckle[4], thumb[3], joint[5][3];
+};
+bool combat_hand_drawn(int h, HandDrawn& out);
 int combat_weapon_bones(float* bones, int n);  // LIST 24: the extras carried to her IK hand (sh3.c 0x45EC00 wrapper)
 // The weapon in the main hand (first person, drawn there): a point of its model (model units, the held bone's) in
 // tracking space, through the same frame the draw uses. false: no weapon placed in the hand.
@@ -430,6 +476,7 @@ float weapon_clearance(int hand, Vec3 a, Vec3 b);
 // How a hand holds the weapon: 0 not, 1 the main hand round its grip, 2 the other hand on its second grip, 3 the other
 // hand on the slide or the cocking knob. Its fingers' curl round that grip when nothing stops them (the measured one).
 int weapon_hand_role(int hand);
+int weapon_shape_key();  // session 36: the profile held and whether its own shape is ready (-1: none placed)
 float weapon_two_share(int hand);  // the other hand's share of the second grip, eased (0 .. 1)
 float weapon_hold_curl(int hand);
 float weapon_hold_thumb(int hand);  // 0.1.7: the second hand's thumb curl on its grip (-1: as its fingers)
@@ -440,11 +487,13 @@ bool weapon_is_gun();
 // how hand h would hold the weapon at `pose` (tracking), sh3vr_body.cpp: each finger closing until it meets the weapon
 // (the other hand: the main hand's fingers too), her palm against it, and a gun's main hand with its trigger finger's
 // pad on the trigger. score -1: it cannot hold there (why: 1 a knuckle in it, 2 the palm in it, 3 a finger starting in
-// it, 4 a finger's curl out of range, 6 the trigger out of reach, 7 the palm off it).
+// it, 4 a finger's curl out of range, 5 her hand as drawn in it (body_grip_mesh), 6 the trigger out of reach, 7 the
+// palm off it).
 struct GripTrigger {
     bool on = false;
     Vec3 a, b;   // the trigger's blade (tracking, metres)
     float r = 0;
+    float pad = 0;  // 0.1.10: how far (metres) her finger's pad stops off the blade it presses (kTriggerPad)
     Vec3 up;     // session 31: the gun's top (tracking, unit): the trigger finger runs along it to the trigger
 };
 struct GripFit {
@@ -456,11 +505,35 @@ struct GripFit {
     float trig_rise = 0;    // session 31: how steeply it rises from its knuckle to the trigger (degrees, + up the gun)
     float trig_push = 0;    // session 31: the pad's way closing against the trigger's way pulled (cosine; 1 the same)
     bool trig_whole = false;  // session 31: its pad on the trigger the whole pull (body_trigger_pull_curls)
+    float skin = 1;         // 0.1.10: her palm as drawn (body_palm_skin) off the weapon at its nearest (m, below 0 in it)
+    // 0.1.10 (owner 172): her whole hand as drawn there (body_grip_mesh): its nearest (m), the part (0 her palm, 1 the
+    // skin blended between bones, 2 + f finger f, 7 her main hand as drawn: the other hand against it, session 38), and
+    // her palm's and the blended skin's nearest
+    float mesh = 1e9f, mesh_palm = 1e9f;
+    int mesh_part = -1;
     float pads = 0;         // session 31: the fingers' pads off the weapon past 3 mm, summed (metres)
-    int why = 0;
+    float wrist = 0;        // session 38 (owner 178): her wrist's bend there from her real hand (body_wrist_swing)
+    float arm = 1e9f;       // session 38 (vr555/556): her forearm as drawn there off the weapon (combat_forearm_clear, m)
+    int why = 0;            // (8, session 38: the other hand's wrist bent past fit_wrist_most; 9, her forearm in the
+                            // weapon there, SH3_FIT_ARM=1)
     int finger = -1;   // the finger turned away for (why 3, 4)
+    // 0.1.10: why 4: 1 the finger never meets the weapon, 2 it meets it under a third of its curl, 3 over 0.95; why 6:
+    // 1 the trigger finger's pad not on the trigger (or its curl there out of 0.12..0.85), 2 no rest for it off the
+    // trigger, 3 rising or falling too steeply to it, 4 its skin in the gun on it or resting, 5 not pulling the way the
+    // trigger goes
+    int sub = 0;
 };
 void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, GripFit& out);
+// 0.1.10 (owner 172): a place body_grip_fit took, with her whole hand as drawn there (her fingers as body_fingers draws
+// them on the weapon at rest, the main hand's trigger finger on the trigger and off it) against the weapon: why 5 when
+// any of it lies less than 0.2 mm out of it; the score weighs her palm's skin off it. Nothing before her hand is taken.
+// `any`: measured at a place turned away too (the rig's records), its score left as it is.
+void body_grip_mesh(int h, const Pose& pose, bool main, GripFit& out, bool any = false);
+// ... her hand as drawn, taken once for each hand (its vertices with their bones, in its grip space: body_grip_mesh, and
+// her fingers closing on the weapon to their own skin)
+void body_hand_skin(int h, const HandDrawn& d);
+bool body_hand_skin_ready(int h);
+void body_hand_skin_forget(int h);  // session 38: another model of her drawn (a costume): taken again
 // The trigger finger's curl that lays its pad on the trigger, hand h drawn at `pose` (-1: it cannot reach it); err: how
 // far the pad lies from it there (metres); spread: how far the finger is spread sideways for it (degrees, session 31).
 float body_trigger_curl(int h, const Pose& pose, const GripTrigger& trig, float* err = nullptr, float* spread = nullptr);
@@ -496,9 +569,18 @@ float shape_point(int profile, Vec3 p);            // model units: its signed di
 float shape_segment(int profile, Vec3 a, Vec3 b);  // ... the least along a segment
 // Hand h's palm and fingers as drawn (tracking capsules, metres): the other hand's fingers stop on them.
 int body_hand_capsules(int h, Vec3* a, Vec3* b, float* r, int max);
+// session 38: hand h's skin as drawn, posed where it is drawn now (tracking, metres), and its box; 0 before it is taken
+int body_hand_skin_points(int h, const Vec3** out, Vec3* lo, Vec3* hi);
 // Hand h at `pose` against the weapon (and the main hand): how near her palm's skin comes to it (metres), and whether a
 // knuckle or her palm is in it.
 void body_palm_touch(int h, const Pose& pose, float& palm_clear, bool& inside);
+// 0.1.10 (owner 172): her palm as drawn (world vertices on hand h's own bone, `of` such vertices before the palm's were
+// picked, with its bones as drawn), kept in its grip space for the grips' fit (body_grip_fit); once per hand
+void body_palm_skin(int h, const Vec3* world, int n, int of, Vec3 wrist, const Vec3 knuckle[4], const Vec3 thumb[3]);
+bool body_palm_skin_ready(int h);
+// ... its nearest to the weapon with hand h at `pose` (metres, below 0 in it; 1e9 before it is taken), and the way out
+// of her palm's back in tracking space (`back`, unit)
+float body_palm_skin_clear(int h, const Pose& pose, Vec3* back = nullptr);
 // A hand's pose (OpenXR's grip pose, tracking) round a grip: its fist's centre at `at`, its rod (little finger to
 // thumb) along `rod`, its palm facing `palm` (unit).
 Pose hand_pose_round(int hand, Vec3 at, Vec3 rod, Vec3 palm);
@@ -558,7 +640,7 @@ void reload_crash_info(FILE* f);
 
 // ---------------------------------------------------------------- hints (sh3vr_tips.cpp, owner messages 143, 144)
 
-enum TipKind { kTipStart, kTipFlashlight, kTipUse, kTipItem, kTipHeld, kTipGun, kTipMelee, kTipHealth, kTipPuzzle,
+enum TipKind { kTipStart, kTipFlashlight, kTipUse, kTipItem, kTipHeld, kTipGun, kTipMelee, kTipHealth, kTipPuzzle, kTipDoor,
                kTipCount };
 void tip_event(int kind);       // something a hint is about came up (a grab: kTipHeld; within reach: kTipUse, kTipItem)
 void tip_moment_over(int kind); // ... and is over (she is free): its line ends, its waiting lines go

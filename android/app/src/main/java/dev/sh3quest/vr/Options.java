@@ -259,6 +259,9 @@ class Options {
         sw("grabbing", "Grab with the hand", HANDS, true, "Reach and grip to pick things up and open doors."),
         sw("take_by_hand", "Take items with your hand", HANDS, true,
             "Close your hand on an item or a door to take or use it; the action button still works."),
+        sw("door_by_hand", "Open doors by hand", HANDS, true,
+            "Grip a door's handle and pull it toward you (or push it away) to open the door; then the game loads the "
+            + "next area as it always does. Off: closing your hand on a door opens it at once."),
         sw("manual_reload", "Manual reload", HANDS, true,
             "Reload with your hands: push the right stick down to drop the magazine, take a new one from the front of "
             + "your belt and push it in; pull the slide back after an empty gun. Shotgun shells one at a time, then the "

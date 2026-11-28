@@ -150,6 +150,7 @@ const OptionRow kRows[] = {
     SW(ghost_hands, "Ghost hands in walls", "Hands and weapons", false),
     SW(grabbing, "Grab with the hand", "Hands and weapons", false),
     SW(take_by_hand, "Take items with your hand", "Hands and weapons", false),
+    SW(door_by_hand, "Open doors by hand", "Hands and weapons", false),  // 0.1.10 (owner 170, 171: on by default)
     SW(manual_reload, "Manual reload", "Hands and weapons", false),
     NU(ammo_pouch_radius_cm, "Ammo pouch radius", "Hands and weapons", 6.0f, 30.0f, 1.0f, "cm", false),  // owner 122
     SW(hand_sounds, "Hand sounds", "Hands and weapons", false),
@@ -3394,6 +3395,8 @@ void sh3vr_shadow_part(const uint8_t* verts48, int nverts, const uint16_t* tris,
                        uint32_t key, int kind) {
     // 0.1.8: the weapon in her hand, its own shape for her fingers (combat_weapon_mesh: once, whatever the shadow)
     if (active && kind == 1) combat_weapon_mesh(verts48, nverts, tris, ntris, consts, key);
+    // 0.1.10 (owner 172): her hands as drawn against the weapon in her hand (combat_hand_mesh: whatever the shadow)
+    if (active) combat_hand_mesh(verts48, nverts, tris, ntris, consts, kind);
     // 0.1.7: also while a room lamp casts her shadow (her room shadow is cast from this mesh)
     if (active && (opt.her_shadow || rt_frame - room_seen < 120)) shadow_part(verts48, nverts, tris, ntris, consts, key, kind);
 }
@@ -4070,8 +4073,8 @@ int sh3vr_hand_reach(int hand, float at[3]) {
     return 1;
 }
 
-void sh3vr_hand_hover(int hand, int event) {
-    if (active) hand_hover(hand, event);
+void sh3vr_hand_hover(int hand, int event, int door) {
+    if (active) hand_hover(hand, event, door != 0);
 }
 
 // 0.1.7 (owner message 143): the hints' check for a door or an item within reach (sh3.c sub_004B9940)

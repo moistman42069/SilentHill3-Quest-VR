@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <chrono>
 #include <cstring>
 
 #if !defined(__ANDROID__)
@@ -43,6 +44,9 @@ namespace sh3q {
 HandState hands[2];
 
 namespace {
+
+// 0.1.10 (owner 172): her palm's skin as drawn, in each hand's grip space (body_palm_skin, below)
+std::vector<Vec3> palm_skin[2];
 
 // ---------------------------------------------------------------- the hand's shape (metres, the hand's grip space)
 
@@ -75,7 +79,10 @@ Vec3 rot_axis(Vec3 v, Vec3 axis, float angle) {
 // fingers round the grip): `spread` (degrees) swings the whole finger sideways at its knuckle, about the axis across its
 // bend there (cross(bend axis, first segment): a finger spread from or toward its neighbour), as pose_fingers draws it
 // (index_spread; the thumb's swing at its root, thumb_spread, alike).
-void finger_points(int h, int f, float c, Vec3 out[4], float spread = 0.0f) {
+// Session 36 (owner message 169: "shape the fucking hand around them with no clipping"): each joint at its own curl,
+// c3[0] the knuckle's, c3[1] the middle joint's, c3[2] the last joint's (finger_wrap; pose_fingers draws them alike);
+// finger_points(c) is every joint at c.
+void finger_points3(int h, int f, const float c3[3], Vec3 out[4], float spread = 0.0f) {
     const HerHand& hh = her_hands[h];
     const float sr = spread * kPi / 180.0f;
     if (hh.valid) {
@@ -84,6 +91,7 @@ void finger_points(int h, int f, float c, Vec3 out[4], float spread = 0.0f) {
         out[0] = g.knuckle;
         float angle = 0;
         for (int j = 0; j < 3; j++) {
+            const float c = c3[j];
             angle += c * g.joint[j] * (c < 0 ? kFingerBack[f == kThumb ? 0 : 1][j] : 1.0f);
             const Vec3 d = rot_axis(g.seg[j], g.axis, angle);
             out[j + 1] = out[j] + (sr != 0.0f ? rot_axis(d, n, sr) : d);
@@ -108,14 +116,284 @@ void finger_points(int h, int f, float c, Vec3 out[4], float spread = 0.0f) {
     const Vec3 n = sr != 0.0f ? normalized(cross(axis, dir)) : Vec3{};
     float angle = 0;
     for (int j = 0; j < 3; j++) {
+        const float c = c3[j];
         angle += c * joint[j] * (c < 0 ? kFingerBack[f == kThumb ? 0 : 1][j] : 1.0f) * kPi / 180.0f;
         const Vec3 d = rot_axis(dir, axis, angle);
         p = p + (sr != 0.0f ? rot_axis(d, n, sr) : d) * s.len[j];
         out[j + 1] = {p.x * mx, p.y, p.z};
     }
 }
+void finger_points(int h, int f, float c, Vec3 out[4], float spread = 0.0f) {
+    const float c3[3] = {c, c, c};
+    finger_points3(h, f, c3, out, spread);
+}
 
 Vec3 grip_point(const Pose& pose, Vec3 l) { return pose.position + rotate(pose.orientation, l); }
+
+// 0.1.10 (owner 172: "WHY ... IS THE GUN STILL CLIPPING THROUGH THE HAND"; owner 169: "shape the fucking hand around
+// them with no clipping"): her hand as drawn, in its grip space, posed at any curl. body_hand_skin takes it once from
+// her own vertices as skinned (sh3vr_combat.cpp hand_mesh); each vertex keeps each of its bones' places for it: her
+// hand's own bone (or another, her forearm's) in the grip space, a finger's segment in that segment's own frame
+// (finger_frames), so at any curl and spread it lies where the game's skinning puts it (her bones as drawn lie on this
+// model's: build 278). Build 283's slices (the handgun round her hand at 0.1.8's place, vr507) showed why the gun went
+// through her hand: her palm as drawn is a coarse shell 4.5 cm thick, the grip's back half lay inside it, and only a few
+// of its vertices fell inside the grip (palm_points and the vertices alone never saw it). So every triangle of it counts
+// too (hand_skin_clear). The grips' fit keeps all of it out of the weapon (body_grip_mesh), and her fingers close onto
+// the weapon until their own skin meets it (finger_touches, joint_gaps, thumb_rest), not only the model's 8.5 mm round
+// their bones.
+struct SkinVert {
+    int n = 0;
+    int8_t tag[4]{};  // the finger's segment (finger * 3 + segment), -1 her hand's own bone (or another)
+    float w[4]{};
+    Vec3 l[4];        // where that bone alone puts it: the grip space (her hand's own), else the segment's own frame
+};
+struct HandSkin {
+    bool ready = false;
+    std::vector<SkinVert> v;
+    std::vector<uint8_t> part;    // 0 her palm (90% or more on her hand's own bone), 1 blended, 2 + f finger f's,
+                                  // kSkinWrist her wrist (on her forearm's bones too)
+    std::vector<int> tri;         // 3 a triangle (indices into v)
+    std::vector<Vec3> seg[5][3];  // each finger segment's own vertices (90% or more on it), in its own frame
+    float reach[5][3]{};          // ... the farthest of them from the segment's line (metres)
+};
+HandSkin hand_skin[2];
+int hand_skin_taken[2] = {0, 0};  // session 38: times each was taken (body_hand_skin_points' key)
+constexpr float kSkinMargin = 0.0005f;  // her fingers close until their skin comes this near the weapon (metres)
+constexpr float kSkinCheck = 0.0002f;   // a place fitted keeps all her skin at least this far out of it (body_grip_mesh)
+constexpr uint8_t kSkinWrist = 7;
+
+// Finger f's segments' frames at the joints' curls c3 and its spread (degrees), as finger_points3 lays them: each
+// segment's first joint (o) and its turn from the finger's rest (q: its segment at rest turned by it is the segment
+// drawn). False until her own fingers are read.
+bool finger_frames(int h, int f, const float c3[3], float spread, Vec3 o[3], Quat q[3]) {
+    if (h < 0 || h > 1 || f < 0 || f > 4) return false;
+    const HerHand& hh = her_hands[h];
+    if (!hh.valid) return false;
+    const FingerGeo& g = hh.f[f];
+    const float sr = spread * kPi / 180.0f;
+    Quat qs{0, 0, 0, 1};
+    if (sr != 0.0f) {
+        const Vec3 n = normalized(cross(g.axis, g.seg[0]));
+        const float s = std::sin(sr * 0.5f);
+        qs = Quat{n.x * s, n.y * s, n.z * s, std::cos(sr * 0.5f)};
+    }
+    Vec3 p = g.knuckle;
+    float angle = 0;
+    for (int j = 0; j < 3; j++) {
+        const float c = c3[j];
+        angle += c * g.joint[j] * (c < 0 ? kFingerBack[f == kThumb ? 0 : 1][j] : 1.0f);
+        const float s = std::sin(angle * 0.5f);
+        o[j] = p;
+        q[j] = qs * Quat{g.axis.x * s, g.axis.y * s, g.axis.z * s, std::cos(angle * 0.5f)};
+        p = p + rotate(q[j], g.seg[j]);
+    }
+    return true;
+}
+
+// The nearest of finger f's segment j's own skin to the weapon, hand h at `pose` with the finger's frames o, q
+// (metres; below 0 in it; 1e9 none of its own).
+float skin_segment_gap(int h, int f, int j, const Vec3 o[3], const Quat q[3], const Pose& pose) {
+    float m = 1e9f;
+    for (const Vec3& l : hand_skin[h].seg[f][j]) {
+        const Vec3 t = grip_point(pose, o[j] + rotate(q[j], l));
+        m = std::min(m, weapon_clearance(h, t, t));
+    }
+    return m;
+}
+
+// Her hand h as drawn (hand_skin) posed with each finger's joints at c3 and the spreads sp (degrees, each finger's: the
+// thumb's swing, the index's spread): every vertex, grip space; false before it is taken.
+bool hand_skin_pose(int h, const float c3[5][3], const float sp[5], std::vector<Vec3>& out) {
+    if (h < 0 || h > 1 || !hand_skin[h].ready) return false;
+    Vec3 o[5][3];
+    Quat q[5][3];
+    for (int f = 0; f < 5; f++)
+        if (!finger_frames(h, f, c3[f], sp[f], o[f], q[f])) return false;
+    const HandSkin& hs = hand_skin[h];
+    out.resize(hs.v.size());
+    for (size_t i = 0; i < hs.v.size(); i++) {
+        const SkinVert& sv = hs.v[i];
+        Vec3 p{};
+        for (int k = 0; k < sv.n; k++) {
+            const int t = sv.tag[k];
+            p = p + (t < 0 ? sv.l[k] : o[t / 3][t % 3] + rotate(q[t / 3][t % 3], sv.l[k])) * sv.w[k];
+        }
+        out[i] = p;  // (as the game skins it: each bone's place by its weight)
+    }
+    return true;
+}
+
+// Her hand h as drawn at `pose`, posed with c3 and sp (hand_skin_pose), against the weapon: its nearest (metres; below 0
+// in it): every vertex, and each triangle that could come within 6 mm of it (its nearest corner's clearance less its
+// longest side) at its own points no more than 2 mm apart. `part`: the nearest's (0 her palm, 1 blended, 2 + f finger
+// f); `palm`: the nearest of her palm's and the blended skin's. Her wrist's skin on her forearm's bones (kSkinWrist:
+// where her arm bends it, which this model does not know) is left out.
+float hand_skin_clear(int h, const Pose& pose, const float c3[5][3], const float sp[5], int* part, float* palm) {
+    if (part) *part = -1;
+    if (palm) *palm = 1e9f;
+    static std::vector<Vec3> P;
+    static std::vector<float> C;
+    if (!hand_skin_pose(h, c3, sp, P)) return 1e9f;
+    const HandSkin& hs = hand_skin[h];
+    C.resize(P.size());
+    float best = 1e9f;
+    auto note = [&](float c, int pt) {
+        if (c < best) {
+            best = c;
+            if (part) *part = pt;
+        }
+        if (palm && pt <= 1 && c < *palm) *palm = c;
+    };
+    for (size_t i = 0; i < P.size(); i++) {
+        P[i] = grip_point(pose, P[i]);
+        C[i] = weapon_clearance(h, P[i], P[i]);
+        if (hs.part[i] != kSkinWrist) note(C[i], hs.part[i]);
+    }
+    for (size_t t = 0; t + 2 < hs.tri.size(); t += 3) {
+        const int a = hs.tri[t], b = hs.tri[t + 1], d = hs.tri[t + 2];
+        const uint8_t pa = hs.part[a], pb = hs.part[b], pd = hs.part[d];
+        if (pa == kSkinWrist || pb == kSkinWrist || pd == kSkinWrist) continue;
+        const float L = std::max(length(P[b] - P[a]), std::max(length(P[d] - P[b]), length(P[a] - P[d])));
+        if (std::min(C[a], std::min(C[b], C[d])) - L > 0.006f) continue;
+        const int pt = pa == pb && pb == pd ? pa : std::min(pa, std::min(pb, pd)) <= 1 ? 1 : pa;
+        const int n = std::clamp((int)std::ceil(L / 0.002f), 1, 16);
+        for (int i = 0; i <= n; i++)
+            for (int j = 0; i + j <= n; j++) {
+                if ((i == 0 && j == 0) || i == n || j == n) continue;  // (its corners, taken above)
+                const Vec3 x = P[a] + (P[b] - P[a]) * ((float)i / n) + (P[d] - P[a]) * ((float)j / n);
+                note(weapon_clearance(h, x, x), pt);
+            }
+    }
+    return best;
+}
+
+// Session 38 (the rig's pictures): her trigger finger as drawn while it pulls. The weapon's shape is the gun at rest, its
+// trigger where it is before the pull, so hand_skin_clear reads the finger following the trigger back as in it (vr517:
+// 0.4 to 1.6 mm). Here the index's skin (its vertices and its triangles' points no more than 2 mm apart) against the
+// trigger as drawn, turned by `pull` (its blade as weapon_trigger_at gives it), and against the rest of the gun (the
+// shape's reading, taken only where the trigger at rest is not what is nearest). Metres, below 0 in it; 1e9 none.
+float seg_dist(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2);  // (below)
+static void hand_skin_trigger(int h, const Pose& pose, const float c3[5][3], const float sp[5], float pull,
+                              float& on_trigger, float& on_gun) {
+    on_trigger = on_gun = 1e9f;
+    static std::vector<Vec3> P;
+    if (h < 0 || h > 1 || !hand_skin_pose(h, c3, sp, P)) return;
+    const GripTrigger tn = weapon_trigger_at(pull), t0 = weapon_trigger_at(0.0f);
+    if (!tn.on) return;
+    const HandSkin& hs = hand_skin[h];
+    constexpr uint8_t kIndexPart = 2 + kIndex;
+    auto take = [&](Vec3 x) {
+        on_trigger = std::min(on_trigger, seg_dist(x, x, tn.a, tn.b) - tn.r);
+        const float c = weapon_clearance(h, x, x);
+        if (seg_dist(x, x, t0.a, t0.b) - t0.r > c + 0.0003f) on_gun = std::min(on_gun, c);
+    };
+    for (Vec3& p : P) p = grip_point(pose, p);
+    for (size_t i = 0; i < P.size(); i++)
+        if (hs.part[i] == kIndexPart) take(P[i]);
+    for (size_t t = 0; t + 2 < hs.tri.size(); t += 3) {
+        const int a = hs.tri[t], b = hs.tri[t + 1], d = hs.tri[t + 2];
+        if (hs.part[a] == kSkinWrist || hs.part[b] == kSkinWrist || hs.part[d] == kSkinWrist) continue;
+        if (hs.part[a] != kIndexPart && hs.part[b] != kIndexPart && hs.part[d] != kIndexPart) continue;
+        const float L = std::max(length(P[b] - P[a]), std::max(length(P[d] - P[b]), length(P[a] - P[d])));
+        const int n = std::clamp((int)std::ceil(L / 0.002f), 1, 16);
+        for (int i = 0; i <= n; i++)
+            for (int j = 0; i + j <= n; j++) {
+                if ((i == 0 && j == 0) || i == n || j == n) continue;  // (its corners)
+                take(P[a] + (P[b] - P[a]) * ((float)i / n) + (P[d] - P[a]) * ((float)j / n));
+            }
+    }
+}
+
+// 0.1.10 (session 38; open since session 37): the other hand h at `pose`, posed with c3 and sp, against her main hand
+// as drawn where it is now (its fingers' curls and spreads as drawn, body_hand_capsules'): the nearest between their
+// skins (metres; below 0 one in the other), every vertex of each against the other's triangles, the side told by the
+// other's skin's normals at the nearest point (its corners' normals blended); 1e9 when either is not taken. Until now the
+// other hand was kept off the main hand's model alone (body_hand_capsules: its palm 2.6 cm thick, hers as drawn 5.2).
+// Her wrists' skin on her forearms' bones (kSkinWrist) is left out, as in hand_skin_clear.
+static float hand_skin_between(int h, const Pose& pose, const float c3[5][3], const float sp[5]) {
+    const int m = 1 - h;
+    if (h < 0 || h > 1 || !hand_skin[h].ready || !hand_skin[m].ready || !hands[m].valid) return 1e9f;
+    static std::vector<Vec3> P[2], N[2];
+    const HandState& s = hands[m];
+    float cm[5][3], spm[5] = {thumb_spread[m], index_spread[m], 0.0f, 0.0f, 0.0f};
+    for (int f = 0; f < 5; f++)
+        for (int j = 0; j < 3; j++) cm[f][j] = std::clamp(s.curl[f] + finger_joint_off[m][f][j], kFingerBackMost, 1.0f);
+    if (!hand_skin_pose(h, c3, sp, P[0]) || !hand_skin_pose(m, cm, spm, P[1])) return 1e9f;
+    for (Vec3& p : P[0]) p = grip_point(pose, p);
+    for (Vec3& p : P[1]) p = grip_point(s.shown, p);
+    const HandSkin* hs[2] = {&hand_skin[h], &hand_skin[m]};
+    Vec3 lo[2], hi[2];
+    for (int k = 0; k < 2; k++) {
+        // (each skin's normals: its triangles' summed at their corners, turned outward by the most of them facing away
+        // from its middle)
+        N[k].assign(P[k].size(), Vec3{});
+        Vec3 mid{};
+        lo[k] = {1e9f, 1e9f, 1e9f}, hi[k] = {-1e9f, -1e9f, -1e9f};
+        for (const Vec3& p : P[k]) {
+            mid = mid + p;
+            lo[k] = {std::min(lo[k].x, p.x), std::min(lo[k].y, p.y), std::min(lo[k].z, p.z)};
+            hi[k] = {std::max(hi[k].x, p.x), std::max(hi[k].y, p.y), std::max(hi[k].z, p.z)};
+        }
+        mid = mid * (1.0f / (float)std::max<size_t>(P[k].size(), 1));
+        const std::vector<int>& tr = hs[k]->tri;
+        for (size_t t = 0; t + 2 < tr.size(); t += 3) {
+            const int a = tr[t], b = tr[t + 1], d = tr[t + 2];
+            const Vec3 n = cross(P[k][b] - P[k][a], P[k][d] - P[k][a]);
+            N[k][a] = N[k][a] + n, N[k][b] = N[k][b] + n, N[k][d] = N[k][d] + n;
+        }
+        float vote = 0;
+        for (size_t i = 0; i < P[k].size(); i++) vote += dot(N[k][i], P[k][i] - mid) > 0 ? 1.0f : -1.0f;
+        const float flip = vote < 0 ? -1.0f : 1.0f;
+        for (Vec3& n : N[k]) n = normalized(n) * flip;
+    }
+    float best = 1e9f;
+    for (int k = 0; k < 2; k++) {  // (k's vertices against the other's triangles)
+        const int o = 1 - k;
+        const std::vector<int>& tr = hs[o]->tri;
+        for (size_t i = 0; i < P[k].size(); i++) {
+            if (hs[k]->part[i] == kSkinWrist) continue;
+            const Vec3 x = P[k][i];
+            if (x.x < lo[o].x - 0.01f || x.y < lo[o].y - 0.01f || x.z < lo[o].z - 0.01f || x.x > hi[o].x + 0.01f ||
+                x.y > hi[o].y + 0.01f || x.z > hi[o].z + 0.01f)
+                continue;
+            float d2 = 1e9f;
+            Vec3 q{}, n{};
+            for (size_t t = 0; t + 2 < tr.size(); t += 3) {
+                const int a = tr[t], b = tr[t + 1], c = tr[t + 2];
+                if (hs[o]->part[a] == kSkinWrist || hs[o]->part[b] == kSkinWrist || hs[o]->part[c] == kSkinWrist) continue;
+                // (the nearest point of triangle abc to x, by its barycentric weights: Ericson's closest point)
+                const Vec3 A = P[o][a], B = P[o][b], C = P[o][c];
+                const Vec3 ab = B - A, ac = C - A, ap = x - A;
+                float u, v, w;  // weights of A, B, C
+                const float d1 = dot(ab, ap), e1 = dot(ac, ap);
+                const Vec3 bp = x - B;
+                const float d3 = dot(ab, bp), e3 = dot(ac, bp);
+                const Vec3 cp = x - C;
+                const float d5 = dot(ab, cp), e5 = dot(ac, cp);
+                const float vc = d1 * e3 - d3 * e1, vb = d5 * e1 - d1 * e5, va = d3 * e5 - d5 * e3;
+                if (d1 <= 0 && e1 <= 0) u = 1, v = 0, w = 0;
+                else if (d3 >= 0 && e3 <= d3) u = 0, v = 1, w = 0;
+                else if (e5 >= 0 && d5 <= e5) u = 0, v = 0, w = 1;
+                else if (vc <= 0 && d1 >= 0 && d3 <= 0) v = d1 / (d1 - d3), u = 1 - v, w = 0;
+                else if (vb <= 0 && e1 >= 0 && e5 <= 0) w = e1 / (e1 - e5), u = 1 - w, v = 0;
+                else if (va <= 0 && (e3 - d3) >= 0 && (d5 - e5) >= 0)
+                    w = (e3 - d3) / ((e3 - d3) + (d5 - e5)), v = 1 - w, u = 0;
+                else {
+                    const float den = 1.0f / (va + vb + vc);
+                    v = vb * den, w = vc * den, u = 1 - v - w;
+                }
+                const Vec3 y = A * u + B * v + C * w;
+                const Vec3 dy = x - y;
+                const float dd = dot(dy, dy);
+                if (dd < d2) d2 = dd, q = y, n = N[o][a] * u + N[o][b] * v + N[o][c] * w;
+            }
+            if (d2 >= 1e9f) continue;
+            const float d = std::sqrt(d2);
+            best = std::min(best, dot(x - q, n) < 0 ? -d : d);
+        }
+    }
+    return best;
+}
 
 // ---------------------------------------------------------------- the probes
 
@@ -798,11 +1076,26 @@ bool finger_touches(int h, int f, float c, const Pose& pose, const PartCaps* par
     const float r = f == kThumb ? 0.0095f : 0.0085f;  // her finger's half thickness
     Vec3 p[4];
     finger_points(h, f, c, p, spread);
+    float line[3] = {1e9f, 1e9f, 1e9f};
     for (int j = 0; j < 3; j++) {
         if (part)
             for (int k = 0; k < part->n; k++)
                 if (seg_dist(p[j], p[j + 1], part->a[k], part->b[k]) - part->r[k] < r) return true;
-        if (weapon && weapon_clearance(h, grip_point(pose, p[j]), grip_point(pose, p[j + 1])) < r) return true;
+        if (weapon && (line[j] = weapon_clearance(h, grip_point(pose, p[j]), grip_point(pose, p[j + 1]))) < r)
+            return true;
+    }
+    // 0.1.10 (owner 172): on the weapon, her finger's own skin as drawn (hand_skin) 0.5 mm out of it, where its line
+    // comes within the skin's reach of it
+    if (weapon && h >= 0 && h < 2 && hand_skin[h].ready) {
+        Vec3 o[3];
+        Quat q[3];
+        const float c3[3] = {c, c, c};
+        bool framed = false;
+        for (int j = 0; j < 3; j++) {
+            if (hand_skin[h].seg[f][j].empty() || line[j] > hand_skin[h].reach[f][j] + kSkinMargin) continue;
+            if (!framed && !(framed = finger_frames(h, f, c3, spread, o, q))) break;
+            if (skin_segment_gap(h, f, j, o, q, pose) < kSkinMargin) return true;
+        }
     }
     return false;
 }
@@ -836,6 +1129,160 @@ float finger_contact(int h, int f, const Pose& pose, const PartCaps* part, bool 
     return -1.0f;
 }
 
+// Session 36 (owner message 169: "all grips should be perfect. shape the fucking hand around them with no clipping";
+// the 0.1.9 video of the handgun, and vr413's own report: her fingers closed with every joint together, so each stopped
+// where its first part met the weapon; on the handgun the ring and little fingers met the grip with their tips while
+// their middle segments stood 10-14 mm off it, vr490: R 0.63 at every joint, its segments 5.2 13.8 0.1 mm off): a hand
+// round a grip closes joint by joint, each part coming to rest on it, the middle joint bent most (a power grip: about 50
+// degrees at the knuckle, 85 at the middle joint, 30 at the last). From the curl c where the finger closing first meets
+// the weapon (finger_contact, every joint at c): the knuckle's own curl from 0.05 under c to 0.35 over, the middle
+// joint's from 0.25 under to 0.45 over (0.05 apart), the last joint then closed as far as it goes clear of the weapon
+// (halving, from 0.7 under the middle joint's to 0.1 over it). Every segment's skin stays out of the weapon, as
+// finger_contact asks, and so does every pose on the way there from c (a quarter at a time: the joints ease along that
+// way, so a finger never passes through a thin part such as a trigger guard to its far side). Of those, the one whose
+// segments lie nearest the weapon (the middle and last segments' gaps, the first's at half, each counted to 15 mm), a
+// finger bent at its knuckle but straight past it weighing against it, and a little the joints' change from c. c at
+// every joint is one of them, so these weighed gaps are never more than before.
+constexpr float kWrapHalf = 0.0085f;  // (finger_touches': her finger's half thickness)
+// The finger's segments' skin from the weapon (metres; below 0 in it), segments `from` to `to` - 1 (the others kept).
+void joint_gaps(int h, int f, const Pose& pose, const float c3[3], float g[3], int from, int to = 3,
+                float spread = 0.0f) {
+    Vec3 p[4];
+    finger_points3(h, f, c3, p, spread);
+    Vec3 o[3];
+    Quat q[3];
+    bool framed = false, tried = false;
+    for (int j = from; j < to; j++) {
+        const float line = weapon_clearance(h, grip_point(pose, p[j]), grip_point(pose, p[j + 1]));
+        g[j] = line - kWrapHalf;
+        // 0.1.10 (owner 172): the segment's own skin as drawn (hand_skin), where its line comes within 5 mm past the
+        // skin's reach, kept 0.5 mm farther out (so at finger_contact's curl it reads 0 at least, as the capsule does;
+        // joints_clear's 0.3 mm in then leaves it 0.2 mm off the weapon, kSkinCheck)
+        if (h < 0 || h > 1 || !hand_skin[h].ready || hand_skin[h].seg[f][j].empty() ||
+            line > hand_skin[h].reach[f][j] + 0.005f)
+            continue;
+        if (!tried) tried = true, framed = finger_frames(h, f, c3, spread, o, q);
+        if (framed) g[j] = std::min(g[j], skin_segment_gap(h, f, j, o, q, pose) - kSkinMargin);
+    }
+}
+bool joints_clear(int h, int f, const Pose& pose, const float c3[3]) {
+    float g[3];
+    joint_gaps(h, f, pose, c3, g, 0);
+    return g[0] >= -0.0003f && g[1] >= -0.0003f && g[2] >= -0.0003f;
+}
+float wrap_cost(float c, const float c3[3], const float g[3]) {
+    auto mm = [](float v) { return std::clamp(v * 1000.0f, 0.0f, 15.0f); };
+    return mm(g[0]) * 0.5f + mm(g[1]) + mm(g[2]) + 15.0f * std::max(0.0f, c3[0] - c3[1] - 0.15f) +
+           3.0f * (std::fabs(c3[0] - c) + std::fabs(c3[1] - c) + std::fabs(c3[2] - c));
+}
+bool finger_wrap(int h, int f, const Pose& pose, float c, float out[3]) {
+    out[0] = out[1] = out[2] = c;
+    if (!(c >= 0.0f && c <= 1.0f) || f == kThumb) return false;
+    float g[3];
+    joint_gaps(h, f, pose, out, g, 0);
+    if (g[0] < 0.0f || g[1] < 0.0f || g[2] < 0.0f) return false;  // (c itself in it: left as it is)
+    float best = wrap_cost(c, out, g);
+    for (int i = -1; i <= 7; i++) {
+        const float a0 = c + 0.05f * (float)i;
+        if (a0 < 0.0f || a0 > 1.0f) continue;
+        float g0[3];
+        const float k0[3] = {a0, a0, a0};
+        joint_gaps(h, f, pose, k0, g0, 0, 1);  // (the first segment: the knuckle's curl alone)
+        if (g0[0] < 0.0f) {
+            if (i > 0) break;  // (closing the knuckle further only goes deeper)
+            continue;
+        }
+        for (int k = -5; k <= 9; k++) {
+            const float a1 = c + 0.05f * (float)k;
+            if (a1 < 0.0f || a1 > 1.0f) continue;
+            // (its cost no lower than its first segment's gap and these two joints' terms: past the best, not tried)
+            const float least = std::clamp(g0[0] * 1000.0f, 0.0f, 15.0f) * 0.5f +
+                                15.0f * std::max(0.0f, a0 - a1 - 0.15f) + 3.0f * (std::fabs(a0 - c) + std::fabs(a1 - c));
+            if (!(least < best - 1e-4f)) continue;
+            float t[3] = {a0, a1, std::max(0.0f, a1 - 0.7f)}, q[3] = {g0[0], 0.0f, 0.0f};
+            joint_gaps(h, f, pose, t, q, 1);
+            if (q[1] < 0.0f || q[2] < 0.0f) continue;
+            float lo = t[2], lo_g = q[2], hi = std::min(1.0f, a1 + 0.1f);
+            t[2] = hi;
+            joint_gaps(h, f, pose, t, q, 2);
+            if (q[2] >= 0.0f) {
+                lo = hi, lo_g = q[2];
+            } else {
+                for (int s = 0; s < 6; s++) {
+                    t[2] = (lo + hi) * 0.5f;
+                    joint_gaps(h, f, pose, t, q, 2);
+                    if (q[2] >= 0.0f) lo = t[2], lo_g = q[2];
+                    else hi = t[2];
+                }
+            }
+            t[2] = lo, q[2] = lo_g;
+            const float cost = wrap_cost(c, t, q);
+            if (!(cost < best - 1e-4f)) continue;
+            bool way = true;  // (the way there from c, a quarter at a time)
+            for (int s = 1; s <= 3 && way; s++) {
+                const float u = s * 0.25f, w3[3] = {c + (t[0] - c) * u, c + (t[1] - c) * u, c + (t[2] - c) * u};
+                way = joints_clear(h, f, pose, w3);
+            }
+            if (way) best = cost, out[0] = t[0], out[1] = t[1], out[2] = t[2];
+        }
+    }
+    return true;
+}
+// Each finger's wrap on the weapon held (finger_wrap), kept while the weapon and its shape, the hand's role on it, the
+// hand's place on it (the finger's knuckle and straight tip in the weapon's model, each within half a unit: about a
+// millimetre) and the finger's contact curl (within 0.02) stay, and while it lies clear of the weapon (checked every
+// frame: the other hand's fingers count as the weapon for the hand on the second grip, and they move). A new one is
+// solved for at most one finger of each hand a frame (about a thousand of the shape's segment distances); meanwhile a
+// finger is drawn at its contact curl, every joint alike, as before.
+struct WrapKept {
+    bool solved = false;
+    int key = -2, role = 0;
+    float c = -1.0f;
+    Vec3 knuckle, tip;
+    float j[3]{};
+};
+WrapKept wraps[2][5];
+int wraps_solved[2];  // (how many each hand has solved: the rig's pictures report it)
+bool wrap_of(int h, int f, int role, const Pose& pose, float c, int& solves, float out[3]) {
+    WrapKept& w = wraps[h][f];
+    Vec3 p[4], mk, mt;
+    finger_points(h, f, 0.0f, p);
+    if (!weapon_model_point(grip_point(pose, p[0]), mk) || !weapon_model_point(grip_point(pose, p[3]), mt)) {
+        w.solved = false;
+        return false;
+    }
+    const int key = weapon_shape_key();
+    const bool same = w.solved && w.key == key && w.role == role && std::fabs(w.c - c) < 0.02f &&
+                      length(mk - w.knuckle) < 0.5f && length(mt - w.tip) < 0.5f;
+    if (same && joints_clear(h, f, pose, w.j)) {
+        for (int j = 0; j < 3; j++) out[j] = w.j[j];
+        return true;
+    }
+    if (solves <= 0) return false;
+    solves--;
+    wraps_solved[h]++;
+    const auto t0 = std::chrono::steady_clock::now();
+    w.solved = finger_wrap(h, f, pose, c, w.j);
+    const double took = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - t0).count();
+    w.key = key, w.role = role, w.c = c, w.knuckle = mk, w.tip = mt;
+    if (!w.solved) return false;
+    static int told = 0;
+    if (told < 64) {
+        told++;
+        float g0[3], g1[3];
+        const float cc[3] = {c, c, c};
+        joint_gaps(h, f, pose, cc, g0, 0);
+        joint_gaps(h, f, pose, w.j, g1, 0);
+        static const char* const kNames[5] = {"thumb", "index", "middle", "ring", "little"};
+        rt_log("VR: frame %d: the %s hand's %s finger on the weapon (as %d) closed joint by joint: %.2f %.2f %.2f "
+               "(every joint at %.2f before); its segments' skin %.1f %.1f %.1f mm off it (before %.1f %.1f %.1f); solved in %.0f us",
+               rt_frame, h == kLeft ? "left" : "right", kNames[f], role, w.j[0], w.j[1], w.j[2], c, g1[0] * 1000.0f,
+               g1[1] * 1000.0f, g1[2] * 1000.0f, g0[0] * 1000.0f, g0[1] * 1000.0f, g0[2] * 1000.0f, took);
+    }
+    for (int j = 0; j < 3; j++) out[j] = w.j[j];
+    return true;
+}
+
 // 0.1.8 (vr371: her straight thumb stands up into a gun's frame, so finger_contact finds it in the weapon at every curl
 // or out of it only past half): the thumb's curl resting on the weapon held: of the curls where it is clear of it (every
 // 0.05), the one nearest a relaxed thumb's 0.65 among those lying on it (`rests`), else the one nearest 0.65. -1: in it
@@ -863,7 +1310,19 @@ float thumb_rest(int h, const Pose& pose, bool* rests, float* depth, float* swin
         if (weapon_clearance(h, grip_point(pose, p[0]), grip_point(pose, p[1])) < 0.002f) return;
         const float d1 = weapon_clearance(h, grip_point(pose, p[1]), grip_point(pose, p[2]));
         const float d2 = weapon_clearance(h, grip_point(pose, p[2]), grip_point(pose, p[3]));
-        const float clear = std::min(d1, d2);
+        float clear = std::min(d1, d2);
+        // 0.1.10 (owner 172): its two outer segments' own skin as drawn (hand_skin), where their lines come within its
+        // reach: read as the capsules' 5.5 mm is (below, a rest's least) once it is 0.5 mm off the weapon
+        if (hand_skin[h].ready) {
+            Vec3 o[3];
+            Quat q[3];
+            const float c3[3] = {c, c, c};
+            if (finger_frames(h, kThumb, c3, sw, o, q))
+                for (int j = 1; j < 3; j++)
+                    if (!hand_skin[h].seg[kThumb][j].empty() &&
+                        (j == 1 ? d1 : d2) < hand_skin[h].reach[kThumb][j] + 0.006f)
+                        clear = std::min(clear, skin_segment_gap(h, kThumb, j, o, q, pose) + 0.005f);
+        }
         // (vr388: a thumb bent back, below 0, is the last a hand does: one clear of the weapon with a segment near it
         // comes first; straight along a pistol's frame, 0 to 0.2, is a shooter's)
         auto pref_of = [](float cc, float s) {
@@ -2035,6 +2494,158 @@ void body_frame() {
     weapon_contact();
 }
 
+#if !defined(__ANDROID__)
+// 0.1.10 (owner 172; the rig's pictures): her fingers as drawn against this hand model's at the pose drawn. Each
+// segment's vertices (those on its bone alone, sh3vr_combat.cpp combat_hand_finger_mesh) are carried into the grip space
+// by the palm's frame (as body_palm_skin) and measured from the model's segment at the joints' curls drawn: how far its
+// skin reaches toward the palm (the way the segment turns as its joint closes), toward the back and to either side, at
+// most (mm), from where to where along the segment they lie (% of its length), and how far its drawn joint is off the
+// model's (mm). The model's skin lies 8.5 mm round each segment (the thumb's 9.5).
+int finger_skin_text(int h, const HandState& s, char* out, int n) {
+    out[0] = 0;
+    const Vec3* v = nullptr;
+    const uint8_t* sg = nullptr;
+    Vec3 joint[5][3], wrist, knuckle[4], thumb[3];
+    const int nv = combat_hand_finger_mesh(h, &v, &sg, joint, wrist, knuckle, thumb);
+    if (nv <= 0 || n < 200 || h < 0 || h > 1 || !her_hands[h].valid) return 0;
+    Vec3 gi[4], gm[4], gl[4], gt[4];
+    finger_points(h, kIndex, 0, gi);
+    finger_points(h, kMiddle, 0, gm);
+    finger_points(h, kPinky, 0, gl);
+    finger_points(h, kThumb, 0, gt);
+    auto frame = [](Vec3 m, Vec3 i, Vec3 l, Vec3 t, Vec3 e[3]) {
+        e[0] = normalized(l - i);
+        const Vec3 u = t - m;
+        e[1] = normalized(u - e[0] * dot(u, e[0]));
+        e[2] = cross(e[0], e[1]);
+    };
+    Vec3 ew[3], eg[3];
+    frame(knuckle[1], knuckle[0], knuckle[3], thumb[0], ew);
+    frame(gm[0], gi[0], gl[0], gt[0], eg);
+    const float U = kUnitsPerMetre;
+    auto to_grip = [&](Vec3 w) {
+        const Vec3 d = w - knuckle[1];
+        return gm[0] + (eg[0] * dot(d, ew[0]) + eg[1] * dot(d, ew[1]) + eg[2] * dot(d, ew[2])) * (1.0f / U);
+    };
+    int at = std::snprintf(out, (size_t)n, "her fingers as drawn off this model's (%d vertices; each segment: vertices, "
+                           "mm toward the palm/back/side at most, along it %%, its joint off mm):", nv);
+    for (int f = 0; f < 5 && at < n - 120; f++) {
+        const float sp = f == kIndex ? index_spread[h] : f == kThumb ? thumb_spread[h] : 0.0f;
+        float c3[3];
+        for (int j = 0; j < 3; j++) c3[j] = std::clamp(s.curl[f] + finger_joint_off[h][f][j], kFingerBackMost, 1.0f);
+        Vec3 p[4];
+        finger_points3(h, f, c3, p, sp);
+        at += std::snprintf(out + at, (size_t)(n - at), " %c", "TIMRL"[f]);
+        for (int j = 0; j < 3; j++) {
+            const Vec3 d = p[j + 1] - p[j];
+            const float L = length(d);
+            if (!(L > 1e-5f)) continue;
+            const Vec3 a = d * (1.0f / L);
+            // (the palm's way for this segment: where its end goes as its own joint closes a little)
+            float cb[3] = {c3[0], c3[1], c3[2]};
+            const float e = c3[j] <= 0.98f ? 0.02f : -0.02f;
+            cb[j] += e;
+            Vec3 q[4];
+            finger_points3(h, f, cb, q, sp);
+            const Vec3 dq = (q[j + 1] - q[j]) * (e > 0 ? 1.0f : -1.0f);
+            const Vec3 P = normalized(dq - a * dot(dq, a)), S = cross(a, P);
+            int cnt = 0;
+            float pal = -1.0f, back = -1.0f, side = 0, s0 = 1e9f, s1 = -1e9f;
+            for (int i = 0; i < nv; i++) {
+                if (sg[i] != f * 3 + j) continue;
+                const Vec3 g = to_grip(v[i]) - p[j];
+                const float t = dot(g, a);
+                const Vec3 w = g - a * t;
+                cnt++;
+                pal = std::max(pal, dot(w, P)), back = std::max(back, -dot(w, P));
+                side = std::max(side, std::fabs(dot(w, S)));
+                s0 = std::min(s0, t / L), s1 = std::max(s1, t / L);
+            }
+            const float off = length(to_grip(joint[f][j]) - p[j]);
+            if (cnt)
+                at += std::snprintf(out + at, (size_t)(n - at), "%s%d %.1f/%.1f/%.1f %.0f..%.0f%% (%.1f)", j ? ", " : " ",
+                                    cnt, pal * 1000.0f, back * 1000.0f, side * 1000.0f, s0 * 100.0f, s1 * 100.0f,
+                                    off * 1000.0f);
+            else
+                at += std::snprintf(out + at, (size_t)(n - at), "%s0 (%.1f)", j ? ", " : " ", off * 1000.0f);
+            at = std::min(at, n - 1);
+        }
+    }
+    return at;
+}
+
+// Testing (SH3_GRIP_SLICES=1, the rig): once for each hand on each weapon, the weapon round hand h at the pose drawn in
+// its grip space, in slices 5 mm apart across the hand (z, index to little finger), each a grid 3 mm a cell of x (out of
+// the palm's face: the back of the hand at +x for the right hand) by y (along: the knuckles at -47 mm, the wrist +y):
+// '#' in the weapon, '+' within 3 mm of it; her drawn vertices there: 'P' her palm (its own bone), 'F' a finger's
+// segment (90 percent or more on it), each 'X' when inside the weapon.
+void grip_slices(int h, const HandState& s) {
+    static const bool on = std::getenv("SH3_GRIP_SLICES") != nullptr;
+    static int done[2] = {-1, -1};
+    if (!on || h < 0 || h > 1 || done[h] == game.weapon) return;
+    done[h] = game.weapon;
+    Vec3 gi[4], gm[4], gl[4], gt[4];
+    finger_points(h, kIndex, 0, gi);
+    finger_points(h, kMiddle, 0, gm);
+    finger_points(h, kPinky, 0, gl);
+    finger_points(h, kThumb, 0, gt);
+    // her vertices as drawn (every one, by bone: sh3vr_combat.cpp)
+    const Vec3* fv = nullptr;
+    const uint8_t* sg = nullptr;
+    Vec3 joint[5][3], wrist, knuckle[4], thumb[3];
+    const int nf = combat_hand_finger_mesh(h, &fv, &sg, joint, wrist, knuckle, thumb);
+    auto frame = [](Vec3 m, Vec3 i, Vec3 l, Vec3 t, Vec3 e[3]) {
+        e[0] = normalized(l - i);
+        const Vec3 u = t - m;
+        e[1] = normalized(u - e[0] * dot(u, e[0]));
+        e[2] = cross(e[0], e[1]);
+    };
+    Vec3 ew[3], eg[3];
+    if (nf > 0) frame(knuckle[1], knuckle[0], knuckle[3], thumb[0], ew);
+    frame(gm[0], gi[0], gl[0], gt[0], eg);
+    const float U = kUnitsPerMetre;
+    auto to_grip = [&](Vec3 w) {
+        const Vec3 d = w - knuckle[1];
+        return gm[0] + (eg[0] * dot(d, ew[0]) + eg[1] * dot(d, ew[1]) + eg[2] * dot(d, ew[2])) * (1.0f / U);
+    };
+    constexpr int kX = 40, kY = 56;  // x -60..60 mm, y -100..68 mm (3 mm cells)
+    const float x0 = -0.060f, y0 = -0.100f, cell = 0.003f;
+    static char grid[kY][kX + 1];
+    std::vector<Vec3> palm_pts(palm_skin[h]);
+    rt_log("VR: grip slices: %s hand, weapon %d: x %.0f..%.0f mm (cells of 3), y %.0f..%.0f, z every 5 mm; %d palm "
+           "points, %d finger vertices", h == kLeft ? "left" : "right", game.weapon, x0 * 1000.0f,
+           (x0 + kX * cell) * 1000.0f, y0 * 1000.0f, (y0 + kY * cell) * 1000.0f, (int)palm_pts.size(), nf);
+    for (int iz = -12; iz <= 10; iz++) {
+        const float z = iz * 0.005f;
+        bool any = false;
+        for (int iy = 0; iy < kY; iy++) {
+            for (int ix = 0; ix < kX; ix++) {
+                const Vec3 l{x0 + (ix + 0.5f) * cell, y0 + (iy + 0.5f) * cell, z};
+                const Vec3 t = grip_point(s.shown, l);
+                const float c = weapon_clearance(h, t, t);
+                grid[iy][ix] = c < 0 ? '#' : c < 0.003f ? '+' : '.';
+                any |= c < 0.003f;
+            }
+            grid[iy][kX] = 0;
+        }
+        auto mark = [&](Vec3 g, char ch) {
+            if (std::fabs(g.z - z) > 0.0025f) return;
+            const int ix = (int)std::floor((g.x - x0) / cell), iy = (int)std::floor((g.y - y0) / cell);
+            if (ix < 0 || ix >= kX || iy < 0 || iy >= kY) return;
+            const Vec3 t = grip_point(s.shown, g);
+            const bool in = weapon_clearance(h, t, t) < 0;
+            any = true;
+            grid[iy][ix] = in ? 'X' : ch;
+        };
+        for (const Vec3& g : palm_pts) mark(g, 'P');
+        for (int i = 0; i < nf; i++) mark(to_grip(fv[i]), 'F');
+        if (!any) continue;
+        for (int iy = 0; iy < kY; iy++)
+            rt_log("VR: grip slice z %+.0f y %+.0f: %s", z * 1000.0f, (y0 + (iy + 0.5f) * cell) * 1000.0f, grid[iy]);
+    }
+}
+#endif
+
 // Her fingers this frame (combat_frame's end, the hands posed): Half-Life: Alyx's fingers on the weapon and on what the
 // hand holds as well as on the world (the owner: "the half life alyx finger movement/world collision ... should also be
 // able to feel weapons and guns"; "be sure the gripping of ammo/shells/mags is as clean as possible").
@@ -2047,6 +2658,7 @@ void body_frame() {
 // - A free hand: the controls' curl, stopped by the world (the probes) and by the weapon (a touch's tick when a finger
 //   first meets it).
 void body_fingers() {
+    // (session 36: wrap_of solves at most one new wrap a hand a frame)
     for (int h = 0; h < 2; h++) {
         HandState& s = hands[h];
         if (!s.valid) {
@@ -2055,9 +2667,11 @@ void body_fingers() {
             thumb_spread[h] = 0.0f;
             thumb_keep[h].known = false;
             trigger_shown[h] = 0.0f;
+            std::memset(finger_joint_off[h], 0, sizeof finger_joint_off[h]);
             continue;
         }
         const int role = weapon_hand_role(h);
+        int wrap_solves = 1;  // (session 36: new wraps this hand solves this frame at most, wrap_of)
         PartCaps pc;
         bool part = parts_hand_caps(h, pc);
         const Quat rel = conjugate(s.grip.orientation) * s.aim.orientation;
@@ -2100,6 +2714,7 @@ void body_fingers() {
         float thumb_target = 0.0f;   // (session 31: the thumb's swing at its root, degrees: thumb_spread)
         if (role != 1 && role != 2) thumb_keep[h].known = false;
         trigger_shown[h] = 0.0f;
+        float joint_target[5][3]{};  // (session 36: each joint's curl over its finger's, finger_joint_off)
         for (int f = 0; f < 5; f++) {
             float target = s.want[f], free_from = 0;
             if (role == 1 || role == 2) {
@@ -2146,6 +2761,15 @@ void body_fingers() {
                     const float th = f == kThumb ? weapon_hold_thumb(h) : -1.0f;
                     const float base = f == kThumb ? (th >= 0 ? th : std::min(hold, 0.7f)) : hold;
                     target = c >= 0 ? c : std::max(base, free_from);
+                    // Session 36 (owner message 169): closed joint by joint round the weapon, each part resting on it
+                    // (finger_wrap; the trigger finger's own work above is left as it is)
+                    // (taken in as the finger's curl comes to it, so a finger still closing or opening keeps its
+                    // joints together)
+                    float jw[3];
+                    if (f != kThumb && c >= 0 && wrap_of(h, f, role, s.shown, c, wrap_solves, jw)) {
+                        const float in = std::clamp(1.0f - std::fabs(target - s.curl[f]) / 0.1f, 0.0f, 1.0f);
+                        for (int j = 0; j < 3; j++) joint_target[f][j] = (jw[j] - target) * in;
+                    }
                     // 0.1.8 (vr371): her thumb in the weapon at every curl, or out of it only past half: it rests
                     // where it is clear of it (thumb_rest, along the frame or round the grip), as the grips were fitted.
                     // Session 31 (vr384): always so, swung at its root, its pad's segment on the weapon (thumb_resting)
@@ -2192,6 +2816,11 @@ void body_fingers() {
         }
         index_spread[h] += (spread_target - index_spread[h]) * ease(22.0f);
         thumb_spread[h] += (thumb_target - thumb_spread[h]) * ease(22.0f);
+        // (a hand on the world: its fingers' joints together at once, as the world's solver placed them)
+        if (world) std::memset(finger_joint_off[h], 0, sizeof finger_joint_off[h]);
+        for (int f = 0; f < 5; f++)
+            for (int j = 0; j < 3; j++)
+                finger_joint_off[h][f][j] += (joint_target[f][j] - finger_joint_off[h][f][j]) * ease(22.0f);
         solved_was[h] = world;
         if (touched && !weapon_touch[h] && opt.haptic_surfaces) buzz(h, 0.15f, 0.012f, 220.0f);
         weapon_touch[h] = touched;
@@ -2238,19 +2867,173 @@ void body_fingers() {
     // finger's knuckle clearance, the curl it meets the weapon at, the thumb's rest, the palm), so every picture is
     // read against numbers.
     if (quest::sim_shot_hands.exchange(0) != 0) {
-        static char line[1800];
+        static char line[4800];
         for (int h = 0; h < 2; h++) {
             const HandState& s = hands[h];
             if (!s.valid) continue;
             const int role = weapon_hand_role(h);
             line[0] = 0;
-            if (role == 1 || role == 2) body_grip_report(h, s.shown, line, sizeof line);
+            if (role == 1 || role == 2) {
+                body_grip_report(h, s.shown, line, sizeof line);
+                // (session 36: each finger's joints as drawn, knuckle/middle/last, and its segments' skin from the
+                // weapon there, mm, below 0 in it: finger_wrap's)
+                int n = (int)std::strlen(line);
+                for (int f = kIndex; f <= kPinky && n < (int)sizeof line; f++) {
+                    float c3[3], g[3];
+                    for (int j = 0; j < 3; j++)
+                        c3[j] = std::clamp(s.curl[f] + finger_joint_off[h][f][j], kFingerBackMost, 1.0f);
+                    joint_gaps(h, f, s.shown, c3, g, 0, 3, f == kIndex ? index_spread[h] : 0.0f);
+                    n += std::snprintf(line + n, sizeof line - n, "%s%c %.2f/%.2f/%.2f [%.1f %.1f %.1f]",
+                                       f == kIndex ? "; joints drawn " : ", ", "TIMRL"[f], c3[0], c3[1], c3[2],
+                                       g[0] * 1000.0f, g[1] * 1000.0f, g[2] * 1000.0f);
+                }
+                // (0.1.10: her palm as drawn in this hand's model, body_palm_skin, at the pose drawn: its nearest to the
+                // weapon, which the drawn hand's own measure below should agree with)
+                if (!palm_skin[h].empty() && n < (int)sizeof line - 80) {
+                    float skin = 1.0f;
+                    int in = 0;
+                    Vec3 mid{};  // (the middle of those in it, grip space)
+                    for (const Vec3& l : palm_skin[h]) {
+                        const Vec3 t = grip_point(s.shown, l);
+                        const float c = weapon_clearance(h, t, t);
+                        skin = std::min(skin, c);
+                        if (c < 0) in++, mid = mid + l;
+                    }
+                    if (in) mid = mid * (1000.0f / (float)in);
+                    n += std::snprintf(line + n, sizeof line - n, "; the model's palm as drawn (%d points) %.1f mm off it "
+                                       "(%d in it, about %.0f %.0f %.0f mm in the grip's space)",
+                                       (int)palm_skin[h].size(), skin * 1000.0f, in, mid.x, mid.y, mid.z);
+                }
+                // (0.1.10, owner 172: her hand's own vertices as drawn against the weapon as drawn, each part's nearest)
+                if (n < (int)sizeof line - 8) {
+                    n += std::snprintf(line + n, sizeof line - n, "; ");
+                    const int k = combat_hand_mesh_report(h, line + n, (int)sizeof line - n);
+                    if (k > 0) n += k;
+                    else n -= 2, line[n] = 0;
+                }
+                // (... and her bones as drawn against this hand model's at the pose drawn: each knuckle's and the
+                // thumb's root's offset, mm, world axes)
+                Vec3 dw, dk[4], dt[3];
+                if (n < (int)sizeof line - 200 && ik_hand_drawn(h, dw, dk, dt)) {
+                    n += std::snprintf(line + n, sizeof line - n, "; her bones drawn off this model's (mm):");
+                    for (int f = kThumb; f <= kPinky && n < (int)sizeof line - 40; f++) {
+                        Vec3 p[4];
+                        finger_points(h, f, 0.0f, p);
+                        const Vec3 d = ((f == kThumb ? dt[0] : dk[f - kIndex]) - world_point(grip_point(s.shown, p[0]))) *
+                                       (1000.0f / kUnitsPerMetre);
+                        n += std::snprintf(line + n, sizeof line - n, " %c %.0f %.0f %.0f (%.0f)", "TIMRL"[f], d.x, d.y,
+                                           d.z, length(d));
+                    }
+                }
+            }
             rt_log("VR: frame %d: the %s hand drawn for the picture: on the weapon as %d, curls %.2f %.2f %.2f %.2f %.2f "
                    "(closing to %.2f %.2f %.2f %.2f %.2f), thumb swung %.1f, trigger finger spread %.1f, the trigger "
-                   "drawn %.2f%s%s",
+                   "drawn %.2f, wraps solved %d%s%s",
                    rt_frame, h == kLeft ? "left" : "right", role, s.curl[0], s.curl[1], s.curl[2], s.curl[3], s.curl[4],
                    finger_target[h][0], finger_target[h][1], finger_target[h][2], finger_target[h][3],
-                   finger_target[h][4], thumb_spread[h], index_spread[h], trigger_shown[h], line[0] ? "; " : "", line);
+                   finger_target[h][4], thumb_spread[h], index_spread[h], trigger_shown[h], wraps_solved[h], line[0] ? "; " : "", line);
+            // (0.1.10: her fingers as drawn against the model's)
+            if (finger_skin_text(h, s, line, (int)sizeof line) > 0)
+                rt_log("VR: frame %d: the %s hand drawn for the picture: %s", rt_frame, h == kLeft ? "left" : "right", line);
+            // (session 38: the other hand on the weapon, its skin as drawn against her main hand's as drawn)
+            if (role == 2 && hand_skin[h].ready && hand_skin[1 - h].ready) {
+                float cb[5][3], sb[5] = {thumb_spread[h], index_spread[h], 0.0f, 0.0f, 0.0f};
+                for (int f = 0; f < 5; f++)
+                    for (int j = 0; j < 3; j++)
+                        cb[f][j] = std::clamp(s.curl[f] + finger_joint_off[h][f][j], kFingerBackMost, 1.0f);
+                const float b = hand_skin_between(h, s.shown, cb, sb);
+                if (b < 0.01f)
+                    rt_log("VR: frame %d: the %s hand drawn for the picture: its skin as drawn %.1f mm off her main hand's "
+                           "as drawn at the nearest (below 0: in it)", rt_frame, h == kLeft ? "left" : "right", b * 1000.0f);
+                else
+                    rt_log("VR: frame %d: the %s hand drawn for the picture: its skin as drawn more than 1 cm off her main "
+                           "hand's as drawn", rt_frame, h == kLeft ? "left" : "right");
+            }
+            if (role == 1 || role == 2) grip_slices(h, s);
+            // (0.1.10: her hand as this model poses it at the curls drawn, against her hand as drawn: each vertex's
+            // distance (mm) at most and on average; and, on the weapon, its nearest to it as the fit reads it)
+            HandDrawn hd;
+            static std::vector<Vec3> posed;
+            float c3[5][3];
+            const float sp[5] = {thumb_spread[h], index_spread[h], 0.0f, 0.0f, 0.0f};
+            for (int f = 0; f < 5; f++)
+                for (int j = 0; j < 3; j++)
+                    c3[f][j] = std::clamp(s.curl[f] + finger_joint_off[h][f][j], kFingerBackMost, 1.0f);
+            if (hand_skin[h].ready && combat_hand_drawn(h, hd) && hand_skin_pose(h, c3, sp, posed)) {
+                float most = -1.0f, sum = 0.0f, by_part[8]{};  // (the most off by part: hand_skin's)
+                int worst_i = -1;
+                Vec3 worst_g{};
+                if ((int)posed.size() == hd.n) {
+                    Vec3 gi[4], gm[4], gl[4], gt[4];
+                    finger_points(h, kIndex, 0, gi);
+                    finger_points(h, kMiddle, 0, gm);
+                    finger_points(h, kPinky, 0, gl);
+                    finger_points(h, kThumb, 0, gt);
+                    auto frame = [](Vec3 m, Vec3 i, Vec3 l, Vec3 t, Vec3 e[3]) {
+                        e[0] = normalized(l - i);
+                        const Vec3 u = t - m;
+                        e[1] = normalized(u - e[0] * dot(u, e[0]));
+                        e[2] = cross(e[0], e[1]);
+                    };
+                    Vec3 ew[3], eg[3];
+                    frame(hd.knuckle[1], hd.knuckle[0], hd.knuckle[3], hd.thumb[0], ew);
+                    frame(gm[0], gi[0], gl[0], gt[0], eg);
+                    for (int i = 0; i < hd.n; i++) {
+                        const Vec3 e = hd.v[i] - hd.knuckle[1];
+                        const Vec3 g = gm[0] + (eg[0] * dot(e, ew[0]) + eg[1] * dot(e, ew[1]) + eg[2] * dot(e, ew[2])) *
+                                                   (1.0f / kUnitsPerMetre);
+                        const float d = length(g - posed[(size_t)i]);
+                        if (d > most) worst_i = i, worst_g = g;
+                        most = std::max(most, d), sum += d;
+                        const int pt = std::min<int>(hand_skin[h].part[(size_t)i], 7);
+                        by_part[pt] = std::max(by_part[pt], d);
+                    }
+                }
+                int pt = -1;
+                float pm = 1e9f;
+                const float m = role == 1 || role == 2 ? hand_skin_clear(h, s.shown, c3, sp, &pt, &pm) : 1e9f;
+                static const char* const kPart[8] = {"her palm", "blended skin", "thumb", "index", "middle", "ring",
+                                                     "little", "-"};
+                rt_log("VR: frame %d: the %s hand drawn for the picture: her hand as this model poses it (%d vertices) "
+                       "off her hand as drawn (%d, frame %d): %.2f mm at most, %.2f on average (at most: her palm %.2f, "
+                       "blended %.2f, T %.2f I %.2f M %.2f R %.2f L %.2f, her wrist on her forearm too %.2f); against "
+                       "the weapon as the fit reads it: %.1f mm (%s), her palm's and the blended skin's %.1f mm",
+                       rt_frame, h == kLeft ? "left" : "right", (int)posed.size(), hd.n, hd.frame, most * 1000.0f,
+                       hd.n ? sum / hd.n * 1000.0f : 0.0f, by_part[0] * 1000.0f, by_part[1] * 1000.0f,
+                       by_part[2] * 1000.0f, by_part[3] * 1000.0f, by_part[4] * 1000.0f, by_part[5] * 1000.0f,
+                       by_part[6] * 1000.0f, by_part[7] * 1000.0f, m * 1000.0f, kPart[pt >= 0 && pt < 7 ? pt : 7],
+                       pm * 1000.0f);
+                // (session 38, owner 178: her wrist as drawn, its arm's bend, and the hand's turn from the controller's)
+                if (role == 1 || role == 2)
+                    rt_log("VR: frame %d: the %s hand drawn for the picture: its wrist bent %.0f degrees as drawn, the "
+                           "hand %.0f degrees from her real hand's (the controller's) along it", rt_frame,
+                           h == kLeft ? "left" : "right", ik_wrist_bend(h), body_wrist_swing(h, s.shown));
+                // (session 38: the main hand's trigger finger as drawn against the trigger as drawn, turned as far as
+                // her finger has pushed it, and against the rest of the gun, hand_skin_trigger)
+                if (role == 1 && trigger_shown[h] > 0.01f) {
+                    float on_t = 1e9f, on_g = 1e9f;
+                    hand_skin_trigger(h, s.shown, c3, sp, trigger_shown[h], on_t, on_g);
+                    if (on_t < 1e8f)
+                        rt_log("VR: frame %d: the %s hand drawn for the picture: its trigger finger as drawn against the "
+                               "trigger as drawn (pulled %.2f): %.1f mm; against the rest of the gun, the trigger at rest "
+                               "left out: %.1f mm (below 0: in it)", rt_frame, h == kLeft ? "left" : "right",
+                               trigger_shown[h], on_t * 1000.0f, std::min(on_g, 0.05f) * 1000.0f);
+                }
+                // (testing: the vertex most off, drawn and posed, mm in the grip space, and its bones then and now)
+                if (worst_i >= 0 && most > 0.002f) {
+                    const SkinVert& sv = hand_skin[h].v[(size_t)worst_i];
+                    const Vec3 a = worst_g * 1000.0f, b = posed[(size_t)worst_i] * 1000.0f;
+                    char bones[200];
+                    int at = 0;
+                    for (int k = 0; k < sv.n; k++)
+                        at += std::snprintf(bones + at, sizeof bones - at, " %d:%.2f", sv.tag[k], sv.w[k]);
+                    for (int k = 0; k < 4; k++)
+                        at += std::snprintf(bones + at, sizeof bones - at, "%s%d:%.2f", k ? " " : " | now", hd.it[worst_i * 4 + k],
+                                            hd.iw[worst_i * 4 + k]);
+                    rt_log("VR: ... its vertex %d most off: drawn %.1f %.1f %.1f, posed %.1f %.1f %.1f; bones (taken):%s",
+                           worst_i, a.x, a.y, a.z, b.x, b.y, b.z, bones);
+                }
+            }
         }
     }
 #endif
@@ -2278,22 +3061,27 @@ bool hand_finger_tip(int h, int f, float c, Vec3& tip) {
 // fist-sized rod round the grip stand for them, so the second hand's fingers stopped short of them or sank into them).
 int body_hand_capsules(int h, Vec3* a, Vec3* b, float* r, int max) {
     static int count[2] = {-1, -1};
-    static float key[2][14];
+    static float key[2][29];
     static Vec3 ca[2][18], cb[2][18];
     static float cr[2][18];
     if (h < 0 || h > 1 || !hands[h].valid) return 0;
-    // (kept while the hand's pose, curls and spreads stay the same: the hand is posed in combat_frame, after some callers)
+    // (kept while the hand's pose, curls and spreads stay the same: the hand is posed in combat_frame, after some callers;
+    // session 36: each finger's joints as drawn, finger_joint_off)
     const HandState& hs = hands[h];
-    const float now_key[14] = {hs.shown.position.x, hs.shown.position.y, hs.shown.position.z, hs.shown.orientation.x,
-                               hs.shown.orientation.y, hs.shown.orientation.z, hs.shown.orientation.w, hs.curl[0],
-                               hs.curl[1], hs.curl[2], hs.curl[3], hs.curl[4], index_spread[h], thumb_spread[h]};
+    float now_key[29] = {hs.shown.position.x, hs.shown.position.y, hs.shown.position.z, hs.shown.orientation.x,
+                         hs.shown.orientation.y, hs.shown.orientation.z, hs.shown.orientation.w, hs.curl[0],
+                         hs.curl[1], hs.curl[2], hs.curl[3], hs.curl[4], index_spread[h], thumb_spread[h]};
+    std::memcpy(now_key + 14, finger_joint_off[h], sizeof finger_joint_off[h]);
     if (count[h] < 0 || std::memcmp(key[h], now_key, sizeof now_key) != 0) {
         std::memcpy(key[h], now_key, sizeof now_key);
         const HandState& s = hs;
         int n = 0;
         for (int f = 0; f < 5; f++) {
             Vec3 p[4];
-            finger_points(h, f, s.curl[f], p, f == kIndex ? index_spread[h] : f == kThumb ? thumb_spread[h] : 0.0f);
+            const float c3[3] = {std::clamp(s.curl[f] + finger_joint_off[h][f][0], kFingerBackMost, 1.0f),
+                                 std::clamp(s.curl[f] + finger_joint_off[h][f][1], kFingerBackMost, 1.0f),
+                                 std::clamp(s.curl[f] + finger_joint_off[h][f][2], kFingerBackMost, 1.0f)};
+            finger_points3(h, f, c3, p, f == kIndex ? index_spread[h] : f == kThumb ? thumb_spread[h] : 0.0f);
             for (int j = 0; j < 3; j++, n++) {
                 ca[h][n] = grip_point(s.shown, p[j]);
                 cb[h][n] = grip_point(s.shown, p[j + 1]);
@@ -2314,6 +3102,247 @@ int body_hand_capsules(int h, Vec3* a, Vec3* b, float* r, int max) {
     const int n = std::min(count[h], max);
     for (int i = 0; i < n; i++) a[i] = ca[h][i], b[i] = cb[h][i], r[i] = cr[h][i];
     return n;
+}
+
+// 0.1.10 (session 38; open since session 37): hand h's skin as drawn (hand_skin) posed where and as it is drawn now
+// (its fingers' curls and spreads, body_hand_capsules'), every vertex but her wrist's (tracking, metres), and their box;
+// kept while the hand's pose, curls and spreads stay the same. The other hand on the second grip closes onto it and is
+// measured against it in the grips' fit (sh3vr_combat.cpp weapon_clearance): the capsules alone are the hand model's,
+// its palm 2.6 cm thick against her drawn palm's 5.2, so the other hand fitted round them went into her hand as drawn
+// or, measured against it only after (hand_skin_between), stood off it. 0 before it is taken.
+int body_hand_skin_points(int h, const Vec3** out, Vec3* lo, Vec3* hi) {
+    static std::vector<Vec3> pts[2];
+    static float key[2][30];
+    static bool have[2] = {false, false};
+    static Vec3 blo[2], bhi[2];
+    if (h < 0 || h > 1 || !hands[h].valid || !hand_skin[h].ready) return 0;
+    const HandState& hs = hands[h];
+    float now_key[30] = {hs.shown.position.x, hs.shown.position.y, hs.shown.position.z, hs.shown.orientation.x,
+                         hs.shown.orientation.y, hs.shown.orientation.z, hs.shown.orientation.w, hs.curl[0],
+                         hs.curl[1], hs.curl[2], hs.curl[3], hs.curl[4], index_spread[h], thumb_spread[h]};
+    std::memcpy(now_key + 14, finger_joint_off[h], sizeof finger_joint_off[h]);
+    now_key[29] = (float)hand_skin_taken[h];
+    if (!have[h] || std::memcmp(key[h], now_key, sizeof now_key) != 0) {
+        std::memcpy(key[h], now_key, sizeof now_key);
+        float c3[5][3], sp[5] = {thumb_spread[h], index_spread[h], 0.0f, 0.0f, 0.0f};
+        for (int f = 0; f < 5; f++)
+            for (int j = 0; j < 3; j++) c3[f][j] = std::clamp(hs.curl[f] + finger_joint_off[h][f][j], kFingerBackMost, 1.0f);
+        have[h] = hand_skin_pose(h, c3, sp, pts[h]);
+        if (!have[h]) return 0;
+        size_t k = 0;
+        blo[h] = {1e9f, 1e9f, 1e9f}, bhi[h] = {-1e9f, -1e9f, -1e9f};
+        for (size_t i = 0; i < pts[h].size(); i++) {
+            if (hand_skin[h].part[i] == kSkinWrist) continue;
+            const Vec3 p = grip_point(hs.shown, pts[h][i]);
+            pts[h][k++] = p;
+            blo[h] = {std::min(blo[h].x, p.x), std::min(blo[h].y, p.y), std::min(blo[h].z, p.z)};
+            bhi[h] = {std::max(bhi[h].x, p.x), std::max(bhi[h].y, p.y), std::max(bhi[h].z, p.z)};
+        }
+        pts[h].resize(k);
+    }
+    *out = pts[h].data();
+    if (lo) *lo = blo[h];
+    if (hi) *hi = bhi[h];
+    return (int)pts[h].size();
+}
+
+// 0.1.10 (owner 172: "WHY ... IS THE GUN STILL CLIPPING THROUGH THE HAND"; build 278, her hand as drawn against the
+// weapon as drawn, sh3vr_combat.cpp hand_depth: at 0.1.8's fitted place the handgun's grip lies 18 mm into the middle
+// of her palm, where palm_points, at the knuckles and the heel alone, never looked): her palm's skin as drawn, in hand
+// h's grip space. Her bones as drawn lie exactly on this model's (build 278: 0 mm off at every knuckle and the thumb's
+// root), so each vertex is carried over by the frame of the same joints, drawn and modelled: the index, middle and
+// little fingers' knuckles and the thumb's root (all on the hand's own bone). Points within 1.5 mm of one kept are
+// left out.
+bool body_palm_skin_ready(int h) { return h >= 0 && h < 2 && !palm_skin[h].empty(); }
+float body_palm_skin_clear(int h, const Pose& pose, Vec3* back) {
+    if (h < 0 || h > 1 || palm_skin[h].empty()) return 1e9f;
+    if (back) *back = rotate(pose.orientation, Vec3{h == kLeft ? -1.0f : 1.0f, 0, 0});  // (palm_points' face is -mx x)
+    float least = 1e9f;
+    for (const Vec3& l : palm_skin[h]) {
+        const Vec3 p = grip_point(pose, l);
+        least = std::min(least, weapon_clearance(h, p, p));
+    }
+    return least;
+}
+void body_palm_skin(int h, const Vec3* world, int n, int of, Vec3 wrist, const Vec3 knuckle[4], const Vec3 thumb[3]) {
+    if (h < 0 || h > 1 || !her_hands[h].valid || !world || n <= 0 || !palm_skin[h].empty()) return;
+    Vec3 gi[4], gm[4], gl[4], gt[4];
+    finger_points(h, kIndex, 0, gi);
+    finger_points(h, kMiddle, 0, gm);
+    finger_points(h, kPinky, 0, gl);
+    finger_points(h, kThumb, 0, gt);
+    const float U = kUnitsPerMetre;
+    static const char* const kSide[2] = {"left", "right"};
+    // (the same joints, drawn and modelled, the same distances apart within 2 mm: else her bones are not this model's)
+    const float d1 = std::fabs(length(knuckle[3] - knuckle[0]) / U - length(gl[0] - gi[0]));
+    const float d2 = std::fabs(length(thumb[0] - knuckle[1]) / U - length(gt[0] - gm[0]));
+    const float d3 = std::fabs(length(thumb[0] - knuckle[0]) / U - length(gt[0] - gi[0]));
+    if (d1 > 0.002f || d2 > 0.002f || d3 > 0.002f) {
+        static int told = 0;
+        if (told++ < 4)
+            rt_log("VR: her %s palm as drawn not taken: her bones drawn are not this hand model's (%.1f %.1f %.1f mm "
+                   "apart)", kSide[h], d1 * 1000.0f, d2 * 1000.0f, d3 * 1000.0f);
+        return;
+    }
+    auto frame = [](Vec3 m, Vec3 i, Vec3 l, Vec3 t, Vec3 e[3]) {
+        e[0] = normalized(l - i);
+        const Vec3 u = t - m;
+        e[1] = normalized(u - e[0] * dot(u, e[0]));
+        e[2] = cross(e[0], e[1]);
+    };
+    Vec3 ew[3], eg[3];
+    frame(knuckle[1], knuckle[0], knuckle[3], thumb[0], ew);
+    frame(gm[0], gi[0], gl[0], gt[0], eg);
+    std::vector<Vec3>& out = palm_skin[h];
+    Vec3 lo{1e9f, 1e9f, 1e9f}, hi{-1e9f, -1e9f, -1e9f};
+    for (int i = 0; i < n; i++) {
+        const Vec3 d = world[i] - knuckle[1];
+        const Vec3 g = gm[0] + (eg[0] * dot(d, ew[0]) + eg[1] * dot(d, ew[1]) + eg[2] * dot(d, ew[2])) * (1.0f / U);
+        bool close = false;
+        for (const Vec3& k : out)
+            if (length(k - g) < 0.0015f) {
+                close = true;
+                break;
+            }
+        if (close) continue;
+        out.push_back(g);
+        lo = {std::min(lo.x, g.x), std::min(lo.y, g.y), std::min(lo.z, g.z)};
+        hi = {std::max(hi.x, g.x), std::max(hi.y, g.y), std::max(hi.z, g.z)};
+    }
+    const float mx = h == kLeft ? -1.0f : 1.0f;
+    rt_log("VR: her %s palm as drawn taken for the grips' fit: %d points (of %d vertices on its own bone from the "
+           "palm's rear to the knuckles, %d on it in all), its grip space x %.1f..%.1f, y %.1f..%.1f, z %.1f..%.1f cm "
+           "(the hand model's palm faces at x %.1f and %.1f; the wrist's joint %.1f cm from the middle knuckle)",
+           kSide[h], (int)out.size(), n, of, lo.x * 100.0f, hi.x * 100.0f, lo.y * 100.0f, hi.y * 100.0f,
+           lo.z * 100.0f, hi.z * 100.0f, (gm[0].x - mx * 0.013f) * 100.0f, (gm[0].x + mx * 0.013f) * 100.0f,
+           length(wrist - knuckle[1]) / U * 100.0f);
+    // (testing: SH3_PALM_DUMP=1 logs the points, mm, eight a line)
+    static const bool dump = std::getenv("SH3_PALM_DUMP") != nullptr;
+    for (size_t i = 0; dump && i < out.size(); i += 8) {
+        char row[400];
+        int at = 0;
+        for (size_t k = i; k < out.size() && k < i + 8; k++)
+            at += std::snprintf(row + at, sizeof row - at, " %.0f %.0f %.0f;", out[k].x * 1000.0f, out[k].y * 1000.0f,
+                                out[k].z * 1000.0f);
+        rt_log("VR: her %s palm as drawn, points %d-: %s", kSide[h], (int)i, row);
+    }
+}
+
+// 0.1.10 (owner 172): her hand h as drawn (every vertex with its bones, sh3vr_combat.cpp combat_hand_drawn) kept in its
+// grip space, for this model to pose at any curl (hand_skin). Taken when her bones as drawn lie on this model's as it
+// poses them now (every finger's joint within 0.6 mm: the frame caught was drawn with the curls she has now), else
+// tried again the next frame.
+bool body_hand_skin_ready(int h) { return h >= 0 && h < 2 && hand_skin[h].ready; }
+// 0.1.10 (session 38): her hand h drawn by another model of her (a costume; sh3vr_combat.cpp skin_watch): its palm and
+// whole hand as drawn let go, to be taken again from the model drawn now
+void body_hand_skin_forget(int h) {
+    if (h < 0 || h > 1) return;
+    palm_skin[h].clear();
+    hand_skin[h] = HandSkin{};
+}
+void body_hand_skin(int h, const HandDrawn& d) {
+    if (h < 0 || h > 1 || hand_skin[h].ready || !her_hands[h].valid || d.n <= 0 || !d.v || !d.it || !d.iw || !d.iq)
+        return;
+    const HandState& s = hands[h];
+    if (!s.valid) return;
+    Vec3 gi[4], gm[4], gl[4], gt[4];
+    finger_points(h, kIndex, 0, gi);
+    finger_points(h, kMiddle, 0, gm);
+    finger_points(h, kPinky, 0, gl);
+    finger_points(h, kThumb, 0, gt);
+    auto frame = [](Vec3 m, Vec3 i, Vec3 l, Vec3 t, Vec3 e[3]) {
+        e[0] = normalized(l - i);
+        const Vec3 u = t - m;
+        e[1] = normalized(u - e[0] * dot(u, e[0]));
+        e[2] = cross(e[0], e[1]);
+    };
+    Vec3 ew[3], eg[3];
+    frame(d.knuckle[1], d.knuckle[0], d.knuckle[3], d.thumb[0], ew);
+    frame(gm[0], gi[0], gl[0], gt[0], eg);
+    const float U = kUnitsPerMetre;
+    auto to_grip = [&](Vec3 w) {
+        const Vec3 e = w - d.knuckle[1];
+        return gm[0] + (eg[0] * dot(e, ew[0]) + eg[1] * dot(e, ew[1]) + eg[2] * dot(e, ew[2])) * (1.0f / U);
+    };
+    // (the curls and spreads she is drawn with: body_fingers')
+    float c3[5][3];
+    const float sp[5] = {thumb_spread[h], index_spread[h], 0.0f, 0.0f, 0.0f};
+    for (int f = 0; f < 5; f++)
+        for (int j = 0; j < 3; j++) c3[f][j] = std::clamp(s.curl[f] + finger_joint_off[h][f][j], kFingerBackMost, 1.0f);
+    Vec3 o[5][3];
+    Quat q[5][3];
+    float worst = 0;
+    for (int f = 0; f < 5; f++) {
+        if (!finger_frames(h, f, c3[f], sp[f], o[f], q[f])) return;
+        for (int j = 0; j < 3; j++) worst = std::max(worst, length(to_grip(d.joint[f][j]) - o[f][j]));
+    }
+    static const char* const kSide[2] = {"left", "right"};
+    static int tries[2];
+    if (worst > 0.0006f) {
+        if (tries[h]++ < 6)
+            rt_log("VR: her %s hand as drawn not taken this frame: its joints drawn %.1f mm off this model's as it poses "
+                   "them now (tried again)", kSide[h], worst * 1000.0f);
+        return;
+    }
+    HandSkin& hs = hand_skin[h];
+    hs.v.assign((size_t)d.n, SkinVert{});
+    hs.part.assign((size_t)d.n, 1);
+    for (int f = 0; f < 5; f++)
+        for (int j = 0; j < 3; j++) hs.seg[f][j].clear(), hs.reach[f][j] = 0.0f;
+    int counts[4] = {};
+    for (int i = 0; i < d.n; i++) {
+        SkinVert& sv = hs.v[(size_t)i];
+        float own = 0, arm = 0, W = 0, segw[15]{};
+        for (int k = 0; k < 4; k++) {
+            const float w = d.iw[i * 4 + k];
+            if (!(w > 0.0f)) continue;
+            const int8_t raw = d.it[i * 4 + k];
+            const int t = raw >= 0 && raw < 15 ? raw : raw == -2 ? -2 : -1;
+            const Vec3 g = to_grip(d.iq[i * 4 + k]);
+            sv.tag[sv.n] = (int8_t)t;
+            sv.w[sv.n] = w;
+            sv.l[sv.n] = t < 0 ? g : rotate(conjugate(q[t / 3][t % 3]), g - o[t / 3][t % 3]);
+            sv.n++;
+            W += w;
+            if (t == -2) arm += w;
+            else if (t < 0) own += w;
+            else segw[t] += w;
+        }
+        int seg = -1;
+        for (int t = 0; t < 15 && seg < 0; t++)
+            if (segw[t] >= 0.9f * W && W > 0) seg = t;
+        // (her wrist's skin on her forearm's bones too, 5% or more: where her arm bends it, not this model; kept apart,
+        // kSkinWrist, out of the fit's reading)
+        if (arm >= 0.05f * W && W > 0) hs.part[(size_t)i] = kSkinWrist, counts[3]++;
+        else if (own >= 0.9f * W && W > 0) hs.part[(size_t)i] = 0, counts[0]++;
+        else if (seg >= 0) {
+            hs.part[(size_t)i] = (uint8_t)(2 + seg / 3), counts[2]++;
+            const int f = seg / 3, j = seg % 3;
+            const Vec3 l = rotate(conjugate(q[f][j]), to_grip(d.v[i]) - o[f][j]);
+            hs.seg[f][j].push_back(l);
+            hs.reach[f][j] = std::max(hs.reach[f][j], seg_dist(l, l, Vec3{}, her_hands[h].f[f].seg[j]));
+        } else
+            counts[1]++;
+    }
+    hs.tri.clear();
+    for (int t = 0; d.tri && t < d.ntri; t++) {
+        const int a = d.tri[t * 3], b = d.tri[t * 3 + 1], c = d.tri[t * 3 + 2];
+        if (a < 0 || b < 0 || c < 0 || a >= d.n || b >= d.n || c >= d.n) continue;
+        hs.tri.push_back(a), hs.tri.push_back(b), hs.tri.push_back(c);
+    }
+    hs.ready = true;
+    hand_skin_taken[h]++;
+    char reach[400];
+    int at = 0;
+    for (int f = 0; f < 5; f++)
+        at += std::snprintf(reach + at, sizeof reach - at, " %c %.1f/%.1f/%.1f (%d/%d/%d)", "TIMRL"[f],
+                            hs.reach[f][0] * 1000.0f, hs.reach[f][1] * 1000.0f, hs.reach[f][2] * 1000.0f,
+                            (int)hs.seg[f][0].size(), (int)hs.seg[f][1].size(), (int)hs.seg[f][2].size());
+    rt_log("VR: her %s hand as drawn taken for her grips and fingers (frame %d, joints %.2f mm off this model's): %d "
+           "vertices (her palm %d, blended between bones %d, on a finger's segment %d, her wrist on her forearm too "
+           "%d), %d triangles; each finger segment's own skin reaches from its line (mm, vertices):%s",
+           kSide[h], d.frame, worst * 1000.0f, d.n,
+           counts[0], counts[1], counts[2], counts[3], (int)hs.tri.size() / 3, reach);
 }
 
 // 0.1.8: hand h at `pose` against the weapon: her palm's skin's nearest (metres), and a knuckle or her palm in it (the
@@ -2371,7 +3400,7 @@ static float pad_on_blade(int h, const Pose& pose, const GripTrigger& trig, floa
     pc.n = 1;
     pc.a[0] = rotate(inv, trig.a - pose.position);
     pc.b[0] = rotate(inv, trig.b - pose.position);
-    pc.r[0] = trig.r;
+    pc.r[0] = trig.r + trig.pad;
     auto pad_gap = [&](float cc) {
         Vec3 p[4];
         finger_points(h, kIndex, cc, p, sp);
@@ -2454,9 +3483,76 @@ float body_trigger_rest(int h, const Pose& pose, float prefer, float* spread) {
 // starting clear of it and closing onto it (the main hand's index onto the trigger, when the gun has one), scored by
 // how much of her palm lies on it, how many of her finger joints lie along it, the trigger finger's pad on the trigger
 // and the fingers' curls near a natural grip's.
+// 0.1.10 (owner 172, session 38; vr517: the handgun's hand "fitted" at the foot of its grip, the gun sat on her fist and
+// her index rising 15 degrees to the trigger): how steeply the trigger finger may rise to the trigger (degrees up the
+// gun), the degrees free of the score's weight and that weight per degree. A shooter's hand sits high on the grip, the
+// web of it up under the slide, its trigger finger running level along the frame or a little down to the trigger. The
+// fit alone reads these (body_grip_fit runs only there): SH3_FIT_RISE, SH3_FIT_RISE_FREE, SH3_FIT_RISE_W on the rig.
+static float fit_env(const char* name, float dflt) {
+    const char* v = std::getenv(name);
+    return v && *v ? (float)std::atof(v) : dflt;
+}
+static float fit_rise_up() {
+    static const float v = fit_env("SH3_FIT_RISE", 25.0f);
+    return v;
+}
+static float fit_rise_free() {
+    static const float v = fit_env("SH3_FIT_RISE_FREE", 8.0f);
+    return v;
+}
+static float fit_rise_weight() {
+    static const float v = fit_env("SH3_FIT_RISE_W", 0.03f);
+    return v;
+}
+// Session 38 (owner 178: "make sure the weapon grips look natural. who ... holds a smg like that"): the wrist. Her arm
+// follows the controller's forearm (sh3vr_ik.cpp), so a hand drawn turned far from her real hand (the controller) bends
+// her drawn wrist that far: vr530's handgun's other hand came in from the side, its wrist bent, where 0.1.9's came up
+// from below its grip. body_wrist_swing: the angle between the drawn hand's wrist-to-knuckles line and the controller's
+// (a turn about that line her forearm takes up, as a real forearm turns). The fit turns away an other hand whose wrist
+// bends past fit_wrist_most (degrees) and weighs each degree past fit_wrist_free against the place; the rig:
+// SH3_FIT_WRIST, SH3_FIT_WRIST_FREE, SH3_FIT_WRIST_W. The main hand's is logged, not limited (vr530: every main hand
+// looked natural; its place on a gun keeps the gun's aim on the controller). Off unless asked (vr533): the rig's
+// controllers both point ahead, as no player holds a pump or a gun's front, so a cupped hold reads 86 to 90 degrees
+// there (the shotgun's pump, the submachine gun's front, the flamethrower's) and a 40-degree limit turned them all away;
+// the pictures' own reading (her wrist bent as drawn against her forearm, ik_wrist_bend) is what the places were
+// chosen by.
+static float fit_wrist_most() {
+    static const float v = fit_env("SH3_FIT_WRIST", 180.0f);
+    return v;
+}
+static float fit_wrist_free() {
+    static const float v = fit_env("SH3_FIT_WRIST_FREE", 15.0f);
+    return v;
+}
+static float fit_wrist_weight() {
+    static const float v = fit_env("SH3_FIT_WRIST_W", 0.0f);
+    return v;
+}
+float body_wrist_swing(int h, const Pose& pose) {
+    if (h < 0 || h > 1 || !hands[h].valid) return 0.0f;
+    // (her grip space: the knuckles ahead of the palm, -Y, either hand)
+    const Vec3 a = rotate(pose.orientation, Vec3{0, -1, 0}), b = rotate(hands[h].grip.orientation, Vec3{0, -1, 0});
+    return std::acos(std::clamp(dot(a, b), -1.0f, 1.0f)) * 57.29578f;
+}
+
 void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, GripFit& out) {
     out = GripFit{};
     if (h < 0 || h > 1) return;
+    out.wrist = body_wrist_swing(h, pose);
+    if (!main && out.wrist > fit_wrist_most()) {
+        out.why = 8;
+        return;
+    }
+    // (session 38, vr555/556: her forearm as drawn there kept out of the weapon too, SH3_FIT_ARM=1: the left-handed
+    // maul's end went 10 mm into it, the right-handed flamethrower's body 6.4, the left-handed beam saber's hilt 5.1)
+    static const bool fit_arm = std::getenv("SH3_FIT_ARM") != nullptr;
+    if (fit_arm) {
+        out.arm = combat_forearm_clear(h, pose);
+        if (out.arm < kSkinCheck) {
+            out.why = 9;
+            return;
+        }
+    }
     auto clear = [&](Vec3 l) {
         const Vec3 p = grip_point(pose, l);
         return weapon_clearance(h, p, p);
@@ -2470,16 +3566,45 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
             return;
         }
     }
-    Vec3 pp[18];
-    const int np = palm_points(h, pp);
     int near_palm = 0, faces = 0;
-    for (int i = 0; i < np; i++) {
-        const float d = clear(pp[i]);
-        if (d < -0.002f) {
+    out.skin = 1.0f;
+    if (palm_skin[h].empty()) {
+        Vec3 pp[18];
+        const int np = palm_points(h, pp);
+        for (int i = 0; i < np; i++) {
+            const float d = clear(pp[i]);
+            if (d < -0.002f) {
+                out.why = 2;
+                return;
+            }
+            if (i % 2 == 0) faces++, near_palm += d < 0.012f;  // palm_points: the palm's side first, then the back's
+        }
+    } else {
+        // 0.1.10 (owner 172: "WHY ... IS THE GUN STILL CLIPPING THROUGH THE HAND"): her palm as drawn (body_palm_skin)
+        // is the palm here, in and against the weapon. Her hand is the game's: its palm as drawn runs from x 0.0 to 5.2
+        // cm in the grip's space (the right hand's; vr512), the hand model's palm_points from 1.8 to 4.4, so its face
+        // lies 1.8 cm nearer the grip than the model's. 0.1.8's fit kept the model's palm out of the weapon and against
+        // it (palm_points within 1.2 cm), so the grip lay up to 1.9 cm into her palm as drawn (vr511). Builds 279 to 287
+        // turned away a place with her drawn palm more than 1 cm in but still asked the model's palm against it: no
+        // place on any gun's main hand then had both (vr504, vr512). Now no part of her drawn palm may be more than 1 mm
+        // in (body_grip_mesh then asks her whole hand as drawn out of it), and her palm against it is her drawn palm's
+        // face (its side of her knuckles' line) within 1 cm of it, its nearest within 4 mm.
+        Vec3 k[4];
+        finger_points(h, kMiddle, 0.0f, k);
+        const float mx = h == kLeft ? -1.0f : 1.0f;
+        for (const Vec3& l : palm_skin[h]) {
+            const float d = clear(l);
+            out.skin = std::min(out.skin, d);
+            if (mx * (l.x - k[0].x) < 0) faces++, near_palm += d < 0.010f;
+        }
+        if (out.skin < -0.001f) {
             out.why = 2;
             return;
         }
-        if (i % 2 == 0) faces++, near_palm += d < 0.012f;  // palm_points: the palm's side first, then the back's
+        if (out.skin > 0.004f) {
+            out.why = 7, out.sub = 1;
+            return;
+        }
     }
     const bool trigger = main && trig.on;
     // vr370 (every place turned away, a finger in): a hand laid on a grip has its fingers in it when straight, as a real
@@ -2511,11 +3636,17 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
             return;
         }
         out.opened += free_from;
-        const bool needed = f >= kMiddle || (f == kIndex && main);
+        // (session 38, owner 178; vr530: the maul's other hand's index lay straight along the shaft, curled 0.14, as
+        // pointing: on a melee weapon's handle every finger of either hand closes round it, a third of the way at least)
+        const bool melee = !weapon_is_gun();
+        const bool needed = f >= kMiddle || (f == kIndex && (main || melee));
         // (vr371: the pipe's other hand "fitted" lying along it, its fingers meeting it at 0.1 to 0.2, nearly straight:
-        // a hand round a part curls a third of the way at least)
-        if (needed && !(out.curl[f] >= 0.3f && out.curl[f] <= 0.95f)) {
-            out.why = 4;
+        // a hand round a part curls a third of the way at least. 0.1.10, vr513: with her palm as drawn, its heel 1.8 cm
+        // thicker than the hand model's, a grip against it meets the fingers sooner: an eighth at least, and each
+        // finger then closes joint by joint round it, finger_wrap; the score still weighs a curl off a natural grip's)
+        const float least = palm_skin[h].empty() || melee ? 0.3f : 0.12f, most = palm_skin[h].empty() ? 0.95f : 1.0f;
+        if (needed && !(out.curl[f] >= least && out.curl[f] <= most)) {
+            out.why = 4, out.sub = out.curl[f] < 0 ? 1 : out.curl[f] < least ? 2 : 3;
             out.finger = f;
             return;
         }
@@ -2528,7 +3659,7 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
         // (session 31, vr388: a finger meeting the blade with its middle "fitted" with its pad 5.6 mm off it, a gap seen
         // between them: the pad itself on the trigger, within 2.5 mm)
         if (out.trig_curl < 0.12f || out.trig_curl > 0.85f || err > 0.0025f) {
-            out.why = 6;
+            out.why = 6, out.sub = 1;
             return;
         }
         // On the trigger, and off it lying straight beside the frame or lifted off the guard (body_trigger_rest):
@@ -2536,7 +3667,7 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
         float rest_sp = 0.0f;
         const float rest = body_trigger_rest(h, pose, sp, &rest_sp);
         if (rest < -0.5f) {
-            out.why = 6;
+            out.why = 6, out.sub = 2;
             return;
         }
         // Session 31 (vr382: the submachine gun's hand "fitted" 4 cm down its grip, holding the magazine, her index rising
@@ -2551,8 +3682,8 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
             out.trig_rise = L > 1e-4f && length(trig.up) > 0.5f
                                 ? std::asin(std::clamp(dot(v, trig.up) / L, -1.0f, 1.0f)) * 180.0f / kPi
                                 : 0.0f;
-            if (out.trig_rise > 25.0f || out.trig_rise < -35.0f) {
-                out.why = 6;
+            if (out.trig_rise > fit_rise_up() || out.trig_rise < -35.0f) {
+                out.why = 6, out.sub = 3;
                 return;
             }
         }
@@ -2562,7 +3693,7 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
             finger_points(h, kIndex, t[0], p, t[1]);
             for (int j = 0; j < 3; j++)
                 if (seg_clear(p[j], p[j + 1]) < 0.0085f - 0.003f) {
-                    out.why = 6;
+                    out.why = 6, out.sub = 4;
                     return;
                 }
         }
@@ -2586,7 +3717,7 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
             const float lm = length(m), lv = length(v);
             out.trig_push = t1.on && lm > 1e-6f && lv > 1e-6f ? dot(v, m) / (lm * lv) : 0.0f;
             if (out.trig_push < 0.3f) {
-                out.why = 6;
+                out.why = 6, out.sub = 5;
                 return;
             }
             float pc[5];
@@ -2610,8 +3741,11 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
     }
     out.palm = faces ? near_palm / (float)faces : 0.0f;
     out.wrap = joints ? along / (float)joints : 0.0f;
-    if (out.palm < (main ? 0.3f : 0.25f)) {
-        out.why = 7;
+    // (her drawn palm's face: its nearest within 4 mm (above) and an eighth of it within 1 cm, a tenth for the other
+    // hand, its heel bulging (vr513); the model's palm_points, 0.1.8: 0.3 and 0.25 of its points within 1.2 cm)
+    const bool drawn_palm = !palm_skin[h].empty();
+    if (out.palm < (drawn_palm ? (main ? 0.12f : 0.1f) : (main ? 0.3f : 0.25f))) {
+        out.why = 7, out.sub = 2;
         return;
     }
     float natural = 0;
@@ -2620,11 +3754,79 @@ void body_grip_fit(int h, const Pose& pose, bool main, const GripTrigger& trig, 
     // trigger finger pulling it as a shooter's does, above)
     const float pulling = trigger ? std::fabs(out.trig_curl - 0.4f) * 1.5f + (1.0f - out.trig_push) * 1.5f +
                                         (out.trig_whole ? 0.0f : 0.8f) +
-                                        std::max(0.0f, std::fabs(out.trig_rise) - 8.0f) * 0.03f
+                                        std::max(0.0f, std::fabs(out.trig_rise) - fit_rise_free()) * fit_rise_weight()
                                   : 0.0f;
     out.score = 4.0f + out.palm * 3.0f + out.wrap * 3.0f + (out.curl[kThumb] > -0.5f ? 0.4f : 0.0f) -
                 out.trig_err * 60.0f - natural * 1.5f - out.opened * 1.5f - out.thumb_in * 300.0f -
-                std::fabs(out.trig_spread) * 0.02f - pulling - out.pads * 100.0f;
+                std::fabs(out.trig_spread) * 0.02f - pulling - out.pads * 100.0f -
+                std::max(0.0f, 0.0005f - out.skin) * 500.0f -
+                (main ? 0.0f : std::max(0.0f, out.wrist - fit_wrist_free()) * fit_wrist_weight());
+}
+
+// 0.1.10 (owner 172): hand h at `pose` on the weapon as body_fingers draws it there at rest (role 1 the main hand, 2
+// the other; the same calls): each finger's joints' curls (c3) and the spreads (sp: the thumb's swing, the index's
+// spread), the main hand's trigger finger on the trigger, not pulled (on), or off it.
+static void grip_drawn_curls(int h, const Pose& pose, int role, bool on, float c3[5][3], float sp[5]) {
+    const float hold = weapon_hold_curl(h);
+    for (int f = 0; f < 5; f++) {
+        sp[f] = 0.0f;
+        float target = 0.0f, free_from = 0.0f, jw[3];
+        bool wrapped = false;
+        const GripTrigger tg = role == 1 && f == kIndex && weapon_is_gun() ? weapon_trigger() : GripTrigger{};
+        if (tg.on) {
+            float sp_on = 0.0f, sp_off = 0.0f;
+            const float ct = body_trigger_curl(h, pose, tg, nullptr, &sp_on);
+            const float rest = body_trigger_rest(h, pose, sp_on, &sp_off);
+            if (ct >= 0) {
+                target = on ? ct : rest > -0.5f ? rest : std::min(0.06f, ct);
+                sp[f] = on || rest < -0.5f ? sp_on : sp_off;
+            } else {
+                const float c = finger_contact(h, kIndex, pose, nullptr, true, 1.0f, free_from);
+                target = std::min(on ? 0.42f : 0.10f, c >= 0 ? c : 1.0f);
+            }
+        } else {
+            const float c = finger_contact(h, f, pose, nullptr, true, 1.0f, free_from);
+            const float th = f == kThumb ? weapon_hold_thumb(h) : -1.0f;
+            const float base = f == kThumb ? (th >= 0 ? th : std::min(hold, 0.7f)) : hold;
+            target = c >= 0 ? c : std::max(base, free_from);
+            if (f != kThumb && c >= 0) wrapped = finger_wrap(h, f, pose, c, jw);
+            if (f == kThumb && grip_fit_mode_on()) {
+                float sw = 0.0f;
+                const float tr = thumb_rest(h, pose, nullptr, nullptr, &sw);
+                if (tr > -0.5f) target = tr, sp[f] = sw;
+            }
+        }
+        for (int j = 0; j < 3; j++) c3[f][j] = std::clamp(wrapped ? jw[j] : target, kFingerBackMost, 1.0f);
+    }
+}
+
+void body_grip_mesh(int h, const Pose& pose, bool main, GripFit& out, bool any) {
+    if (h < 0 || h > 1 || !hand_skin[h].ready || (out.score < 0 && !any)) return;
+    const bool trigger = main && weapon_is_gun() && weapon_trigger().on;
+    float least = 1e9f, palm = 1e9f;
+    int part = -1;
+    for (int pass = 0; pass < (trigger ? 2 : 1); pass++) {
+        float c3[5][3], sp[5], pm = 1e9f;
+        int pt = -1;
+        grip_drawn_curls(h, pose, main ? 1 : 2, pass == 0, c3, sp);
+        const float m = hand_skin_clear(h, pose, c3, sp, &pt, &pm);
+        if (m < least) least = m, part = pt;
+        palm = std::min(palm, pm);
+        // (session 38: the other hand against her main hand as drawn too, part 7)
+        if (!main) {
+            const float b = hand_skin_between(h, pose, c3, sp);
+            if (b < least) least = b, part = 7;
+        }
+    }
+    out.mesh = least, out.mesh_part = part, out.mesh_palm = palm;
+    if (out.score < 0) return;  // (any: measured only)
+    if (least < kSkinCheck) {
+        out.why = 5;
+        out.score = -1.0f;
+        return;
+    }
+    // (her palm against the weapon: its skin's nearest past 2 mm off it weighs against the place, 0.3 a millimetre)
+    out.score -= std::max(0.0f, palm - 0.002f) * 300.0f;
 }
 
 // The rig's record of a hand's place on the weapon (the grips' fit, SH3_GRIP_FIT=1): each finger's knuckle clearance

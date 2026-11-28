@@ -483,30 +483,121 @@ struct GripPlace {
     Vec3 shift;
     float pitch = 0, roll = 0;
 };
-// By profile: the main hand from the game's own place (once read; mirrored for a left-handed player). Baked from the
-// search's lines (SH3_GRIP_FIT=1, build 266, run vr400; score: body_grip_fit's, palm and wrap and every finger's pad on
-// the weapon); the weapons held in the fist keep 0.1.7's place along their handle (main_fit).
+// By profile: the main hand from the game's own place (once read; mirrored for a left-handed player); the weapons held in
+// the fist keep 0.1.7's place along their handle (main_fit). 0.1.10 (owner 172: the guns' grips through her palm):
+// fitted with her hand as drawn (SH3_GRIP_FIT=1; body_grip_fit's score: her drawn palm against the weapon and never more
+// than 1 mm in, every finger closing round it, the trigger finger's pad on the trigger the whole pull; body_grip_mesh:
+// her whole hand as drawn, every finger as drawn there, at least 0.2 mm out of the weapon). The handgun's main hand: the
+// search at every turn about its grip (session 38, build 291, vr516; 0.1.8's turn, 52 degrees round from that place, held
+// the grip across the middle of her palm) found {{17.7, -16.1, 10.5}, 20, 0}, clear but at the foot of the grip, her index
+// rising 16 degrees to the trigger (vr517); then the climb up the grip's line from there, a fine search at each 2 mm
+// (build 296, SH3_FIT_CLIMB, vr525), its highest: 20 mm up, the web of her hand under the slide's tang, her index 8
+// degrees up to the trigger (none found from 22 mm up). Every other weapon fitted again on build 296 (vr526: the
+// in-play thumb resting on her drawn skin, the trigger finger's rise weighed, the guns' main hands at every turn about
+// their grips; the knife's, katana's and maul's places before no longer clear); the stun gun's the same as before.
+// (Before: shotgun {{3.9, 1.3, 2.5}, -16, -16}, submachine gun {{22.4, -0.7, 9.4}, -8, -4}, knife {{7.3, -3.0, 6.5}, -8,
+// 28}, steel pipe {{-0.9, -0.2, 6.0}, -12, 20}, katana {{-0.8, 0.3, -0.3}, -16, 36}, maul {{-4.9, 1.4, 0.2}, -12, -12},
+// beam saber {{-6.2, 2.3, -0.6}, -16, 8}.) The flamethrower's kept from build 292 (vr517: 0.2 mm off it as played):
+// vr526's {{12.5, -15.7, 2.7}, 20, -152}, 0.2 mm in the fit, came 6.8 mm into it as played (her thumb resting closed on
+// her drawn skin) with her wrist bent 147 degrees (vr530, vr533). Every place is now taken from the pictures as played
+// (the hand as drawn, by bone and by triangles), the fit's own reading the search's alone (SH3_FIT_PLAY=1 makes them
+// one, build 301). (0.1.8's, build 266, vr400, against the
+// hand model's palm: handgun {{25.5, -3.5, -8.0}, -4, -52}, shotgun {{-3.5, 5.5, 14.0}, -4, -32}, submachine gun
+// {{15.0, 0.0, -9.0}, -8, -44}, stun gun {{31.9, 20.9, 0.8}, -16, 12}, knife {{1.4, -15.6, 0.1}, -16, 4}, steel pipe
+// {{9.4, 23.6, -3.7}, -12, 20}, katana {{7.1, 21.9, -3.3}, -8, 12}, maul {{-12.4, -22.2, -3.8}, -20, -28}, beam saber
+// {{-13.4, -24.1, 1.7}, -16, 40}, flamethrower {{10.0, -19.5, -3.0}, 0, 36}.)
 GripPlace fit_main[kProfiles] = {
-    {{25.5f, -3.5f, -8.0f}, -4.0f, -52.0f},   // handgun (score 7.05)
-    {{-3.5f, 5.5f, 14.0f}, -4.0f, -32.0f},    // shotgun (score 5.21)
-    {{15.0f, 0.0f, -9.0f}, -8.0f, -44.0f},    // submachine gun (score 6.81)
-    {{31.9f, 20.9f, 0.8f}, -16.0f, 12.0f},    // stun gun (score 7.55)
-    {{1.4f, -15.6f, 0.1f}, -16.0f, 4.0f},     // knife (score 7.25)
-    {{9.4f, 23.6f, -3.7f}, -12.0f, 20.0f},    // steel pipe (score 6.37)
-    {{7.1f, 21.9f, -3.3f}, -8.0f, 12.0f},     // katana (score 6.74)
-    {{-12.4f, -22.2f, -3.8f}, -20.0f, -28.0f},  // maul (score 6.58)
-    {{-13.4f, -24.1f, 1.7f}, -16.0f, 40.0f},  // beam saber (score 6.50)
-    {{10.0f, -19.5f, -3.0f}, 0.0f, 36.0f},    // flamethrower (score 5.83)
+    {{16.3f, -6.3f, 12.5f}, -2.0f, -8.0f},     // handgun (vr525's climb, 20 mm up its grip: 4.19, index 8 up; 0.4 mm)
+    {{4.4f, 1.3f, 2.5f}, -16.0f, -16.0f},      // shotgun (vr526: 5.98, index 13 down; 0.2 mm)
+    {{21.8f, -0.7f, 9.4f}, -8.0f, -4.0f},      // submachine gun (vr526: 5.79, index 2 up; 0.3 mm)
+    {{26.1f, -12.8f, 5.0f}, -32.0f, 16.0f},    // stun gun (vr526: 6.57; 0.7 mm)
+    {{18.3f, -5.9f, 2.5f}, -20.0f, 32.0f},     // knife (vr526: 6.61; 0.3 mm)
+    {{10.6f, -3.5f, 4.6f}, -24.0f, 40.0f},     // steel pipe (vr526: 6.02; 0.2 mm)
+    {{2.2f, -0.5f, -2.1f}, -8.0f, 48.0f},      // katana (vr526: 6.90; 0.3 mm)
+    {{6.1f, -2.0f, 4.0f}, 4.0f, -28.0f},       // maul (vr526: 6.00; 0.4 mm)
+    {{5.0f, -1.8f, 0.5f}, -20.0f, 32.0f},      // beam saber (vr526: 5.92; 0.2 mm)
+    {{16.0f, -5.2f, 0.7f}, 12.0f, -168.0f},    // flamethrower (build 292's; vr517: 0.2 mm as played)
 };
-// By profile: the other hand on the second grip (mirrored for a left-handed player), baked as fit_main. The shotgun's
-// pump: none found within its cup's limits, so 0.1.7's place (its pictures right, vr395/vr400); the two-handed melee
-// weapons' other hands are the main hand's mirrored (second_hand_pose), none fitted.
+// By profile: the other hand on the second grip (mirrored for a left-handed player), fitted as fit_main with the main
+// hand at its place there, its skin also kept off her main hand's as drawn (session 38: hand_skin_between). The
+// two-handed melee weapons' other hands: a move and turn from the main hand's mirrored place (second_hand_pose; session
+// 38: until then the mirror alone, vr517: the beam saber's 5.8 mm into it, the pipe's 0.2). vr526 (build 296) with
+// each main hand at its place above; the shotgun's pump the same as before. Build 297 (SH3_FIT_SECOND, the other hand
+// alone): the handgun's round its main hand's place 20 mm higher (vr527; 3.0 mm into the grip there before), the
+// submachine gun's front searched at every turn, free of its grip's line (vr528: her palm on the receiver's left side,
+// her fingers over its top: owner 178, "who ... holds a smg like that", rejected). Build 299: an other hand that cups
+// the weapon (its hold's palm up: the submachine gun's front, the shotgun's pump, the flamethrower's front) is searched
+// only round a palm-up place (fit_step's cup rule), and the melee weapons' other hands close every finger round the
+// handle, the index too (body_grip_fit; vr530: the maul's index lay straight). vr533 (build 299): the submachine gun's
+// front cupped under the receiver's front, her fingers up its side; the pipe's and the maul's every finger round the
+// handle (each 1.1 to 1.2 mm in as played before, vr530; now 0.3 to 0.4 mm off). The katana's and beam saber's kept
+// (vr533's crowded her main hand). The maul's from vr533 came 3.3 mm into the shaft as played (vr536: its thumb rested
+// against her main hand's skin in the fit alone): fitted as played (build 301, SH3_FIT_PLAY=1, vr539), its fingers
+// round the shaft from below, the thumb along it. (Before: handgun {{-12.1, -14.1, -5.3}, -24, -24} with the main hand
+// at the foot of its grip; submachine gun vr528's {{17.8, 10.2, 14.0}, -32, -84}, 0.1.8's {{0.5, 10.0, 5.0}, -48, 8} 15
+// mm into the receiver with her palm as drawn; steel pipe {{11.0, 17.1, 3.2}, 8, -8}; maul {{-2.0, -3.1, 0.0}, 12, -28}
+// and vr533's {{-2.0, -3.1, 0.0}, 8, -32};
+// flamethrower vr526's {{-1.5, -4.2, 6.0}, -8, 12} with its main hand there. 0.1.8's: handgun {{1.6, -7.7, -2.6},
+// -16, -24}, shotgun none (0.1.7's place), flamethrower {{-7.5, 8.0, -1.5}, 28, 12}.)
 GripPlace fit_second[kProfiles] = {
-    {{1.6f, -7.7f, -2.6f}, -16.0f, -24.0f},  // handgun (score 7.11)
-    {},                                      // shotgun (none: 0.1.7's)
-    {{0.5f, 10.0f, 5.0f}, -48.0f, 8.0f},     // submachine gun (score 7.14)
-    {}, {}, {}, {}, {}, {},                  // stun gun, knife (one hand); steel pipe, katana, maul, beam saber (mirrored)
-    {{-7.5f, 8.0f, -1.5f}, 28.0f, 12.0f},    // flamethrower (score 5.68)
+    {{-12.1f, -14.1f, -5.3f}, -32.0f, -24.0f}, // handgun (vr527, the main hand high: 5.65; 0.5 mm)
+    {{0.0f, 5.0f, 0.0f}, -16.0f, 0.0f},        // shotgun (vr526: 5.29; 0.3 mm)
+    {{5.0f, -14.0f, 5.0f}, -8.0f, 8.0f},       // submachine gun (vr533, cupped under its front: 5.81; 0.5 mm as played)
+    {}, {},                                    // stun gun, knife (one hand)
+    {{4.0f, -8.7f, 3.0f}, 8.0f, -32.0f},       // steel pipe (vr533: 5.68; 0.4 mm as played)
+    {{-1.8f, -7.9f, -2.2f}, 0.0f, 32.0f},      // katana (vr526: 5.99; 0.4 mm)
+    {{-5.6f, -15.2f, 1.8f}, 12.0f, -16.0f},    // maul (vr539, fitted as played: 5.99; 0.4 mm by bone as played)
+    {{0.7f, 26.6f, -4.0f}, -16.0f, 20.0f},     // beam saber (vr526: 5.86; 0.4 mm)
+    {{-7.4f, -10.6f, 0.1f}, 8.0f, 24.0f},      // flamethrower (build 292's, with that main hand; vr517: 0.2 mm)
+};
+// 0.1.10 (session 38, vr537: the first left-handed pictures of every weapon read with her hand as drawn; vr518's and
+// session 37's vr500 drew the handgun alone, SH3_EQUIP=1): the right-handed places, mirrored, took her left hand
+// 6.7 mm into the katana's handle, 15 into the beam saber's, 9.3 into the flamethrower's grip, 1.6 into the stun gun's,
+// and the submachine gun's front hand 8.3 into it; the knife's and the pipe's, the weapons alike on both sides, stayed
+// clear.
+// The weapons are not the same on both sides and her hands as drawn not quite each other's mirror, so a left-handed
+// player has places of their own, fitted with her left hand as drawn (SH3_GRIP_FIT=1 with left_handed = 1, the same
+// mirrored convention: main_hand_pose, second_hand_pose); main_fit and second_fit give these to a left-handed player.
+// Each started as the right-handed place. vr540 (build 302, SH3_GRIP_FIT=1 SH3_FIT_PLAY=1, left_handed = 1: the fit
+// as played) fitted the submachine gun's, stun gun's, katana's, beam saber's and flamethrower's main hands and the beam
+// saber's and flamethrower's other hands; vr541 (SH3_FIT_SECOND=1) the maul's other hand. Each chosen by its pictures
+// as played (vr540/vr541: every one round its grip as the right-handed hold is; the readings below as played). Three
+// of the fit's other hands were clear but not natural, and are not taken: the submachine gun's front {{7.0, -11.5,
+// 11.0}, -20, 8} (its fingers spread in the air beside the receiver), the katana's {{-7.7, -10.6, -4.1}, -20, 16}
+// (under the end of its handle, its main hand turned 24 degrees off the right-handed one) and the handgun's {{-3.0,
+// -18.6, -1.2}, -64, -4} (her wrist bent 117 degrees, the fingers hanging under the grip). Instead: the handgun's other
+// hand searched only round the right-handed place (SH3_FIT_LOCAL=1, vr542); the submachine gun's front the
+// right-handed place itself, clear with this main hand and cupped as the right-handed one (vr543; searched round it, it
+// went back to the spread fingers); the katana's main hand searched round the right-handed place (vr544: turned 40
+// degrees, as the right-handed 48), then its other hand from the right-handed place (vr546: round the end of the
+// handle behind the main hand, every finger closed; the right-handed place itself 3.5 mm in, 2 mm out still 1.7).
+// Her forearms as drawn (session 38, vr555/556, the rig's forearm reading): at the right-handed place the maul's end
+// went 10 mm into her left forearm 4.5 cm behind the wrist, its metal cap out through the skin in the pictures from
+// her eyes (vr549). Its main hand searched round that place with her forearm kept out (SH3_FIT_ARM=1, SH3_FIT_LOCAL=1,
+// vr557): turned 8 degrees more each way, the forearm then 20 mm off as played, the shaft's end beside it as on 0.1.9,
+// her wrist bent 31 degrees as drawn (102 before); its other hand, the main hand's mirror, fitted from there.
+GripPlace fit_main_left[kProfiles] = {
+    {{16.3f, -6.3f, 12.5f}, -2.0f, -8.0f},     // handgun (the right-handed place; vr537: 0.5 mm)
+    {{4.4f, 1.3f, 2.5f}, -16.0f, -16.0f},      // shotgun (the right-handed place; vr537: clear)
+    {{21.2f, -1.7f, 10.3f}, -4.0f, -8.0f},     // submachine gun (vr540: 6.34; 0.3 mm; its trigger pad 0.5 mm off)
+    {{26.0f, -12.9f, 2.5f}, -4.0f, 24.0f},     // stun gun (vr540: 6.60; 0.3 mm)
+    {{18.3f, -5.9f, 2.5f}, -20.0f, 32.0f},     // knife (the right-handed place; vr537: 0.3 mm)
+    {{10.6f, -3.5f, 4.6f}, -24.0f, 40.0f},     // steel pipe (the right-handed place; vr537: clear)
+    {{4.7f, -1.5f, 0.0f}, 0.0f, 40.0f},        // katana (vr544, round the right-handed place: 6.20; 0.3 mm)
+    {{6.1f, -2.0f, 4.0f}, 12.0f, -36.0f},      // maul (vr557, round the right-handed place: 6.00; 0.4 mm, forearm 20)
+    {{10.1f, -4.2f, 5.6f}, -28.0f, 44.0f},     // beam saber (vr540: 6.38; 0.3 mm; the right-handed place 15 mm in)
+    {{16.6f, -1.5f, -4.3f}, 16.0f, -160.0f},   // flamethrower (vr540: 6.59; 0.6 mm; the right-handed place 9.3 in)
+};
+GripPlace fit_second_left[kProfiles] = {
+    {{-7.1f, -12.2f, -3.5f}, -32.0f, -28.0f},  // handgun (vr542, round the right-handed place: 5.00; 0.2 mm)
+    {{0.0f, 5.0f, 0.0f}, -16.0f, 0.0f},        // shotgun (the right-handed place; vr537: clear)
+    {{5.0f, -14.0f, 5.0f}, -8.0f, 8.0f},       // submachine gun (the right-handed place; vr543: 0.5 mm, cupped)
+    {}, {},                                    // stun gun, knife (one hand)
+    {{4.0f, -8.7f, 3.0f}, 8.0f, -32.0f},       // steel pipe (the right-handed place; vr537: clear)
+    {{-15.0f, -15.5f, -1.0f}, -8.0f, -12.0f},  // katana (vr546: 6.11; 0.3 mm, round the handle's end)
+    {{-4.0f, -15.2f, 2.0f}, 12.0f, -8.0f},     // maul (vr557: 5.42; 0.4 mm, over 10 off her main hand)
+    {{2.6f, 17.8f, 0.2f}, 0.0f, 36.0f},        // beam saber (vr540: 7.00; 0.5 mm, 0.2 off her main hand)
+    {{-2.8f, -7.9f, 4.9f}, 0.0f, 28.0f},       // flamethrower (vr540: 5.78; 0.5 mm)
 };
 // Testing: SH3_GRIP_FIT=0 no fitted places (0.1.7's), 1 the search (fit_step) on each weapon drawn, its places taken.
 int grip_fit_mode() {
@@ -540,6 +631,13 @@ const TriggerBlade kTriggers[kProfiles] = {
     {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0},
     {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0}, {false, {}, {}, 0, {}, 0},
 };
+// 0.1.10 (session 38, vr530: her trigger finger as drawn against the trigger as drawn, hand_skin_trigger): the
+// shotgun's index, its pad laid on the blade by the finger's model (8.5 mm of skin round its line), came 0.7 mm into the
+// blade at rest and 1.4 mm all the way pulled, and as far into the guard behind it (the handgun's 0.9 to 1.9 mm off,
+// the submachine gun's 0.5 to 1.8). Her drawn pad is fuller than the model where it meets that thin blade side-on: on
+// the shotgun the pad stops 2 mm sooner (metres, added to the blade's thickness where the finger closes on it,
+// pad_on_blade; the blade itself, drawn and turned, is the same).
+const float kTriggerPad[kProfiles] = {0.0f, 0.002f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 // The trigger of profile p turned by `pull` (0 at rest .. 1 all the way) about its pin: the turn (model units), its
 // axis such that the blade's tip swings back, against the weapon's forward (`fwd`, model: the frame's).
 Quat trigger_turn(int p, Vec3 fwd, float pull) {
@@ -560,19 +658,40 @@ Vec3 trigger_moved(int p, Quat q, Vec3 x) { return kTriggers[p].pin + rotate(q, 
 // hand by as much (its reach, the beam's, the prongs') and left the maul's other hand no room on its shaft (its fingers
 // past the end, vr400's g7-maul-2close). 0.1.7's place is the game's own fist's, with room for both hands. (The search,
 // SH3_GRIP_FIT=1, works on the full place.)
+// 0.1.10 (owner, after 169: "WHY ... IS THE GUN STILL CLIPPING THROUGH THE HAND"): the main hand moved out of the
+// weapon by its palm as drawn, by weapon, for a right-handed player [0] and a left-handed one [1] (the place's shift
+// units; testing only, SH3_HEEL_SETTLE=1: settle_heel finds it once, main_fit adds it to the fitted place; zero in play,
+// the places being fitted with her palm as drawn).
+Vec3 heel_extra[kProfiles][2];
+int heel_seen[kProfiles][2];
+bool heel_done[kProfiles][2];
 const GripPlace* main_fit(int profile, int h) {
     (void)h;
     if (profile < 0 || profile >= kProfiles || grip_fit_mode() == 0) return nullptr;
     if (!main_native(profile) || !finger_drawn(profile)) return nullptr;
+    // (session 38, vr537: a left-handed player's own places, fit_main_left)
+    GripPlace* const table = opt.left_handed ? fit_main_left : fit_main;
+    const GripPlace* base = &table[profile];
+    // (0.1.10: the search too works on the place played, along the handle 0.1.7's: fit_candidate)
+    if (kHolds[profile].fist && kShapes[profile].n > 0 && grip_fit_mode() == 1) {
+        const Cap& c0 = kShapes[profile].c[0];
+        const Vec3 u = normalized(c0.b - c0.a);
+        table[profile].shift = table[profile].shift - u * dot(table[profile].shift, u);
+        return base;
+    }
     if (kHolds[profile].fist && kShapes[profile].n > 0 && grip_fit_mode() != 1) {
         static GripPlace kept[kProfiles];
         const Cap& c0 = kShapes[profile].c[0];
         const Vec3 u = normalized(c0.b - c0.a);
-        kept[profile] = fit_main[profile];
-        kept[profile].shift = fit_main[profile].shift - u * dot(fit_main[profile].shift, u);
-        return &kept[profile];
+        kept[profile] = table[profile];
+        kept[profile].shift = table[profile].shift - u * dot(table[profile].shift, u);
+        base = &kept[profile];
     }
-    return &fit_main[profile];
+    if (grip_fit_mode() == 1) return base;  // (the search works on the fitted places themselves)
+    static GripPlace adj[kProfiles];
+    adj[profile] = *base;
+    adj[profile].shift = base->shift + heel_extra[profile][opt.left_handed ? 1 : 0];
+    return &adj[profile];
 }
 // The other hand's fitted place on the second grip (her finger hand there; mirrored for a left-handed player by
 // second_natural and second_hand_pose; the game's own left hand keeps its place where it is drawn, SH3_GRIP_HAND=1).
@@ -582,9 +701,9 @@ const GripPlace* second_fit(int profile) {
     // the handgun's other hand wraps the main fist: its place was fitted with the main hand at its own (the game's place
     // read); before that, none
     if (native_group_of(profile, kRight) >= 0 && !main_native(profile)) return nullptr;
-    // (0.1.8, vr395: a two-handed melee weapon's other hand is its main hand's mirrored, second_hand_pose: no fit)
-    if (kHolds[profile].fist && kHolds[profile].second) return nullptr;
-    return &fit_second[profile];
+    // (0.1.8, vr395: a two-handed melee weapon's other hand is its main hand's mirrored, second_hand_pose; 0.1.10,
+    // session 38: then moved and turned by its fitted place, fit_second, from that mirrored pose)
+    return opt.left_handed ? &fit_second_left[profile] : &fit_second[profile];  // (session 38: fit_second_left)
 }
 
 struct WeaponFrame {
@@ -1042,6 +1161,18 @@ struct {
     int hover = -1;  // 0.1.7: what the hand could use as it closed (hand_hover's), for the log when nothing was used
 } hand_action;
 int hover_event[2] = {-1, -1};  // what each reaching hand can use now (hand_hover), -1 nothing
+bool hover_door[2]{};            // 0.1.10: ... a door (sh3.c sh3_event_is_door)
+// 0.1.10 (owner 170: "grabbing the knob/handle/whatever and then pulling it open, which would then start the load into
+// the next section ... for all doors"; 171: on by default), "Open doors by hand": a hand closing on a door takes its
+// handle and holds it; moved 10 cm level while held (pulled toward her, pushed away or slid aside), the door is used
+// where the hand took it, as a closing hand used it before (the game's own door: its sound, its fade and the next
+// room's load). Let go first, held 6 s, or the hand carried 50 cm from the handle (walked away): nothing opens.
+struct DoorHold {
+    int hand = -1, event = -1;
+    Vec3 world;          // the palm where it took the handle (world): the game's check runs there
+    Vec3 start, toward;  // the controller there, and level from it toward her head (tracking)
+    float held = 0.0f, buzz_in = 0.0f;
+} door_hold;
 float prev_grip_value[2]{};
 bool grip_held[2]{};
 bool stowing[2]{};              // this grip closed at a holster of the held weapon's kind: letting go puts it away
@@ -1211,6 +1342,7 @@ bool main_hand_pose(const WeaponFrame& f, int h, const GripPlace* g, Pose& out) 
                      frame_dir(f, rotate(R, f.right * -mx)));
     return true;
 }
+Vec3 model_dir(const WeaponFrame& f, Vec3 t);  // (below)
 // The other hand's pose (tracking) on the second grip at its natural spot, at place g (the fitted one; the search's
 // candidates), her finger hand: the hold's second rod and palm turned by the place, mirrored for a left-handed player.
 Pose second_hand_pose(const WeaponFrame& f, int h, const GripPlace* g) {
@@ -1238,7 +1370,9 @@ Pose second_hand_pose(const WeaponFrame& f, int h, const GripPlace* g) {
             const float per_m = 1.0f / std::max(f.scale, 1e-6f);  // model units a metre
             const float end = 0.035f * per_m, apart = 0.085f * per_m;
             const float dm = dot(f.palm - c0.a, u);  // the main fist's centre along the handle
-            float d2 = std::clamp(dot(second_natural(f) + second_offset(f) - c0.a, u), end, std::max(end, len - end));
+            static const GripPlace kNoPlace{};  // (its slide along the handle: the hold's spot, not the fitted place's)
+            float d2 = std::clamp(dot(second_natural(f, &kNoPlace) + second_offset(f) - c0.a, u), end,
+                                  std::max(end, len - end));
             if (std::fabs(d2 - dm) < apart) {
                 const float side = d2 < dm ? -1.0f : 1.0f;
                 d2 = dm + side * apart;
@@ -1252,7 +1386,25 @@ Pose second_hand_pose(const WeaponFrame& f, int h, const GripPlace* g) {
             const Vec3 x = M(rotate(m.orientation, Vec3{1, 0, 0})) * -1.0f, y = M(rotate(m.orientation, Vec3{0, 1, 0})),
                        z = M(rotate(m.orientation, Vec3{0, 0, 1}));
             const Vec3 slide = frame_point(f, u * (d2 - dm)) - frame_point(f, Vec3{});
-            return {m.position - n * (2.0f * dot(m.position - c, n)) + slide, quat_of_axes(x, y, z)};
+            Pose out{m.position - n * (2.0f * dot(m.position - c, n)) + slide, quat_of_axes(x, y, z)};
+            // 0.1.10 (session 38; vr517: the beam saber's other hand 5.8 mm into its handle as drawn, the steel pipe's
+            // 0.2: her left hand as drawn is not her right's mirrored, 476 vertices to 442): then turned about its
+            // fist's centre and moved by its fitted place (fit_second, the search's candidates by g), as the main hand's
+            // place turns and moves it: about the weapon's right, then the handle's line; a left-handed player's
+            // mirrored (the turn about the line the other way, the move across the weapon's middle)
+            if (g && (g->pitch != 0.0f || g->roll != 0.0f || g->shift.x != 0.0f || g->shift.y != 0.0f ||
+                      g->shift.z != 0.0f)) {
+                GripPlace gm = *g;
+                if (f.mirror) gm.roll = -gm.roll;
+                const Quat R = place_turn(f, u, &gm);
+                auto turn = [&](Vec3 v) { return normalized(frame_dir(f, rotate(R, model_dir(f, v)))); };
+                const Vec3 x2 = turn(rotate(out.orientation, Vec3{1, 0, 0})),
+                           y2 = turn(rotate(out.orientation, Vec3{0, 1, 0})),
+                           z2 = turn(rotate(out.orientation, Vec3{0, 0, 1}));
+                out.orientation = quat_of_axes(x2, y2, z2);
+                out.position = out.position + (frame_point(f, mirrored_dir(f, g->shift)) - frame_point(f, Vec3{}));
+            }
+            return out;
         }
     }
     const Quat R = place_turn(f, hd.second_rod, g);
@@ -1672,15 +1824,109 @@ struct FitRun {
     GripPlace from, best, ref;  // ref: the round's middle (the best when it began; vr371: not the best as it moves)
     float best_score = -1, start_score = -1;
     GripFit best_fit, start_fit;
-    int why[8]{};
+    int why[10]{};  // (8, session 38: the other hand's wrist bent too far; 9, her forearm in the weapon)
     int in_by[5]{}, curl_by[5]{};  // why 3 and why 4, by finger (thumb, index, middle, ring, little)
+    int curl_sub[4]{}, trig_sub[6]{}, off_sub[3]{};  // 0.1.10: why 4, 6 and 7 by GripFit::sub
+    // 0.1.10 (owner 172, session 38): a main hand not round a handle (the guns') searched at every turn about the grip's
+    // line (kWideRolls of 8 degrees, the whole circle) and wide_pitches() about the weapon's right, each turn's places
+    // round the place where her palm as drawn just meets the weapon at that turn (fit_palm_meet)
+    bool wide = false;
+    Vec3 meet[45 * 11]{};       // each turn's meeting place's shift
+    int meet_steps[45 * 11]{};  // units moved to it (+ out of the weapon, - in), 99 none found
+    float turn_best[45 * 11]{};
+    int roll_why[45][10]{};  // each turn about the grip's line: its places turned away, by why
 } fit_run;
-int fit_round_size(int round) { return round == 0 ? 9 * 5 * 11 * 11 * 11 : round == 1 ? 25 * 125 : 9 * 9 * 9; }
+constexpr int kWideRolls = 45, kWidePitchesMost = 11;
+// The wide search's turns about the weapon's right, 8 degrees apart round its place's: 5 (16 degrees each way); the
+// rig's SH3_FIT_PITCHES asks up to 11 (40 each way; session 38, vr521: the handgun's hand, at the foot of its grip, could
+// not move up it, the skin between her knuckles in the frame 2 mm up and her middle finger in the trigger guard 6 mm up,
+// so it turns to rise there: its web up onto the back strap, its knuckles kept at the guard)
+int wide_pitches() {
+    static const int n = [] {
+        const char* v = std::getenv("SH3_FIT_PITCHES");
+        return std::clamp(v && *v ? std::atoi(v) : 5, 1, kWidePitchesMost) | 1;
+    }();
+    return n;
+}
+int fit_round_size(const FitRun& r) {
+    return r.round == 0 ? (r.wide ? kWideRolls * wide_pitches() : 9 * 5) * 11 * 11 * 11 : r.round == 1 ? 25 * 125 : 9 * 9 * 9;
+}
+// Turn t of a wide search (session 38): about the grip's line from -176 to +176 degrees round ref's, 8 at a time, and
+// about the weapon's right from -16 to +16 round ref's (wide_pitches); the turn about the line kept within -180 to 180.
+GripPlace fit_wide_turn(const GripPlace& ref, int t) {
+    GripPlace g = ref;
+    float roll = ref.roll + (float)(t % kWideRolls - kWideRolls / 2) * 8.0f;
+    while (roll >= 180.0f) roll -= 360.0f;
+    while (roll < -180.0f) roll += 360.0f;
+    g.roll = roll;
+    g.pitch = ref.pitch + (float)(t / kWideRolls - wide_pitches() / 2) * 8.0f;
+    return g;
+}
+// Session 37 (vr507's slices, vr514): at 0.1.8's places a gun's grip ran through the middle of her palm as drawn. Hand h
+// (stage 0 the main hand, 1 the other) at place `from` moved the way her palm's back faces, 1 unit at a time (up to 60),
+// out of the weapon until her palm as drawn is clear of it (0.5 mm), or, already clear by more than 2 mm, in toward it
+// until it is within 2 mm (never into it): the place where her palm meets the weapon at from's turn. `steps`: units moved
+// (+ out, - in), 99 when none was found (the place kept); `first`, `least`: her palm's nearest before and after (m).
+void fit_pose_at(int stage, const GripPlace& g, Pose& pose) {
+    if (stage == 0) main_hand_pose(wf, main_hand(), &g, pose);
+    else pose = second_hand_pose(wf, off_hand(), &g);
+}
+GripPlace fit_palm_meet(int stage, int h, const GripPlace& from, int* steps, float* first_out, float* least_out) {
+    Pose pose;
+    Vec3 back_t;
+    fit_pose_at(stage, from, pose);
+    const float first = body_palm_skin_clear(h, pose, &back_t);
+    const Vec3 hand0 = model_of(wf, pose.position);
+    Vec3 back = normalized(model_dir(wf, back_t));
+    // (the way the hand itself moves in the weapon's model for a shift along `back`: a shift moves the weapon against a
+    // main hand held at the controller)
+    GripPlace t = from;
+    t.shift = from.shift + back;
+    fit_pose_at(stage, t, pose);
+    if (dot(model_of(wf, pose.position) - hand0, back) < 0) back = back * -1.0f;
+    float least = first;
+    int s = 0;
+    bool found = first >= 0.0005f && first <= 0.002f;
+    if (first < 0.0005f) {
+        for (; least < 0.0005f && s < 60; s++) {
+            t.shift = from.shift + back * (float)(s + 1);
+            fit_pose_at(stage, t, pose);
+            least = body_palm_skin_clear(h, pose);
+        }
+        found = least >= 0.0005f;
+    } else if (first > 0.002f) {
+        float prev = first;
+        for (int k = 1; k <= 60; k++) {
+            t.shift = from.shift - back * (float)k;
+            fit_pose_at(stage, t, pose);
+            const float c = body_palm_skin_clear(h, pose);
+            if (c <= 0.002f) {
+                if (c >= 0.0005f) s = -k, least = c;
+                else s = -(k - 1), least = prev;  // (one unit too far: the step before, still clear)
+                found = true;
+                break;
+            }
+            prev = c;
+        }
+    }
+    if (steps) *steps = found ? s : 99;
+    if (first_out) *first_out = first;
+    if (least_out) *least_out = found ? least : first;
+    GripPlace out = from;
+    if (found) out.shift = from.shift + back * (float)s;
+    return out;
+}
 GripPlace fit_candidate(const WeaponFrame& f, const FitRun& r, int i) {
     const GripPlace ref = r.ref;
     GripPlace g = ref;
     auto move = [&](float x, float y, float z) { g.shift = ref.shift + f.fwd * x + f.up * y + f.right * z; };
-    if (r.round == 0) {
+    if (r.round == 0 && r.wide) {
+        // (session 38: every turn about the grip's line, round the place where her palm meets the weapon at that turn)
+        const int t = i / 1331, j = i % 1331;
+        g = fit_wide_turn(ref, t);
+        const Vec3 at = r.meet[t];
+        g.shift = at + f.fwd * ((j / 121 - 5) * 5.0f) + f.up * ((j / 11 % 11 - 5) * 5.0f) + f.right * ((j % 11 - 5) * 2.5f);
+    } else if (r.round == 0) {
         const int t = i / 1331, j = i % 1331;
         g.roll = ref.roll + (t % 9 - 4) * 8.0f;
         g.pitch = ref.pitch + (t / 9 - 2) * 8.0f;
@@ -1695,18 +1941,18 @@ GripPlace fit_candidate(const WeaponFrame& f, const FitRun& r, int i) {
     // weapons' main hands kept on their grip's line. The search scores the fingers' and the palm's touch, and a fist
     // moved off the line with the grip at its finger tips scored about as well as one round it: the katana's other hand
     // 5.8 cm across its handle (its index straight along it), the submachine gun's up its receiver's side (its thumb
-    // standing over the top, vr388 g2-smg). Each place keeps its fist's centre within 1.2 cm of the grip's line through
-    // its first place (the hold's own, on that line), moving freely along it. The hands that cup a gun's body from below,
-    // palm up (the shotgun's pump, the submachine gun's and the flamethrower's front: their holds' second palm up), may
-    // rise 2 cm to it (0.1.7's palms lay up to 1.2 cm under it) and sink 0.8 cm, and turn 12 degrees about the line, so
-    // the palm stays under the gun. The guns' main hands stay free: their place is the game's own hand's, moved for the
-    // trigger finger.
+    // standing over the top, vr388 g2-smg). Each place keeps its fist's centre within 1.2 cm (0.1.10: 2.4, below) of
+    // the grip's line through its first place (the hold's own, on that line), moving freely along it. The hands that cup
+    // a gun's body from below, palm up (the shotgun's pump, the submachine gun's and the flamethrower's front: their
+    // holds' second palm up), may rise 2 cm to it (0.1.7's palms lay up to 1.2 cm under it) and sink 0.8 cm (0.1.10:
+    // 2.5, below), and turn 12 degrees about the line, so the palm stays under the gun. The guns' main hands stay free:
+    // their place is the game's own hand's, moved for the trigger finger.
     // vr395: the stun gun's fist (its body a 6 cm box, the fist round it with its centre off the box's line) found no
     // place within 1.2 cm of that line: its main hand is left free, as vr388's was. The guns' other hands slid along
     // their grips' lines freely and the submachine gun's left its front block 4.7 cm back, beside the trigger guard, its
     // fingers standing up the receiver's side with nothing to close round: a gun's other hand moves at most 2 cm along
     // its grip from the hold's place (the pump, the front block, the grip's front).
-    if (f.hold && (r.stage == 1 || (f.hold->fist && f.profile != 3))) {
+    if (f.hold && (r.stage == 1 || (f.hold->fist && f.profile != 3)) && !(r.stage == 1 && r.wide)) {
         const Hold& h = *f.hold;
         const Vec3 rod_m = r.stage == 1 ? h.second_rod : h.rod;
         // (the rod in the weapon's frame as placed, from its parts along the hold's barrel or blade and its top; its
@@ -1722,18 +1968,37 @@ GripPlace fit_candidate(const WeaponFrame& f, const FitRun& r, int i) {
             Vec3 across = d - rod * run;
             const bool cup = r.stage == 1 && dot(h.second_palm, h.up) > 0.9f;
             if (cup) {
-                const float up = std::clamp(dot(across, f.up), -4.0f, 10.0f);
+                // (0.1.10, vr512: her palm as drawn is 1.8 cm thicker than the hand model's on its face, so a palm
+                // under the gun sinks 2.5 cm at most, 12.5 units: the shotgun's pump and the submachine gun's front
+                // found no place sinking 0.8)
+                const float up = std::clamp(dot(across, f.up), -12.5f, 10.0f);
                 const float side = std::clamp(dot(across, f.right), -6.0f, 6.0f);
                 across = f.up * up + f.right * side;
                 g.roll = std::clamp(g.roll, o.roll - 12.0f, o.roll + 12.0f);
             } else {
+                // (0.1.10, vr512: with her palm as drawn 1.8 cm thicker on its face than the hand model's, a handle
+                // against it lies further toward her fingers from the model's fist's centre: 2.4 cm off the line at
+                // most, 12 units; her drawn palm against the handle, body_grip_fit, keeps the hand round it)
                 const float al = length(across);
-                if (al > 6.0f) across = across * (6.0f / al);
+                if (al > 12.0f) across = across * (12.0f / al);
             }
             g.shift = o.shift + along + across;
         }
     }
+    // 0.1.10: a main hand on a weapon held in the fist keeps 0.1.7's place along its handle as played (main_fit), so the
+    // search tries only the places played: none along it
+    if (r.stage == 0 && f.hold && f.hold->fist && f.profile >= 0 && kShapes[f.profile].n > 0) {
+        const Cap& c0 = kShapes[f.profile].c[0];
+        const Vec3 u = normalized(c0.b - c0.a);
+        g.shift = g.shift - u * dot(g.shift, u);
+    }
     return g;
+}
+const char* mesh_part_name(int part) {
+    static const char* const kNames[9] = {"her palm", "the skin blended between bones", "her thumb", "her index finger",
+                                          "her middle finger", "her ring finger", "her little finger",
+                                          "her main hand as drawn", "not measured"};
+    return kNames[part >= 0 && part < 8 ? part : 8];
 }
 void fit_log(const FitRun& r, const char* which, int h) {
     const GripPlace& b = r.best_score > 0 ? r.best : r.from;
@@ -1743,14 +2008,27 @@ void fit_log(const FitRun& r, const char* which, int h) {
            "mm, thumb swung %.1f, in %.1f mm), trigger %.2f (its pad %.1f mm off, spread %.0f, rising %.0f degrees, "
            "pushing it %.2f along its pull, %s); %d tried (round 1 %d times more); turned away: knuckles in %d, palm in "
            "%d, a finger in %d (by finger %d %d %d %d %d), a curl off %d (%d %d %d %d %d), the trigger %d, the palm off "
-           "%d",
+           "%d, her hand as drawn in it %d; her palm as drawn %.1f mm off it at its nearest (before: %.1f); her whole "
+           "hand as drawn %.1f mm off it at its nearest (%s), her palm's and the blended skin's %.1f (before: %.1f, %s)",
            weapon_name(game.weapon), h == kLeft ? "left" : "right", which, b.shift.x, b.shift.y, b.shift.z, b.pitch,
            b.roll, r.best_score, r.start_score, r.start_fit.why, r.start_fit.finger, t.palm, t.wrap, t.curl[0],
            t.curl[1], t.curl[2], t.curl[3], t.curl[4], t.opened, t.pads * 1000.0f, t.thumb_swing, t.thumb_in * 1000.0f,
            t.trig_curl, t.trig_err * 1000.0f, t.trig_spread, t.trig_rise, t.trig_push,
            t.trig_whole ? "on it the whole pull" : "off it part of the pull", r.tried, r.climbs, r.why[1], r.why[2],
            r.why[3], r.in_by[0], r.in_by[1], r.in_by[2], r.in_by[3], r.in_by[4], r.why[4], r.curl_by[0], r.curl_by[1],
-           r.curl_by[2], r.curl_by[3], r.curl_by[4], r.why[6], r.why[7]);
+           r.curl_by[2], r.curl_by[3], r.curl_by[4], r.why[6], r.why[7], r.why[5], t.skin * 1000.0f,
+           r.start_fit.skin * 1000.0f, t.mesh * 1000.0f, mesh_part_name(t.mesh_part), t.mesh_palm * 1000.0f,
+           r.start_fit.mesh * 1000.0f, mesh_part_name(r.start_fit.mesh_part));
+    rt_log("VR: grip fit: %s, the %s hand: curls off: never meeting it %d, under the least %d, over the most %d; the "
+           "trigger: its pad off it %d, no rest off it %d, too steep %d, its skin in the gun %d, not pulling its way %d; "
+           "the palm off: not touching %d, too little of it on it %d; her wrist bent %.0f degrees there from her real "
+           "hand's, the controller's (at its place before: %.0f), places turned away for her wrist %d; her forearm as "
+           "drawn %.1f mm off it there (at its place before: %.1f; 1000000000 not read), places turned away for it %d",
+           weapon_name(game.weapon), h == kLeft ? "left" : "right", r.curl_sub[1], r.curl_sub[2], r.curl_sub[3],
+           r.trig_sub[1], r.trig_sub[2], r.trig_sub[3], r.trig_sub[4], r.trig_sub[5], r.off_sub[1], r.off_sub[2],
+           (r.best_score > 0 ? r.best_fit : r.start_fit).wrist, r.start_fit.wrist, r.why[8],
+           std::min((r.best_score > 0 ? r.best_fit : r.start_fit).arm * 1000.0f, 1e9f),
+           std::min(r.start_fit.arm * 1000.0f, 1e9f), r.why[9]);
 }
 // Testing: SH3_WEAPON_MESH=0 her fingers on the capsules alone (0.1.7's), for the rig's comparisons.
 bool weapon_mesh_on() {
@@ -1767,12 +2045,17 @@ void fit_step() {
         r.weapon = game.weapon;
     }
     if (r.stage >= 2) return;
+    // (session 38, the rig: SH3_FIT_SECOND set fits the other hand alone, the main hand kept at its place)
+    static const bool second_only = std::getenv("SH3_FIT_SECOND") != nullptr;
+    if (second_only && r.stage == 0) r.stage = 1;
     const int h = r.stage == 0 ? mh : oh;
     GripPlace* slot = r.stage == 0 ? const_cast<GripPlace*>(main_fit(p, mh)) : const_cast<GripPlace*>(second_fit(p));
     const bool ready = r.stage == 0 ? slot != nullptr
                                     : slot && wf.hold->second && hands[oh].on_foregrip && two_w >= 0.999f &&
                                           hand_role[oh] == 2 && !other_surface(wf) && native_shown[oh] < 0;
-    const bool shaped = !weapon_mesh_on() || shape_ready(p);  // (0.1.8: fitted against the weapon's own shape)
+    // (0.1.8: fitted against the weapon's own shape; 0.1.10: with her palm as drawn, body_palm_skin, and her whole hand
+    // as drawn, body_hand_skin)
+    const bool shaped = (!weapon_mesh_on() || shape_ready(p)) && body_palm_skin_ready(h) && body_hand_skin_ready(h);
     if (!ready || !shaped) {
         // (the main hand: waits for the game's place to be read, however long; none for a melee weapon in the game's
         // own hands: vr370's handgun was drawn long before its place was read. The other hand: waits for it on the
@@ -1785,17 +2068,76 @@ void fit_step() {
         if (++r.wait < (r.stage == 0 ? 10 : 30)) return;  // (the other hand: its fingers and the main hand's settled)
         r.from = *slot;
         Pose pose;
+        // 0.1.10 (owner 172; vr507's slices, vr514): at 0.1.8's places a gun's grip ran through the middle of her palm,
+        // between the hand model's palm points at her knuckles and at its heel (all it checked), so no place within the
+        // search's reach round them had her palm as drawn out of it. A hand not round a handle in its fist (the guns'
+        // main hands and every second hand) first moves out of the weapon the way her palm's back faces, 1 unit at a
+        // time (up to 12 cm), until her palm as drawn is clear of it; the search then works round that place.
+        // (session 38, owner 178: "who ... holds a smg like that": vr528's search at every turn put the submachine gun's
+        // front hand on the receiver's left side, its fingers over the top. A hand that cups the weapon, the hold's palm
+        // up under it (the submachine gun's front, the flamethrower's, the shotgun's pump: palm up, thumb forward, the
+        // fingers up its far side), keeps that cup: from a place where her palm as drawn does not face up (within 37
+        // degrees), the search starts again from the hold's own cup, unturned; and it is never searched at every turn)
+        const bool cup = r.stage == 1 && wf.hold && dot(wf.hold->second_palm, wf.hold->up) > 0.9f;
+        if (cup && body_palm_skin_ready(h)) {
+            const Pose cp = second_hand_pose(wf, oh, &r.from);
+            Vec3 back_t{};
+            body_palm_skin_clear(h, cp, &back_t);
+            const float up = -dot(normalized(model_dir(wf, back_t)), wf.up);
+            if (up < 0.8f) {
+                rt_log("VR: grip fit: %s, the %s hand cups the weapon, but at its place her palm faces %.0f degrees off up: "
+                       "the search from the hold's own cup", weapon_name(game.weapon), h == kLeft ? "left" : "right",
+                       std::acos(std::clamp(up, -1.0f, 1.0f)) * 57.29578f);
+                r.from = GripPlace{};
+            }
+        }
+        if (!(r.stage == 0 && wf.hold && wf.hold->fist) && body_palm_skin_ready(h)) {
+            int s = 0;
+            float first = 0, least = 0;
+            const GripPlace t = fit_palm_meet(r.stage, h, r.from, &s, &first, &least);
+            if (s != 0 && s != 99) {
+                rt_log("VR: grip fit: %s, the %s hand: her palm as drawn %.1f mm off the weapon at its place (in it below "
+                       "0): moved %d units (%.1f mm; + out the way her palm's back faces, - in), her palm then %.1f mm off "
+                       "it; the search round there", weapon_name(game.weapon), h == kLeft ? "left" : "right",
+                       first * 1000.0f, s, s * wf.scale * 1000.0f, least * 1000.0f);
+                r.from = t;
+            } else if (s == 99)
+                rt_log("VR: grip fit: %s, the %s hand: her palm as drawn %.1f mm off the weapon at its place, not meeting "
+                       "it within 60 units along her palm's back: the search round its place", weapon_name(game.weapon),
+                       h == kLeft ? "left" : "right", first * 1000.0f);
+            // (session 38: a main hand not round a handle, the guns', is searched at every turn about the grip's line:
+            // 0.1.8's turns, 32 degrees each way round its fitted place's, held the grip across her palm, vr507's slices)
+            r.wide = r.stage == 0 || (s == 99 && !cup);
+            // (session 38: and an other hand whose palm meets the weapon nowhere along its back from its place, not one
+            // that cups the weapon (above): searched at every turn too, free of its grip's line, fit_candidate)
+        }
+        // Testing (session 38, the left-handed places): SH3_FIT_LOCAL=1 searches only round the place before (after her
+        // palm is brought to meet the weapon, above): round 1 (8 degrees and 5 units each way) and round 2 (2 units),
+        // never at every turn, never round 0, never climbing off round 1's edge. vr540's search from the right-handed
+        // place found clear places for three left-handed other hands that were not natural (the submachine gun's
+        // front's fingers in the air, the katana's under its handle's end, the handgun's wrist bent 117 degrees); the
+        // right-handed holds are natural, so their places kept and moved only as far as her left hand needs.
+        static const bool fit_local = std::getenv("SH3_FIT_LOCAL") != nullptr;
+        if (fit_local) {
+            r.wide = false, r.round = 1, r.climbs = 3;
+            rt_log("VR: grip fit: %s, the %s hand: searched only round its place (SH3_FIT_LOCAL)",
+                   weapon_name(game.weapon), h == kLeft ? "left" : "right");
+        }
         if (r.stage == 0) main_hand_pose(wf, mh, &r.from, pose);
         else pose = second_hand_pose(wf, oh, &r.from);
         body_grip_fit(h, pose, r.stage == 0, r.stage == 0 ? weapon_trigger() : GripTrigger{}, r.start_fit);
+        body_grip_mesh(h, pose, r.stage == 0, r.start_fit);  // (0.1.10: her whole hand as drawn there)
         r.start_score = r.start_fit.score;
         // (the rig's record: how her hand meets the weapon along it and up it from there, each finger's knuckle
         // clearance, the curl it meets it at and the curl it comes out of it from)
         static char line[1800];
-        for (int iy = -2; iy <= 1; iy++)
+        // (0.1.10: and across it, the weapon's right, from -9 to +15 units)
+        for (int iy = -2; iy <= 2; iy++)
             for (int ix = -2; ix <= 6; ix++) {
                 GripPlace g = r.from;
-                g.shift = r.from.shift + wf.fwd * (ix * 5.0f) + wf.up * (iy * 10.0f);
+                const bool across = iy == 2;
+                g.shift = across ? r.from.shift + wf.right * ((ix - 1) * 3.0f)
+                                 : r.from.shift + wf.fwd * (ix * 5.0f) + wf.up * (iy * 10.0f);
                 if (r.stage == 0) main_hand_pose(wf, mh, &g, pose);
                 else pose = second_hand_pose(wf, oh, &g);
                 body_grip_report(h, pose, line, sizeof line);
@@ -1826,15 +2168,26 @@ void fit_step() {
                 }
                 GripFit gf;
                 body_grip_fit(h, pose, r.stage == 0, r.stage == 0 ? weapon_trigger() : GripTrigger{}, gf);
-                rt_log("VR: grip fit record: %s, the %s hand %+d forward %+d up: %s; fit %.2f why %d finger %d trigger "
-                       "%.2f (%.1f mm off, spread %.0f)", weapon_name(game.weapon), r.stage == 0 ? "main" : "other",
-                       ix * 5, iy * 10, line, gf.score, gf.why, gf.finger, gf.trig_curl, gf.trig_err * 1000.0f,
-                       gf.trig_spread);
+                body_grip_mesh(h, pose, r.stage == 0, gf, true);
+                rt_log("VR: grip fit record: %s, the %s hand %+d forward %+d up %+.1f across: %s; fit %.2f why %d "
+                       "finger %d sub %d trigger %.2f (%.1f mm off, spread %.0f); her palm as drawn %.1f mm off it, her "
+                       "whole hand %.1f (%s)", weapon_name(game.weapon), r.stage == 0 ? "main" : "other",
+                       across ? 0 : ix * 5, across ? 0 : iy * 10, across ? (ix - 1) * 3.0f : 0.0f, line, gf.score,
+                       gf.why, gf.finger, gf.sub, gf.trig_curl, gf.trig_err * 1000.0f, gf.trig_spread,
+                       gf.skin * 1000.0f, gf.mesh * 1000.0f, mesh_part_name(gf.mesh_part));
             }
     }
     const GripTrigger trig = r.stage == 0 ? weapon_trigger() : GripTrigger{};
     for (int k = 0; k < 1200 && r.round < 3; k++) {  // (session 31: round 0 is 59,895 places, about 50 frames)
         if (r.next == 0) r.ref = r.round == 0 || r.best_score < 0 ? r.from : r.best;
+        // (session 38, a wide round 0: each turn's places round where her palm meets the weapon at that turn, found as
+        // the turn's first place comes up; 299,475 places, about 250 frames)
+        if (r.wide && r.round == 0 && r.next % 1331 == 0) {
+            const int t = r.next / 1331;
+            int s = 0;
+            const GripPlace m = fit_palm_meet(r.stage, h, fit_wide_turn(r.ref, t), &s, nullptr, nullptr);
+            r.meet[t] = m.shift, r.meet_steps[t] = s, r.turn_best[t] = -1;
+        }
         const GripPlace g = fit_candidate(wf, r, r.next);
         Pose pose;
         bool ok = true;
@@ -1842,13 +2195,43 @@ void fit_step() {
         else pose = second_hand_pose(wf, oh, &g);
         GripFit fit;
         if (ok) body_grip_fit(h, pose, r.stage == 0, trig, fit);
+        // 0.1.10 (owner 172): her whole hand as drawn, for a place that would be the best (it only turns a place away
+        // or lowers its score)
+        if (ok && fit.score > r.best_score) body_grip_mesh(h, pose, r.stage == 0, fit);
         r.tried++;
+        if (r.wide && r.round == 0) r.turn_best[r.next / 1331] = std::max(r.turn_best[r.next / 1331], fit.score);
         if (fit.score > r.best_score) r.best_score = fit.score, r.best = g, r.best_fit = fit;
-        else if (fit.score < 0 && fit.why > 0 && fit.why < 8) {
+        else if (fit.score < 0 && fit.why > 0 && fit.why < 10) {
             r.why[fit.why]++;
+            if (r.wide && r.round == 0) r.roll_why[(r.next / 1331) % kWideRolls][fit.why]++;
             if (fit.finger >= 0 && fit.finger < 5) (fit.why == 3 ? r.in_by : r.curl_by)[fit.finger]++;
+            if (fit.why == 4 && fit.sub > 0 && fit.sub < 4) r.curl_sub[fit.sub]++;
+            if (fit.why == 6 && fit.sub > 0 && fit.sub < 6) r.trig_sub[fit.sub]++;
+            if (fit.why == 7 && fit.sub > 0 && fit.sub < 3) r.off_sub[fit.sub]++;
         }
-        if (++r.next >= fit_round_size(r.round)) {
+        if (++r.next >= fit_round_size(r)) {
+            if (r.wide && r.round == 0) {
+                // (the rig's record: each turn about the grip's line, its best over the turns about the weapon's right,
+                // and the units its palm moved to meet the weapon at the middle one)
+                static char tl[4096];
+                int at = 0;
+                for (int ri = 0; ri < kWideRolls && at < (int)sizeof tl - 80; ri++) {
+                    float b = -1;
+                    int bp = wide_pitches() / 2;  // (session 38: and the turn about the weapon's right it was best at)
+                    for (int pi = 0; pi < wide_pitches(); pi++)
+                        if (r.turn_best[pi * kWideRolls + ri] > b) b = r.turn_best[pi * kWideRolls + ri], bp = pi;
+                    int top = 1;
+                    for (int w = 2; w < 10; w++)
+                        if (r.roll_why[ri][w] > r.roll_why[ri][top]) top = w;
+                    at += std::snprintf(tl + at, sizeof tl - (size_t)at, "%s%.0f: %.2f at %.0f (%d; why %d %d)",
+                                        ri ? ", " : "", fit_wide_turn(r.ref, ri + kWideRolls * (wide_pitches() / 2)).roll,
+                                        b, fit_wide_turn(r.ref, ri + kWideRolls * bp).pitch,
+                                        r.meet_steps[ri + kWideRolls * (wide_pitches() / 2)], top, r.roll_why[ri][top]);
+                }
+                rt_log("VR: grip fit: %s, the %s hand, every turn about the grip's line (its best score; units moved to "
+                       "meet her palm, the most common reason its places were turned away and how often): %s",
+                       weapon_name(game.weapon), h == kLeft ? "left" : "right", tl);
+            }
             // (session 31, vr384 and vr386: the handgun's hands were best at the turns' very edge, 40 degrees: round 1
             // again round its best while that lies on its edge, a turn of 8 or a move of 5, up to 3 times more)
             const Vec3 d = r.best.shift - r.ref.shift;
@@ -1864,6 +2247,96 @@ void fit_step() {
     if (r.round < 3) return;
     if (r.best_score > 0) *slot = r.best;
     fit_log(r, r.stage == 0 ? "main, on its grip" : "other, on the second grip", h);
+    // Session 38 (owner 172; vr517: the handgun's hand fitted at the foot of its grip, the gun sat on her fist): the rig's
+    // record of what holds a gun's main hand down: from the best place, the hand moved up the weapon 1 unit at a time
+    // (up to 16), at each height her palm brought back to meet the weapon (fit_palm_meet), and what the fit says there.
+    if (r.stage == 0 && r.wide && r.best_score > 0) {
+        Pose pose;
+        fit_pose_at(0, r.best, pose);
+        const Vec3 at0 = model_of(wf, pose.position);
+        GripPlace t = r.best;
+        t.shift = r.best.shift + wf.up;
+        fit_pose_at(0, t, pose);
+        const float sign = dot(model_of(wf, pose.position) - at0, wf.up) > 0 ? 1.0f : -1.0f;  // (the hand up the weapon)
+        for (int k = 1; k <= 16; k++) {
+            GripPlace u = r.best;
+            u.shift = r.best.shift + wf.up * (sign * (float)k);
+            int s = 0;
+            float first = 0, least = 0;
+            const GripPlace m = fit_palm_meet(0, h, u, &s, &first, &least);
+            fit_pose_at(0, m, pose);
+            GripFit gf;
+            body_grip_fit(h, pose, true, trig, gf);
+            body_grip_mesh(h, pose, true, gf, true);
+            rt_log("VR: grip fit, up the weapon: %s, %d units (%.1f mm) up from the best, her palm moved %d units to meet "
+                   "it (%.1f mm off it before): fit %.2f why %d sub %d finger %d, trigger curl %.2f (%.1f mm off) rising "
+                   "%.0f degrees, pushing %.2f; palm share %.2f, wrap %.2f; her palm as drawn %.1f mm off it, her whole "
+                   "hand %.1f (%s)", weapon_name(game.weapon), k, k * wf.scale * 1000.0f, s, first * 1000.0f, gf.score,
+                   gf.why, gf.sub, gf.finger, gf.trig_curl, gf.trig_err * 1000.0f, gf.trig_rise, gf.trig_push, gf.palm,
+                   gf.wrap, gf.skin * 1000.0f, gf.mesh * 1000.0f, mesh_part_name(gf.mesh_part));
+        }
+        // Session 38 (vr521's record above: the hand moved straight up meets the frame with the skin between her
+        // knuckles and the trigger guard with her middle finger; vr523: the wide search's 5 mm grid at 11 turns about
+        // the weapon's right found nothing at any turn, its places too far apart for the few millimetres a hand has
+        // round a grip): testing, SH3_FIT_CLIMB=1: the hand moved up the grip's own line 1 unit (2 mm) at a time up to
+        // 12, and at each height searched finely round there (turned 6 degrees at a time to 24 each way about the
+        // weapon's right and 4 to 16 about the grip's line, her palm brought to meet the weapon at each turn, then moved
+        // 2 units along the weapon and 1.5 across it, 4 and 3 each way), each height's best logged; the highest height
+        // with a place taken (the pictures after show it).
+        static const bool climb = std::getenv("SH3_FIT_CLIMB") != nullptr;
+        if (climb) {
+            const Vec3 rod = normalized(wf.hold->rod);
+            fit_pose_at(0, r.best, pose);
+            const Vec3 h0 = model_of(wf, pose.position);
+            GripPlace t1 = r.best;
+            t1.shift = r.best.shift + rod;
+            fit_pose_at(0, t1, pose);
+            const float rs = dot(model_of(wf, pose.position) - h0, wf.up) > 0 ? 1.0f : -1.0f;  // (the hand up the grip)
+            GripPlace top{};
+            int top_k = -1;
+            for (int k = 0; k <= 12; k++) {
+                GripPlace hb{};
+                GripFit hf;
+                float hs = -1;
+                int why_n[8]{};
+                for (int ti = 0; ti < 81; ti++) {
+                    GripPlace g = r.best;
+                    g.shift = r.best.shift + rod * (rs * (float)k);
+                    g.pitch = r.best.pitch + (float)(ti / 9 - 4) * 6.0f;
+                    g.roll = r.best.roll + (float)(ti % 9 - 4) * 4.0f;
+                    int s = 0;
+                    const GripPlace m = fit_palm_meet(0, h, g, &s, nullptr, nullptr);
+                    for (int j = 0; j < 25; j++) {
+                        GripPlace c = m;
+                        c.shift = m.shift + wf.fwd * ((float)(j / 5 - 2) * 2.0f) + wf.right * ((float)(j % 5 - 2) * 1.5f);
+                        fit_pose_at(0, c, pose);
+                        GripFit gf;
+                        body_grip_fit(h, pose, true, trig, gf);
+                        if (gf.score > hs) body_grip_mesh(h, pose, true, gf);
+                        if (gf.score > hs) hs = gf.score, hb = c, hf = gf;
+                        else if (gf.score < 0 && gf.why > 0 && gf.why < 8) why_n[gf.why]++;
+                    }
+                }
+                int top_why = 1;
+                for (int w = 2; w < 8; w++)
+                    if (why_n[w] > why_n[top_why]) top_why = w;
+                rt_log("VR: grip fit, up the grip: %s, %d units (%.1f mm) up its line: best %.2f at {{%.1ff, %.1ff, %.1ff}, "
+                       "%.0ff, %.0ff}: palm %.2f, wrap %.2f, curls %.2f %.2f %.2f %.2f %.2f, trigger %.2f rising %.0f "
+                       "degrees, pushing %.2f; her palm as drawn %.1f mm off it, her whole hand %.1f (%s); turned away "
+                       "most for why %d (%d of 2025)", weapon_name(game.weapon), k, k * wf.scale * 1000.0f, hs,
+                       hb.shift.x, hb.shift.y, hb.shift.z, hb.pitch, hb.roll, hf.palm, hf.wrap, hf.curl[0], hf.curl[1],
+                       hf.curl[2], hf.curl[3], hf.curl[4], hf.trig_curl, hf.trig_rise, hf.trig_push, hf.skin * 1000.0f,
+                       hf.mesh * 1000.0f, mesh_part_name(hf.mesh_part), top_why, why_n[top_why]);
+                if (hs > 0) top = hb, top_k = k;
+            }
+            if (top_k > 0) {
+                *slot = top;
+                rt_log("VR: grip fit, up the grip: %s, the place %d units up taken for the pictures: {{%.1ff, %.1ff, "
+                       "%.1ff}, %.0ff, %.0ff}", weapon_name(game.weapon), top_k, top.shift.x, top.shift.y, top.shift.z,
+                       top.pitch, top.roll);
+            }
+        }
+    }
     const int stage = r.stage + 1;
     const int weapon = r.weapon;
     r = FitRun{};
@@ -2567,6 +3040,7 @@ void update_grabbing() {
         const float g = h == kLeft ? fi.controls.left_grip : fi.controls.right_grip;
         const float pg = h == kLeft ? prev.left_grip : prev.right_grip;
         if (!s.valid || !(g > 0.6f && pg <= 0.6f)) continue;
+        if (door_hold.hand == h) continue;  // 0.1.10: still holding a door's handle (its grip eased and closed again)
         if (s.holding_weapon || s.on_foregrip || reload_owns_hand(h)) continue;
         bool over_holster = false;
         for (int k = 0; k < kHolsterCount; k++) over_holster |= holster_on(k) && holsters[k].hovered[h];
@@ -2574,6 +3048,27 @@ void update_grabbing() {
         // Reaching out or down: the game's own action (pick up, open, examine), at the hand ("Take items with your
         // hand": the game looks for what is there, at the palm, instead of in front of her), else in front of her.
         if (hand_reaching(s)) {
+            // 0.1.10: a door's handle taken (one door at a time; the other hand closing on a door meanwhile takes
+            // nothing)
+            if (opt.door_by_hand && opt.take_by_hand && map_ready() && hover_door[h] && hover_event[h] >= 0 &&
+                hover_event[h] < 0x400) {
+                if (door_hold.hand >= 0) continue;
+                door_hold.hand = h;
+                door_hold.event = hover_event[h];
+                door_hold.world = world_point(s.shown.position + rotate(s.shown.orientation, Vec3{0, -0.06f, 0}));
+                door_hold.start = s.grip.position;
+                Vec3 to = fi.head.position - s.grip.position;
+                to.y = 0;
+                door_hold.toward = length(to) > 0.02f ? normalized(to) : Vec3{0, 0, 1};
+                door_hold.held = 0.0f;
+                door_hold.buzz_in = 0.1f;
+                buzz(h, 0.30f, 0.035f, 180.0f);
+                hand_sound(kSoundHandSurface, door_hold.world, 30);
+                rt_log("VR: frame %d: the %s hand took door event %d's handle at %.0f %.0f %.0f (pull it toward her, "
+                       "push it or slide it 10 cm to open it)", rt_frame, h == kLeft ? "left" : "right",
+                       door_hold.event, door_hold.world.x, door_hold.world.y, door_hold.world.z);
+                continue;
+            }
             grab_frames = 3;
             if (opt.take_by_hand && map_ready()) {
                 hand_action.hand = h;
@@ -2586,9 +3081,640 @@ void update_grabbing() {
     }
 }
 
+// 0.1.10: the door's handle held (door_hold): opened once moved 10 cm level, else let go (a soft buzz while it is
+// pulled, firmer the farther it has come).
+void update_door_hold() {
+    DoorHold& d = door_hold;
+    if (d.hand < 0) return;
+    const int h = d.hand;
+    const HandState& s = hands[h];
+    const float g = h == kLeft ? fi.controls.left_grip : fi.controls.right_grip;
+    d.held += frame_dt();
+    Vec3 moved = s.grip.position - d.start;
+    moved.y = 0;
+    const float far = length(moved);
+    const char* why = nullptr;
+    if (!opt.door_by_hand || !opt.take_by_hand || !opt.grabbing || !in_play() || !s.valid || !map_ready())
+        why = "the hand or play gone";
+    else if (g < 0.35f)
+        why = "let go";
+    else if (d.held > 6.0f)
+        why = "held 6 s";
+    else if (far < 0.10f &&
+             length(world_point(s.shown.position + rotate(s.shown.orientation, Vec3{0, -0.06f, 0})) - d.world) >
+                 0.5f * kUnitsPerMetre)
+        why = "the hand carried 50 cm from it";
+    if (why) {
+        rt_log("VR: frame %d: the %s hand let go of door event %d's handle without opening it (%s; moved %.1f cm, "
+               "held %.2f s)", rt_frame, h == kLeft ? "left" : "right", d.event, why, far * 100.0f, d.held);
+        d.hand = -1;
+        return;
+    }
+    // (the other hand's action still running: the door waits for it, held, a frame at a time)
+    if (far >= 0.10f && hand_action.frames == 0 && grab_frames == 0) {
+        const float along = dot(moved, d.toward);
+        const char* how = along > 0.07f ? "pulled it toward her" : along < -0.07f ? "pushed it away" : "slid it aside";
+        rt_log("VR: frame %d: the %s hand %s %.1f cm (held %.2f s): door event %d used where the hand took it",
+               rt_frame, h == kLeft ? "left" : "right", how, far * 100.0f, d.held, d.event);
+        hand_action.hand = h;
+        hand_action.world = d.world;
+        hand_action.frames = 4;
+        hand_action.found = false;
+        hand_action.hover = d.event;
+        grab_frames = 3;
+        d.hand = -1;
+        return;
+    }
+    d.buzz_in -= frame_dt();
+    if (d.buzz_in <= 0.0f && far > 0.01f) {
+        buzz(h, 0.10f + 0.35f * far / 0.10f, 0.03f, 120.0f);
+        d.buzz_in = 0.08f;
+    }
+}
+
+// 0.1.10 (owner 172: "WHY ... IS THE GUN STILL CLIPPING THROUGH THE HAND"; vr493: the handgun's back strap across the
+// rear of her palm, by the wrist, where the palm points the places were fitted and settled with never were): her
+// hands as drawn against the weapon as drawn. Each skinned draw of hers in her own pose (not the ghost's copy of
+// another, not the flashlight in her hand) is skinned as the game's shader skins it (sh3vr_ik.cpp shadow_part's way)
+// and each vertex kept by the hand its weights are mostly on (that hand's own bone, its fingers' or a blend riding on
+// one of them: ik_hand_of_bone), with that hand's bones as drawn; the weapon's own draw in the same frame (its body's
+// pass) gives its held bone as drawn, so each vertex goes into the weapon's own units exactly (the held bone's inverse),
+// wherever the head or the hands are, and is tested against the weapon's own shape (sh3vr_shape.cpp).
+struct HandMesh {
+    int frame = -100;
+    std::vector<Vec3> v;      // world (the game's units)
+    std::vector<int8_t> vt;   // ... each one's bone: its finger's segment (finger * 3 + segment, 90 percent or more on it),
+                              // -2 the hand's own bone (90 percent or more), -1 blended between them
+    std::vector<Vec3> rigid;  // ... those of them on the hand's own bone alone (90 percent or more): its palm, which
+                              // no finger's curl moves
+    std::vector<Vec3> fv;         // ... those on one finger's segment alone (90 percent or more) ...
+    std::vector<uint8_t> fseg;    // ... and which (finger * 3 + segment)
+    Vec3 wrist, knuckle[4], thumb[3];
+    Vec3 joint[5][3];             // each finger's joints as drawn (its segments' bones)
+    // ... each vertex's bones as skinned, 4 a vertex (0.1.10: her hand as drawn, posed at any curl in the hand's model,
+    // sh3vr_body.cpp body_hand_skin): the finger's segment each is or rides on (finger * 3 + segment), -1 the hand's
+    // own bone, -2 another (her forearm's); its weight (0: none); where that bone alone puts the vertex (world)
+    std::vector<int8_t> it;
+    std::vector<float> iw;
+    std::vector<Vec3> iq;
+    std::vector<int> tri;         // her hand's triangles (3 a triangle: indices into v, every corner this hand's)
+    bool bones = false;
+    // 0.1.10 (session 38): the draws this frame with any of this hand's vertices: their vertices and triangles, summed
+    // (her model's own counts, the same whatever the pose: another costume's model gives others; skin_watch)
+    int draw_nv = 0, draw_tri = 0;
+};
+HandMesh hand_mesh[2];
+// Session 38 (vr549: the maul's end out through her left forearm, unseen by any hand's reading): each forearm's own
+// vertices as drawn this frame (half their weight or more on her forearm's bones: ik_forearm_of_bone), world; the
+// pictures' lines read them against the weapon (combat_hand_mesh_report)
+struct ArmMesh {
+    int frame = -100;
+    std::vector<Vec3> v;
+    bool bones = false;   // ... her elbow and wrist as drawn then (world), and the hand's pose shown then (tracking)
+    Vec3 elbow, wrist;
+    Pose shown;
+};
+ArmMesh arm_mesh[2];
+// 0.1.10 (session 38; open since session 37: a costume change kept the hand skin taken from the costume before): her
+// hand as drawn is watched (its draws' counts, HandMesh draw_nv/draw_tri), every 3 seconds once taken
+// (hand_mesh_wanted; every frame on the rig); other counts than those it was taken with, the same at every look for 2
+// seconds or more (two looks at least), are another model of her (a costume): her palm and whole hand as drawn are
+// taken again (hand_skin_step), at most 8 times a session. Testing (rig): SH3_SKIN_FORGET_AT=frame takes them again at
+// that frame as if changed.
+struct SkinWatch {
+    int nv = -1, tri = 0;           // the counts it was taken with (-1 not taken)
+    int new_nv = -1, new_tri = 0;   // other counts seen ...
+    int since = -1;                 // ... from this frame, the same at every look since (-1 none)
+    int last = -100;                // the frame of the last look
+    int again = 0;                  // times taken again
+};
+SkinWatch skin_watch[2];
+constexpr int kSkinLookEvery = 270;  // frames between looks once taken (3 seconds at 90 a second)
+Aff mesh_held{};  // the weapon's held bone as drawn (its body's pass) ...
+int mesh_held_frame = -100;  // ... in this frame
+enum HandPart { kPartPalm = 0, kPartKnuckles, kPartFingers, kPartThumb, kPartWrist, kHandParts };
+const char* const kPartName[kHandParts] = {"palm", "knuckles", "fingers", "thumb", "wrist"};
+struct HandDepth {
+    int frame = -100, n = 0;
+    float deep[kHandParts];   // metres off the weapon at the nearest (below 0: in it)
+    int touching[kHandParts]; // vertices within 1 mm of it or in it
+    int count[kHandParts];
+    Vec3 where[kHandParts];   // the nearest's place on her hand, cm: along it from the wrist, across it toward the little
+                              // finger, off the palm's plane
+    Vec3 lo{1e9f, 1e9f, 1e9f}, hi{-1e9f, -1e9f, -1e9f};  // the palm's vertices' places so (cm)
+    // ... and by the bone each vertex is on (HandMesh::vt): each finger's segments 0-14 (finger * 3 + segment), 15 the
+    // hand's own bone, 16 blended between them; their nearest (metres) and how many
+    float bone_deep[17];
+    int bone_count[17]{};
+};
+// (wanted while a main hand's place is to be settled; on the rig always, for its pictures' lines)
+bool hand_mesh_wanted() {
+    if (view_mode != ViewMode::kFirstPerson || !wf.placed || !in_hand || wf.profile < 0 || placed_weapon != game.weapon)
+        return false;
+#if !defined(__ANDROID__)
+    static const bool rig = std::getenv("QUEST_SIM_SCRIPT") != nullptr;
+    if (rig) return true;
+#endif
+    // (0.1.10: until her hands as drawn are taken, body_hand_skin)
+    if (!body_hand_skin_ready(0) || !body_hand_skin_ready(1)) return true;
+    // (session 38: a look every 3 seconds: skin_watch)
+    if (rt_frame % kSkinLookEvery == 0) return true;
+    return !heel_done[wf.profile][opt.left_handed ? 1 : 0] && main_fit(wf.profile, main_hand()) != nullptr;
+}
+// Which part of hand h (its bones as drawn, hm) a vertex of it is: the thumb (its two outer segments and its tip), the
+// fingers past 1 cm beyond their knuckles, the knuckles (from 0.8 cm before their line to 1 cm past it), the palm (to
+// 2 cm behind the wrist's joint), the wrist (2 to 6 cm behind it); -1 farther back.
+int hand_part(const HandMesh& hm, int h, Vec3 v, Vec3* where) {
+    const float U = kUnitsPerMetre;
+    const Vec3 W = hm.wrist, a = normalized(hm.knuckle[1] - W);
+    const Vec3 k0 = hm.knuckle[0], across = hm.knuckle[3] - k0;
+    const float al = dot(v - W, a);
+    const Vec3 t1 = hm.thumb[1], t2 = hm.thumb[2], tip = t2 + (t2 - t1) * 0.8f;
+    int part;
+    if (seg_seg(v, v, t1, t2) < 0.016f * U || seg_seg(v, v, t2, tip) < 0.016f * U) {
+        part = kPartThumb;
+    } else {
+        const float s = std::clamp(dot(v - k0, across) / std::max(dot(across, across), 1e-6f), 0.0f, 1.0f);
+        const float past = dot(v - (k0 + across * s), a);  // past the knuckles' line
+        if (past > 0.010f * U) part = kPartFingers;
+        else if (past > -0.008f * U) part = kPartKnuckles;
+        else if (al >= -0.02f * U) part = kPartPalm;
+        else if (al >= -0.06f * U) part = kPartWrist;
+        else return -1;
+    }
+    if (where) {
+        const Vec3 side = normalized(across - a * dot(across, a));
+        const Vec3 off = cross(a, side) * (h == kLeft ? -1.0f : 1.0f);
+        const Vec3 d = v - W;
+        *where = Vec3{al, dot(d, side), dot(d, off)} * (100.0f / U);
+    }
+    return part;
+}
+// Hand h as last drawn against the weapon as drawn in the same frame: false when not both caught in the last two
+// frames, or the weapon's shape not yet taken; `pts`: its palm's, wrist's and knuckles' vertices in the weapon's units.
+bool hand_depth(int h, HandDepth& d, std::vector<Vec3>* pts) {
+    d = HandDepth{};
+    for (int k = 0; k < kHandParts; k++) d.deep[k] = 1e9f;
+    for (float& b : d.bone_deep) b = 1e9f;
+    if (h < 0 || h > 1 || !wf.placed || wf.profile < 0 || !shape_ready(wf.profile)) return false;
+    const HandMesh& hm = hand_mesh[h];
+    if (!hm.bones || hm.v.empty() || hm.frame != mesh_held_frame || hm.frame < rt_frame - 2) return false;
+    Aff iH;
+    if (!inverse(mesh_held, iH) || length(mesh_held.t - hm.wrist) > 0.35f * kUnitsPerMetre) return false;
+    d.frame = hm.frame;
+    for (size_t i = 0; i < hm.v.size(); i++) {
+        const Vec3& v = hm.v[i];
+        Vec3 where;
+        const int part = hand_part(hm, h, v, &where);
+        const Vec3 m = mul(iH.r, v) + iH.t;
+        const float c = shape_point(wf.profile, m) * wf.scale;
+        if (i < hm.vt.size()) {
+            const int b = hm.vt[i] >= 0 ? hm.vt[i] : hm.vt[i] == -2 ? 15 : 16;
+            d.bone_count[b]++;
+            d.bone_deep[b] = std::min(d.bone_deep[b], c);
+        }
+        if (part < 0) continue;
+        d.n++, d.count[part]++;
+        if (c < 0.001f) d.touching[part]++;
+        if (c < d.deep[part]) d.deep[part] = c, d.where[part] = where;
+        if (part == kPartPalm)
+            d.lo = {std::min(d.lo.x, where.x), std::min(d.lo.y, where.y), std::min(d.lo.z, where.z)},
+            d.hi = {std::max(d.hi.x, where.x), std::max(d.hi.y, where.y), std::max(d.hi.z, where.z)};
+        if (pts && (part == kPartPalm || part == kPartWrist || part == kPartKnuckles)) pts->push_back(m);
+    }
+    return d.n > 0;
+}
+// The parts' line (each part's nearest, mm, how many of its vertices within 1 mm of the weapon or in it, and where)
+int hand_parts_text(const HandDepth& d, char* out, int n) {
+    int at = 0;
+    out[0] = 0;
+    for (int k = 0; k < kHandParts && at < n - 1; k++) {
+        if (d.count[k] <= 0) continue;
+        at += std::snprintf(out + at, (size_t)(n - at), "%s%s %.1f mm (%d of %d within 1 mm; at %.1f/%.1f/%.1f cm)",
+                            at ? ", " : "", kPartName[k], d.deep[k] * 1000.0f, d.touching[k], d.count[k], d.where[k].x,
+                            d.where[k].y, d.where[k].z);
+        at = std::min(at, n - 1);
+        if (k == kPartPalm && at < n - 1) {  // (where its vertices lie on her hand: along it, off its plane)
+            at += std::snprintf(out + at, (size_t)(n - at), " [its vertices %.1f..%.1f cm along, %.1f..%.1f off the plane]",
+                                d.lo.x, d.hi.x, d.lo.z, d.hi.z);
+            at = std::min(at, n - 1);
+        }
+    }
+    return at;
+}
+
+// Her palm as drawn, for the hand's own model (sh3vr_body.cpp body_palm_skin): once for each hand, the vertices on its
+// own bone alone (no finger's curl moves them) from the palm's rear (1 cm behind the wrist's joint) to the knuckles, with
+// that hand's bones as drawn the same frame.
+void hand_skin_step() {
+    static std::vector<Vec3> keep;
+#if !defined(__ANDROID__)
+    static const int forget_at = std::getenv("SH3_SKIN_FORGET_AT") ? std::atoi(std::getenv("SH3_SKIN_FORGET_AT")) : -1;
+#else
+    constexpr int forget_at = -1;
+#endif
+    static const char* const kSide[2] = {"left", "right"};
+    for (int h = 0; h < 2; h++) {
+        const HandMesh& hm = hand_mesh[h];
+        SkinWatch& sw = skin_watch[h];
+        // (session 38: another model of her drawn, a costume: skin_watch)
+        if (hm.bones && hm.draw_nv > 0 && hm.frame >= rt_frame - 2 && hm.frame != sw.last && sw.nv >= 0 &&
+            body_hand_skin_ready(h)) {
+            sw.last = hm.frame;
+            const bool same = hm.draw_nv == sw.nv && hm.draw_tri == sw.tri;
+            const bool testing = forget_at >= 0 && hm.frame >= forget_at && sw.again == 0;
+            if (same) sw.since = -1;
+            else if (sw.since < 0 || hm.draw_nv != sw.new_nv || hm.draw_tri != sw.new_tri)
+                sw.since = hm.frame, sw.new_nv = hm.draw_nv, sw.new_tri = hm.draw_tri;
+            if (testing || (sw.since >= 0 && hm.frame - sw.since >= 180 && sw.again < 8)) {
+                rt_log("VR: frame %d: her %s hand drawn by another model of her (%d vertices and %d triangles in its "
+                       "draws, %d and %d when its skin was taken%s): her palm and whole hand as drawn taken again",
+                       rt_frame, kSide[h], hm.draw_nv, hm.draw_tri, sw.nv, sw.tri,
+                       testing ? "; testing, SH3_SKIN_FORGET_AT" : "");
+                body_hand_skin_forget(h);
+                sw.nv = -1, sw.since = -1, sw.again++;
+            }
+        }
+        // (0.1.10: her whole hand as drawn, every vertex with its bones, sh3vr_body.cpp body_hand_skin; once, and again
+        // for another model of her)
+        HandDrawn d;
+        if (!body_hand_skin_ready(h) && combat_hand_drawn(h, d) && d.ntri > 0) {
+            body_hand_skin(h, d);
+            if (body_hand_skin_ready(h)) {
+                sw.nv = hm.draw_nv, sw.tri = hm.draw_tri, sw.last = hm.frame, sw.since = -1;
+                if (sw.again > 0)
+                    rt_log("VR: frame %d: her %s hand as drawn taken again (%d vertices and %d triangles in its draws)",
+                           rt_frame, kSide[h], hm.draw_nv, hm.draw_tri);
+            }
+        }
+        if (body_palm_skin_ready(h) || !hm.bones || hm.frame < rt_frame - 2 || hm.rigid.size() < 20) continue;
+        keep.clear();
+        for (const Vec3& v : hm.rigid) {
+            Vec3 where;
+            const int part = hand_part(hm, h, v, &where);
+            if (part >= 0 && part != kPartWrist && where.x >= -1.0f) keep.push_back(v);
+        }
+        body_palm_skin(h, keep.data(), (int)keep.size(), (int)hm.rigid.size(), hm.wrist, hm.knuckle, hm.thumb);
+    }
+}
+
+// Then her main hand on each weapon (and handedness), once: the first time it is held at rest at its fitted place with
+// the weapon's own shape taken, her hand as drawn is measured against the weapon as drawn and logged (each part's
+// nearest, the palm, the knuckles, the fingers, the thumb and the wrist): the places are fitted with her palm as drawn
+// (body_palm_skin, body_grip_fit), so this is their check in play. Testing, SH3_HEEL_SETTLE=1 (build 277's way: moving
+// the hand alone does not take a grip out of a flat palm, and it took the trigger out of the finger's reach): while its
+// palm, wrist and knuckles lie within 1.5 mm of the weapon or in it, the hand's place is moved out (the deepest vertex's
+// way out of the shape, the best place found kept, at most 3 cm in all) and measured again, up to three moves; kept in
+// heel_extra, which main_fit adds to the place.
+int heel_round[kProfiles][2], heel_moved_at[kProfiles][2];
+float heel_moved[kProfiles][2];  // model units moved in all
+void settle_heel() {
+    if (!wf.placed || wf.profile < 0 || grip_fit_mode() == 1 || view_mode != ViewMode::kFirstPerson) return;
+    const int p = wf.profile, m = opt.left_handed ? 1 : 0, mh = main_hand();
+    if (heel_done[p][m] || !hands[mh].valid) return;
+    const GripPlace* g = main_fit(p, mh);
+    if (!g) {
+        heel_seen[p][m] = 0;
+        return;
+    }
+    static const char* const kSide[2] = {"right-handed", "left-handed"};
+    const int seen = ++heel_seen[p][m];
+    if (seen >= 3600) {
+        heel_done[p][m] = true;
+        rt_log("VR: frame %d: %s, the main hand's place (%s): her hand as drawn not caught at rest against the weapon's "
+               "own shape (%s) in %d frames: left %s", rt_frame, weapon_name(game.weapon), kSide[m],
+               shape_ready(p) ? "the shape taken" : "the shape not taken", seen,
+               heel_round[p][m] ? "where it was moved" : "as fitted");
+        return;
+    }
+    // (held at rest: no reload, no shot just made, the hand drawn at its place a while)
+    if (seen < 8 || placed_frames < 8 || rt_frame - heel_moved_at[p][m] < 20 || now < flash_until + 0.3f ||
+        reload_blocks_fire() || reload_owns_hand(kLeft) || reload_owns_hand(kRight))
+        return;
+    static std::vector<Vec3> pts;
+    pts.clear();
+    HandDepth d;
+    if (!hand_depth(mh, d, &pts) || pts.empty() || d.frame <= heel_moved_at[p][m] + 2) return;
+    const float want = 0.0015f;
+    auto worst = [&](Vec3 D, int& wi) {
+        float least = 1e9f;
+        wi = -1;
+        for (size_t i = 0; i < pts.size(); i++) {
+            const float c = shape_point(p, pts[i] + D) * wf.scale;
+            if (c < least) least = c, wi = (int)i;
+        }
+        return least;
+    };
+    int wi = -1;
+    const float first = worst(Vec3{}, wi);
+    static char parts[700];
+    hand_parts_text(d, parts, sizeof parts);
+    const int r = heel_round[p][m];
+    // (testing: SH3_HEEL_SETTLE=1 moves the hand out too)
+    static const int settle_on = std::getenv("SH3_HEEL_SETTLE") ? std::atoi(std::getenv("SH3_HEEL_SETTLE")) : 0;
+    if (first >= want - 1e-4f || r >= 3 || !settle_on) {
+        heel_done[p][m] = true;
+        rt_log("VR: frame %d: %s, the main hand's place (%s): her hand as drawn (frame %d, %d vertices) off the weapon "
+               "at the nearest (below 0: in it): %s; its palm, wrist and knuckles %.1f mm off it at the least: %s",
+               rt_frame, weapon_name(game.weapon), kSide[m], d.frame, d.n, parts, first * 1000.0f,
+               r == 0 ? "left as fitted" : first >= want - 1e-4f ? "clear of it where it was moved" : "still in it after "
+               "3 moves: left where it was moved");
+        if (r > 0)
+            rt_log("VR: ... %s moved %.1f mm in all from its fitted place (%d moves)", weapon_name(game.weapon),
+                   heel_moved[p][m] * wf.scale * 1000.0f, r);
+        return;
+    }
+    // The move out: the deepest vertex's way out of the shape (its gradient there), all of them moved together.
+    const float room = std::max(0.0f, 0.03f / std::max(wf.scale, 1e-6f) - heel_moved[p][m]);
+    Vec3 D{}, best_D{};
+    float least = first, best = first;
+    int steps = 0;
+    for (; steps < 12 && least < want && wi >= 0; steps++) {
+        const Vec3 q = pts[(size_t)wi] + D;
+        const float e = 0.5f;  // model units
+        const Vec3 grad{shape_point(p, q + Vec3{e, 0, 0}) - shape_point(p, q - Vec3{e, 0, 0}),
+                        shape_point(p, q + Vec3{0, e, 0}) - shape_point(p, q - Vec3{0, e, 0}),
+                        shape_point(p, q + Vec3{0, 0, e}) - shape_point(p, q - Vec3{0, 0, e})};
+        if (!(length(grad) > 1e-9f)) break;
+        D = D + normalized(grad) * ((want - least) / std::max(wf.scale, 1e-6f));
+        if (length(D) > room) D = normalized(D) * room;
+        least = worst(D, wi);
+        if (least > best) best = least, best_D = D;
+    }
+    heel_round[p][m]++;
+    if (!(length(best_D) > 1e-4f)) {
+        heel_done[p][m] = true;
+        rt_log("VR: frame %d: %s, the main hand's place (%s): her hand as drawn (frame %d, %d vertices) off the weapon "
+               "at the nearest (below 0: in it): %s; its palm, wrist and knuckles %.1f mm off it at the least, and no "
+               "move of the hand (%.1f mm left of the 3 cm) takes them farther out: left %s", rt_frame,
+               weapon_name(game.weapon), kSide[m], d.frame, d.n, parts, first * 1000.0f, room * wf.scale * 1000.0f,
+               r == 0 ? "as fitted" : "where it was moved");
+        return;
+    }
+    heel_extra[p][m] = heel_extra[p][m] + mirrored_dir(wf, best_D);
+    heel_moved[p][m] += length(best_D);
+    heel_moved_at[p][m] = rt_frame;
+    rt_log("VR: frame %d: %s, the main hand's place (%s), move %d: her hand as drawn (frame %d, %d vertices) off the "
+           "weapon at the nearest (below 0: in it): %s; its palm, wrist and knuckles %.1f mm off it at the least: the "
+           "hand moved %.1f mm out (model %.2f %.2f %.2f, %d steps; %.1f mm in all), those vertices then %.1f mm off it "
+           "at the least (her hand to be measured there as drawn)", rt_frame, weapon_name(game.weapon), kSide[m],
+           r + 1, d.frame, d.n, parts, first * 1000.0f, length(best_D) * wf.scale * 1000.0f, best_D.x, best_D.y,
+           best_D.z, steps, heel_moved[p][m] * wf.scale * 1000.0f, best * 1000.0f);
+}
+
 }  // namespace
 
 // ================================================================ shared (sh3vr_internal.h)
+
+// 0.1.10 (owner 172): each skinned draw of hers or of the weapon in her hand, as drawn (sh3vr_shadow_part): the weapon's
+// body's pass gives its held bone; hers, her hands' vertices (hand_mesh, above).
+void combat_hand_mesh(const uint8_t* v48, int nv, const uint16_t* tris, int ntris, const float* c, int kind) {
+    if (!v48 || !c || nv <= 0 || !hand_mesh_wanted()) return;
+    if (kind == 1) {
+        if (parts_pass() != 0 || mesh_slot < 0 || mesh_slot >= kBones) return;
+        Aff H;
+        for (int r = 0; r < 3; r++) {
+            const float* row = c + (kPaletteStart + mesh_slot * 3 + r) * 4;
+            H.r.m[r][0] = row[0], H.r.m[r][1] = row[1], H.r.m[r][2] = row[2];
+            (&H.t.x)[r] = row[3];
+        }
+        mesh_held = H;
+        mesh_held_frame = rt_frame;
+        return;
+    }
+    if (kind != 0 || !ik_plain_pass()) return;
+    bool ok[2];
+    for (int h = 0; h < 2; h++) {
+        HandMesh& hm = hand_mesh[h];
+        if (hm.frame != rt_frame)
+            hm.frame = rt_frame, hm.v.clear(), hm.vt.clear(), hm.rigid.clear(), hm.fv.clear(), hm.fseg.clear(),
+            hm.it.clear(), hm.iw.clear(), hm.iq.clear(), hm.tri.clear(), hm.bones = false, hm.draw_nv = 0,
+            hm.draw_tri = 0;
+        if (!hm.bones) hm.bones = ik_hand_drawn(h, hm.wrist, hm.knuckle, hm.thumb) && ik_fingers_drawn(h, hm.joint);
+        ok[h] = hm.bones;
+        if (arm_mesh[h].frame != rt_frame) {
+            ArmMesh& am = arm_mesh[h];
+            am.frame = rt_frame, am.v.clear();
+            am.bones = ik_forearm(h, am.elbow, am.wrist), am.shown = hands[h].shown;
+        }
+    }
+    if (!ok[0] && !ok[1]) return;
+    int row_hand[46];  // each palette row's hand (-1 neither), looked up as met (-2 not yet)
+    bool row_own[46]{};  // ... the hand's own bone
+    int row_seg[46];     // ... the finger's segment (finger * 3 + segment; -1 none)
+    int row_arm[46];     // ... the forearm it is of (-1 neither; -2 not yet): ArmMesh
+    for (int& r : row_hand) r = -2;
+    for (int& r : row_arm) r = -2;
+    const float one = c[0], scale = c[3] / 255.0f, U = kUnitsPerMetre;
+    static std::vector<int> at_hand, at_index;  // (each of the draw's vertices kept: its hand and its index there)
+    at_hand.assign((size_t)nv, -1);
+    at_index.assign((size_t)nv, -1);
+    bool counted[2] = {false, false};  // (this draw's counts added to the hand's: skin_watch)
+    for (int i = 0; i < nv; i++) {
+        const uint8_t* x = v48 + (size_t)i * 48;
+        float f[6];
+        std::memcpy(f, x, sizeof f);
+        const float wt[4] = {f[3], f[4], f[5], one - one * (f[3] + f[4] + f[5])};
+        float to[2] = {0, 0}, own = 0;
+        int rows[4];
+        for (int k = 0; k < 4; k++) {
+            rows[k] = -1;
+            if (wt[k] == 0.0f) continue;
+            const int a0 = (int)std::floor((float)x[24 + k] * scale + 1e-3f);
+            if (a0 < 0 || a0 > 45) continue;
+            rows[k] = a0;
+            if (row_hand[a0] == -2) {
+                const float* r = c + (48 + a0) * 4;
+                // (its axes too: a forearm bone shares her wrist's origin, build 286)
+                const Vec3 axes[3] = {{r[0], r[4], r[8]}, {r[1], r[5], r[9]}, {r[2], r[6], r[10]}};
+                row_hand[a0] = ik_hand_of_bone(Vec3{r[3], r[7], r[11]}, &row_own[a0], &row_seg[a0], axes);
+            }
+            if (row_hand[a0] >= 0) to[row_hand[a0]] += wt[k], own += row_own[a0] ? wt[k] : 0.0f;
+        }
+        // (the finger segment it is mostly on, 90 percent or more of its weight: -1 none)
+        int seg = -1;
+        for (int k = 0; k < 4 && seg < 0; k++) {
+            if (rows[k] < 0 || row_hand[rows[k]] < 0 || row_seg[rows[k]] < 0) continue;
+            float w = 0;
+            for (int m = 0; m < 4; m++)
+                if (rows[m] >= 0 && row_hand[rows[m]] == row_hand[rows[k]] && row_seg[rows[m]] == row_seg[rows[k]])
+                    w += wt[m];
+            if (w >= 0.9f) seg = row_seg[rows[k]];
+        }
+        const int h = to[0] >= 0.5f ? 0 : to[1] >= 0.5f ? 1 : -1;
+        if (h < 0) {  // (her forearm's own skin, half its weight or more on that forearm's bones: ArmMesh; the rig only)
+#if !defined(__ANDROID__)
+            static const bool arm_wanted = std::getenv("QUEST_SIM_SCRIPT") != nullptr;
+#else
+            constexpr bool arm_wanted = false;
+#endif
+            if (!arm_wanted) continue;
+            float fa[2] = {0, 0};
+            for (int k = 0; k < 4; k++) {
+                if (rows[k] < 0) continue;
+                const int a0 = rows[k];
+                if (row_arm[a0] == -2) {
+                    const float* r = c + (48 + a0) * 4;
+                    const Vec3 axes[3] = {{r[0], r[4], r[8]}, {r[1], r[5], r[9]}, {r[2], r[6], r[10]}};
+                    row_arm[a0] = ik_forearm_of_bone(Vec3{r[3], r[7], r[11]}, axes);
+                }
+                if (row_arm[a0] >= 0) fa[row_arm[a0]] += wt[k];
+            }
+            const int s = fa[0] >= 0.5f ? 0 : fa[1] >= 0.5f ? 1 : -1;
+            if (s < 0 || !ok[s] || arm_mesh[s].v.size() >= 6000) continue;
+            Vec3 q{};
+            for (int k = 0; k < 4; k++) {
+                if (rows[k] < 0) continue;
+                const float* r = c + (48 + rows[k]) * 4;
+                q = q + Vec3{r[0] * f[0] + r[1] * f[1] + r[2] * f[2] + r[3], r[4] * f[0] + r[5] * f[1] + r[6] * f[2] + r[7],
+                             r[8] * f[0] + r[9] * f[1] + r[10] * f[2] + r[11]} * wt[k];
+            }
+            if (length(q - hand_mesh[s].wrist) <= 0.40f * U) arm_mesh[s].v.push_back(q);
+            continue;
+        }
+        if (!ok[h] || hand_mesh[h].v.size() >= 6000) continue;
+        Vec3 q{}, qk[4];
+        for (int k = 0; k < 4; k++) {
+            if (rows[k] < 0) continue;
+            const float* r = c + (48 + rows[k]) * 4;
+            qk[k] = Vec3{r[0] * f[0] + r[1] * f[1] + r[2] * f[2] + r[3], r[4] * f[0] + r[5] * f[1] + r[6] * f[2] + r[7],
+                         r[8] * f[0] + r[9] * f[1] + r[10] * f[2] + r[11]};
+            q = q + qk[k] * wt[k];
+        }
+        if (length(q - hand_mesh[h].wrist) > 0.25f * U) continue;
+        HandMesh& hm = hand_mesh[h];
+        if (!counted[h]) counted[h] = true, hm.draw_nv += nv, hm.draw_tri += ntris;  // (skin_watch)
+        at_hand[(size_t)i] = h, at_index[(size_t)i] = (int)hm.v.size();
+        for (int k = 0; k < 4; k++) {
+            const bool on = rows[k] >= 0;
+            // (-1 her hand's own bone, -2 another: her forearm's, which bends against her hand)
+            hm.it.push_back((int8_t)(!on ? -1 : row_hand[rows[k]] == h ? row_seg[rows[k]] : -2));
+            hm.iw.push_back(on ? wt[k] : 0.0f);
+            hm.iq.push_back(on ? qk[k] : q);
+        }
+        hand_mesh[h].v.push_back(q);
+        hand_mesh[h].vt.push_back((int8_t)(seg >= 0 ? seg : own >= 0.9f ? -2 : -1));
+        if (own >= 0.9f) hand_mesh[h].rigid.push_back(q);
+        if (seg >= 0) hand_mesh[h].fv.push_back(q), hand_mesh[h].fseg.push_back((uint8_t)seg);
+    }
+    for (int t = 0; tris && t < ntris; t++) {
+        const int a = tris[t * 3], b = tris[t * 3 + 1], d = tris[t * 3 + 2];
+        if (a >= nv || b >= nv || d >= nv) continue;
+        const int h = at_hand[(size_t)a];
+        if (h < 0 || at_hand[(size_t)b] != h || at_hand[(size_t)d] != h) continue;
+        std::vector<int>& tr = hand_mesh[h].tri;
+        tr.push_back(at_index[(size_t)a]), tr.push_back(at_index[(size_t)b]), tr.push_back(at_index[(size_t)d]);
+    }
+}
+
+int combat_hand_finger_mesh(int h, const Vec3** v, const uint8_t** seg, Vec3 joint[5][3], Vec3& wrist, Vec3 knuckle[4],
+                            Vec3 thumb[3]) {
+    if (h < 0 || h > 1) return 0;
+    const HandMesh& hm = hand_mesh[h];
+    if (!hm.bones || hm.fv.empty() || hm.frame < rt_frame - 2) return 0;
+    *v = hm.fv.data(), *seg = hm.fseg.data();
+    std::memcpy(joint, hm.joint, sizeof hm.joint);
+    wrist = hm.wrist;
+    for (int k = 0; k < 4; k++) knuckle[k] = hm.knuckle[k];
+    for (int k = 0; k < 3; k++) thumb[k] = hm.thumb[k];
+    return (int)hm.fv.size();
+}
+
+bool combat_hand_drawn(int h, HandDrawn& out) {
+    out = HandDrawn{};
+    if (h < 0 || h > 1) return false;
+    const HandMesh& hm = hand_mesh[h];
+    if (!hm.bones || hm.v.empty() || hm.frame < rt_frame - 2 || hm.it.size() != hm.v.size() * 4 ||
+        hm.iw.size() != hm.it.size() || hm.iq.size() != hm.it.size())
+        return false;
+    out.n = (int)hm.v.size(), out.ntri = (int)hm.tri.size() / 3, out.frame = hm.frame;
+    out.v = hm.v.data(), out.it = hm.it.data(), out.iw = hm.iw.data(), out.iq = hm.iq.data();
+    out.tri = hm.tri.empty() ? nullptr : hm.tri.data();
+    out.wrist = hm.wrist;
+    for (int k = 0; k < 4; k++) out.knuckle[k] = hm.knuckle[k];
+    for (int k = 0; k < 3; k++) out.thumb[k] = hm.thumb[k];
+    std::memcpy(out.joint, hm.joint, sizeof hm.joint);
+    return true;
+}
+
+int combat_hand_mesh_report(int h, char* out, int n) {
+    if (!out || n <= 1) return 0;
+    HandDepth d;
+    if (!hand_depth(h, d, nullptr)) return 0;
+    int at = std::snprintf(out, (size_t)n, "her hand as drawn (frame %d, %d vertices) off the weapon at the nearest (below "
+                           "0: in it): ", d.frame, d.n);
+    at = std::min(std::max(at, 0), n - 1);
+    at += hand_parts_text(d, out + at, n - at);
+    at = std::min(at, n - 1);
+    // (by the bone each vertex is on: the hand's own, the blends between bones, each finger's segments; - none on it)
+    auto mm = [&](int b) { return d.bone_count[b] ? d.bone_deep[b] * 1000.0f : 0.0f; };
+    if (at < n - 300) {
+        at += std::snprintf(out + at, (size_t)(n - at), "; by bone (mm, vertices): its own %.1f (%d), blended %.1f (%d)",
+                            mm(15), d.bone_count[15], mm(16), d.bone_count[16]);
+        for (int f = 0; f < 5 && at < n - 60; f++) {
+            at += std::snprintf(out + at, (size_t)(n - at), ", %c", "TIMRL"[f]);
+            for (int j = 0; j < 3; j++) {
+                const int b = f * 3 + j;
+                at += d.bone_count[b] ? std::snprintf(out + at, (size_t)(n - at), "%s%.1f (%d)", j ? "/" : " ", mm(b),
+                                                      d.bone_count[b])
+                                      : std::snprintf(out + at, (size_t)(n - at), "%s-", j ? "/" : " ");
+            }
+        }
+    }
+    at = std::min(at, n - 1);
+    // (session 38, vr549: her forearm's own skin as drawn against the weapon, its nearest and how far behind her wrist
+    // along her forearm; ArmMesh, the rig only)
+    const ArmMesh& am = arm_mesh[h];
+    Aff iH;
+    if (at < n - 160 && !am.v.empty() && am.frame == mesh_held_frame && inverse(mesh_held, iH)) {
+        float best = 1e9f;
+        int in = 0;
+        Vec3 near{};
+        for (const Vec3& v : am.v) {
+            const float c = shape_point(wf.profile, mul(iH.r, v) + iH.t) * wf.scale;
+            if (c < 0) in++;
+            if (c < best) best = c, near = v;
+        }
+        // (how far behind her wrist the nearest lies, along her forearm, and how far her forearm's vertices reach: cm)
+        Vec3 E, W;
+        float behind = -1.0f, lo = 0, hi = 0;
+        if (ik_forearm(h, E, W) && length(W - E) > 1e-3f) {
+            const Vec3 a = normalized(W - E);
+            const float k = 100.0f / kUnitsPerMetre;
+            behind = dot(W - near, a) * k, lo = 1e9f, hi = -1e9f;
+            for (const Vec3& v : am.v) lo = std::min(lo, dot(W - v, a) * k), hi = std::max(hi, dot(W - v, a) * k);
+        }
+        at += std::snprintf(out + at, (size_t)(n - at), "; her forearm as drawn off the weapon at the nearest: %.1f mm, "
+                            "%.1f cm behind her wrist, %d of %d vertices in it (they reach %.1f to %.1f cm behind it)",
+                            best * 1000.0f, behind, in, (int)am.v.size(), lo, hi);
+    }
+    return std::min(at, n - 1);
+}
+
+float combat_forearm_clear(int h, const Pose& pose) {
+    if (h < 0 || h > 1 || !wf.placed || wf.profile < 0 || !shape_ready(wf.profile)) return 1e9f;
+    const ArmMesh& am = arm_mesh[h];
+    Aff iH;
+    if (am.v.empty() || !am.bones || am.frame < rt_frame - 2 || am.frame != mesh_held_frame || !inverse(mesh_held, iH))
+        return 1e9f;
+    // (her wrist in the hand's own frame as it was drawn, then where `pose` puts it)
+    const Vec3 l = rotate(conjugate(am.shown.orientation), tracking_point(am.wrist) - am.shown.position);
+    const Vec3 W1 = world_point(pose.position + rotate(pose.orientation, l));
+    // (her forearm turned about her elbow onto it, stretched or shortened along its line as her arm reaches)
+    const Vec3 a = am.wrist - am.elbow, b = W1 - am.elbow;
+    const float la = length(a), lb = length(b);
+    if (la < 1e-3f || lb < 1e-3f) return 1e9f;
+    const Vec3 an = a * (1.0f / la);
+    const Quat q = quat_arc(an, b * (1.0f / lb));
+    float best = 1e9f;
+    for (const Vec3& v : am.v) {
+        Vec3 r = v - am.elbow;
+        r = r + an * (dot(r, an) * (lb / la - 1.0f));
+        const Vec3 v1 = am.elbow + rotate(q, r);
+        best = std::min(best, shape_point(wf.profile, mul(iH.r, v1) + iH.t) * wf.scale);
+    }
+    return best;
+}
 
 void combat_frame() {
     now += frame_dt();
@@ -2630,6 +3756,8 @@ void combat_frame() {
         }
     }
     place_weapon();
+    hand_skin_step();  // 0.1.10: her palm as drawn, for the hand's own model (once)
+    settle_heel();     // 0.1.10: her hand as drawn against the weapon, once per weapon (logged)
     update_swings();
     if (hand_action.frames > 0 && --hand_action.frames == 0 && !hand_action.found && hand_action.hand >= 0) {
         // 0.1.7 (a player's 0.1.6 log: the left hand could use the hall's far door, event 48, again and again and no
@@ -2649,6 +3777,7 @@ void combat_frame() {
         hand_action.hand = -1;
     }
     update_grabbing();
+    update_door_hold();  // 0.1.10 (owner 170)
     kick = std::max(0.0f, kick - 90.0f * frame_dt());
     parts_frame();
     sounds_frame();
@@ -2752,7 +3881,9 @@ float weapon_clearance(int hand, Vec3 a, Vec3 b) {
         // meets the pump where it is (the shape at rest, the hand's query moved forward with it)
         const float pump = hand != mh && hand_role[hand] == 2 ? reload_pump_back() : 0.0f;
         if (pump > 0) ma = ma + wf.fwd * (pump * kUnitsPerMetre), mb = mb + wf.fwd * (pump * kUnitsPerMetre);
-        best = shape_segment(wf.profile, ma, mb);
+        // (0.1.10: a point, one sample, as shape_segment takes it: her hand's skin, a vertex at a time)
+        best = ma.x == mb.x && ma.y == mb.y && ma.z == mb.z ? shape_point(wf.profile, ma)
+                                                           : shape_segment(wf.profile, ma, mb);
     } else {
         Cap caps[kCapMax];
         const int nc = shape_caps(wf, caps);
@@ -2765,6 +3896,25 @@ float weapon_clearance(int hand, Vec3 a, Vec3 b) {
         const int nh = body_hand_capsules(mh, ha, hb, hr, 18);
         float closest = best * wf.scale;
         for (int i = 0; i < nh; i++) closest = std::min(closest, seg_seg(a, b, ha[i], hb[i]) - hr[i]);
+        // (session 38: and, in the grips' fit, her main hand's skin as drawn, each vertex 2.5 mm round, its vertices
+        // about 5 mm apart; the capsules, inside it, stand for its inside: body_hand_skin_points. The fit alone: in play
+        // its 400 vertices against every query of the other hand's fingers each frame would cost the headset's frame)
+        // Session 38 (vr536, build 300: the maul's other hand, 0.3 mm off its shaft in vr533's fit, came 3.3 mm into it
+        // as played: in the fit its thumb rested against her main hand's skin, as played it closes on to 0.65 and the
+        // skin between it and her palm goes into the shaft): SH3_FIT_PLAY=1 (the rig) leaves this out of the fit too,
+        // so the fit poses and reads the other hand exactly as it is played; her main hand as drawn is still kept out
+        // of it by the fit's reading of her whole hand (hand_skin_between, body_grip_mesh).
+        static const bool as_played = std::getenv("SH3_FIT_PLAY") != nullptr;
+        const Vec3* sk = nullptr;
+        Vec3 lo, hi;
+        const int ns = grip_fit_mode() == 1 && !as_played ? body_hand_skin_points(mh, &sk, &lo, &hi) : 0;
+        if (ns > 0) {
+            const Vec3 gap{std::max(0.0f, std::max(lo.x - std::max(a.x, b.x), std::min(a.x, b.x) - hi.x)),
+                           std::max(0.0f, std::max(lo.y - std::max(a.y, b.y), std::min(a.y, b.y) - hi.y)),
+                           std::max(0.0f, std::max(lo.z - std::max(a.z, b.z), std::min(a.z, b.z) - hi.z))};
+            if (length(gap) - 0.0025f < closest)
+                for (int i = 0; i < ns; i++) closest = std::min(closest, seg_seg(a, b, sk[i], sk[i]) - 0.0025f);
+        }
         return closest;
     }
     if (hand != mh) {
@@ -2785,6 +3935,7 @@ GripTrigger weapon_trigger_at(float pull) {
     t.a = frame_point(wf, trigger_moved(p, q, k.a));
     t.b = frame_point(wf, trigger_moved(p, q, k.b));
     t.r = k.r * wf.scale;
+    t.pad = kTriggerPad[p];
     t.up = frame_dir(wf, wf.up);
     return t;
 }
@@ -2814,6 +3965,12 @@ bool weapon_trigger_place(uint32_t nv, uint32_t np, float m[12]) {
     return true;
 }
 int weapon_hand_role(int hand) { return hand >= 0 && hand < 2 ? hand_role[hand] : 0; }
+// Session 36: what the fingers on the weapon meet (sh3vr_body.cpp's wrap kept while it is the same): the profile held
+// and whether its own shape is ready (-1: no weapon placed).
+int weapon_shape_key() {
+    if (!wf.placed || wf.profile < 0) return -1;
+    return wf.profile * 2 + (weapon_mesh_on() && shape_ready(wf.profile) ? 1 : 0);
+}
 // The other hand's share of the second grip (0 at its controller .. 1 on the grip; 0 for the main hand): letting go it
 // eases back to the controller over about 0.15 s (session 17: the body's surface hold leaves it alone until then).
 float weapon_two_share(int hand) { return hand == off_hand() ? two_w : 0.0f; }
@@ -2848,6 +4005,7 @@ bool hand_reach_point(int h, Vec3& world) {
     if (!opt.grabbing || !opt.take_by_hand || play_time < 0.5f || !map_ready() || h < 0 || h > 1) return false;
     const HandState& s = hands[h];
     if (!s.valid || s.holding_weapon || s.on_foregrip || reload_owns_hand(h) || light_hand == h) return false;
+    if (door_hold.hand == h) return false;  // 0.1.10: holding a door's handle
     for (int k = 0; k < kHolsterCount; k++)
         if (holster_on(k) && holsters[k].hovered[h]) return false;
     if (!hand_reaching(s)) return false;
@@ -2857,12 +4015,18 @@ bool hand_reach_point(int h, Vec3& world) {
 
 // What hand_reach_point's check found (an event, a floor item as 0x400 + its place, or -1): a light tick when a hand
 // comes onto something it can use ("Extra vibration": pickups and doors), once until it leaves it.
-void hand_hover(int h, int event) {
+void hand_hover(int h, int event, bool door) {
     int* on = hover_event;
-    if (h < 0 || h > 1 || event == on[h]) return;
+    if (h < 0 || h > 1) return;
+    hover_door[h] = event >= 0 && door;  // (0.1.10)
+    const bool by_hand = hover_door[h] && opt.door_by_hand;  // (0.1.10: take_by_hand is on, or no hand hovers)
+    // (0.1.10: the door's hint, once, as soon as the label is free while a hand is on a door; vr492: at the first
+    // touch another line was up, so it waited for the second)
+    if (by_hand) tip_event(kTipDoor);
+    if (event == on[h]) return;
     if (event >= 0) {
-        rt_log("VR: frame %d: the %s hand can use event %d (closing it uses it)", rt_frame, h == kLeft ? "left" : "right",
-               event);
+        rt_log("VR: frame %d: the %s hand can use event %d (%s)", rt_frame, h == kLeft ? "left" : "right", event,
+               by_hand ? "a door: gripping its handle and pulling it opens it" : "closing it uses it");
         if (opt.haptic_extra >= 1) buzz(h, 0.18f, 0.025f, 220.0f);
     }
     on[h] = event;

@@ -1048,3 +1048,23 @@ stage's; rigtools/stages.py, event_gives.py, event_show.py) read for every event
   11:21): VR moved the weapon to the controller in every first-person frame (combat_weapon_bones), so in such a scene
   it was nowhere near the scene's hands, or, holstered, not drawn. 0.1.9 leaves it in the scene's hands when
   ik_scene_eyes (first person, a scene or demo drawing her away from her place, its bones fresh), marked as hers.
+
+## Session 36 (2026-11-27): the doors in the stage tables, a finger's joints on a grip (owners 169-171)
+
+- **Doors in the stage tables** (read from sh3.exe; the scan reads every stage table MEM32(0x6CF7D0 + 4 * stage),
+  stages 1-39, each event's fields through the descriptors at 0x6CF6B0): 2429 events have the button's trigger
+  (field 7 = 1); 721 of them have field 17 set (a region offset), taken as the doors and gates to another room or
+  area (stage 2's entrance and its next area's gates, seen on the rig, have it). Field 24 is 0 on 716 of those (the
+  load runs from the table), 3 (a room script) on 5; no button event with field 24 = 1 (1481 events) or 2 has it.
+  Field 16 is 6, 7 or 8 on most doors (not read further; perhaps the door's sound). Pairs of events share a field 17
+  (stage 1's 6 and 8, 7 and 9: perhaps a door's two regions). Stage 2 (the opening's nightmare): the entrance is
+  event 5 (field 17 34), the hall's far door 48 is a key's door (item 38 used: fields 9/10/11 2/38/1, field 24 3,
+  field 17 0: its script loads the room), the next area's gates 58-60 have field 17. sh3.c sh3_event_is_door: field
+  17 set, or one of key_doors (0.1.10, "Open doors by hand"); a room's load (the dispatch returning mode 2) after a
+  button event it does not count is logged.
+- **A finger's joints on a grip** (owner 169; vr490, build 274's handgun): with every joint of a finger at one curl
+  (0.1.9), the ring and little fingers met the handgun's grip with their tips at curl 0.63, their middle segments
+  5-14 mm off it. A per-joint solve (sh3vr_body.cpp finger_wrap) bends the knuckle, the middle joint and the last
+  separately, each segment's skin kept out of the weapon's shape (weapon_clearance), the way from the even curl
+  checked a quarter at a time; the hand's place on the grip is unchanged (its knuckles stay where the 0.1.8 fit put
+  them).

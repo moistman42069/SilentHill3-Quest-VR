@@ -150,6 +150,42 @@ wrong shows in sh3.log / sh3-crash.log (the launcher's Logs tab, Download/SH3Que
       room, "Stay back!", with the handgun): the gun is in her hands where the scene holds it, as from the scene's
       camera, its shadow with her; sh3.log "a scene draws her with the eyes in her head: ... left in the scene's hands".
       Back in play the gun is in your hand as before.
+- [ ] 0.1.10 the fingers on each weapon (owner 169): hold every weapon in turn and look at the hand from above, below
+      and both sides: each finger round the grip (the support grip, the pump, the handle for the second hand), its
+      middle segment on the grip as well as its tip, the middle joint bent most, no finger in the weapon and none
+      standing off it; the trigger finger as on 0.1.9 (on the trigger while you touch the controller's trigger,
+      following the pull; along the gun when you lift it). Left-handed the same. sh3.log "closed joint by joint" lines
+      (each with its "solved in N us"; a few each time the weapon or the hand's place on it changes, not every frame).
+- [ ] 0.1.10 no grip through her hand (owner 172): hold the handgun and look at the hand from its right side, its left,
+      above and below, close up: no part of the grip through her palm, the back of her hand or between her fingers;
+      the hand high on the grip, the web of it up under the slide, the trigger finger nearly level to the trigger
+      (pulling it: the finger follows the trigger back, no gap, not through it). The other hand on the handgun: round
+      her main hand's fingers, never through them. Every other weapon the same (the shotgun's pump, the submachine gun's
+      front, the two-handed weapons' other hand). Left-handed the same. Change her costume (a bonus costume, or the
+      game's own changes): the hand still fits (sh3.log "her right hand drawn by another model of her ... taken
+      again"). sh3.log "her right hand as drawn taken" lines, once each hand, and no slowdown with a weapon drawn.
+- [ ] 0.1.10 natural holds (owner 178): the submachine gun with both hands: the front hand cups the front of the gun
+      from below, its palm under it and its fingers up its side (never flat over the top); the steel pipe and the maul
+      with both hands: the second hand's every finger round the handle (its index too); the shotgun: pull the trigger
+      slowly all the way, the finger's pad on the trigger's face the whole way, never sunk into it or the guard; the
+      flamethrower: both hands on it, nothing through her palm. Look at each from her eyes and close up.
+- [ ] 0.1.10 left-handed holds (Left-handed on, Hands and weapons): every weapon again, both hands: each hold as
+      natural as the right-handed one (the handgun's other hand round her main hand's fingers, the submachine gun's
+      front cupped from below, the katana's other hand round the handle behind the main hand), nothing through her
+      palm or fingers (the right-handed places mirrored went 7 to 15 mm into the katana, beam saber and flamethrower).
+      The maul raised and looked down at: its handle's end beside her forearm, never its metal cap through her arm
+      (session 38's vr549). Also look for any weapon in her forearm, both hands: the rig reads two unseen from its
+      views (the right-handed flamethrower's body on top of her forearm under the gun, the left-handed beam saber's
+      hilt end behind her right forearm with both hands on it).
+- [ ] 0.1.10 Open doors by hand (owners 170, 171; on by default): reach to a door's handle (the opening's entrance,
+      any door to another room or area): a light tick, the hint "A door: grip its handle and pull it toward you (or push
+      it away) to open it" (once; "door" in sh3quest_tips.ini). Grip: a touch sound and a buzz; let go without moving:
+      nothing opens (sh3.log "let go of door event N's handle without opening it"). Grip and pull it 10 cm toward you
+      (or push it, or slide it aside): a buzz growing as it comes, then the game's door sound and fade, the next area
+      loads (sh3.log "pulled it toward her ... door event N used where the hand took it", then "used event N"). A
+      locked door: the game's "locked" message. Things that are not doors (items, drawers, examine spots) are taken or
+      used as the hand closes, as before. The option off: closing the hand on a door opens it at once, as on 0.1.9.
+      A still opens doors at once. The Hints page lists the door's line.
 
 ## View and comfort
 - [ ] New Game: the opening movie plays on the big cinema screen in front of you (sharp, 4:3, no stutter), with its

@@ -411,7 +411,9 @@ void sh3vr_button_action_found(int event, int pass);
 /* 0.1.7: the head's place and heading in the game's world (yaw: x = sin, z = cos), first person only */
 int sh3vr_gaze(float at[3], float *yaw);
 int sh3vr_hand_reach(int hand, float at[3]);
-void sh3vr_hand_hover(int hand, int event);
+/* 0.1.10 (owner 170): `door` 1 when that event is a door (sh3.c sh3_event_is_door): with "Open doors by hand" the hand
+ * takes its handle and pulls it open */
+void sh3vr_hand_hover(int hand, int event, int door);
 /* 0.1.7 (owner message 143, the hints): 1 when sh3.c should look for what the action button would use within her reach
  * this frame (every 8 frames in first person while that hint is still to show); what it found: 0 a door or a thing to
  * use or look at (an event the button uses), 1 an item to take. */

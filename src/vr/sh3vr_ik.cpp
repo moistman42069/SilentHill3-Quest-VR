@@ -60,6 +60,7 @@ int game_head_fwd_frame = -1;           // ... in this frame (-1: not known, her
 HerHand her_hands[2];
 float index_spread[2];  // session 31: the trigger finger's sideways spread as drawn (degrees; body_fingers)
 float thumb_spread[2];  // session 31: the thumb's sideways swing at its root as drawn (degrees; body_fingers)
+float finger_joint_off[2][5][3];  // session 36: each joint's curl over its finger's as drawn (body_fingers' wrap)
 
 namespace {
 
@@ -599,7 +600,9 @@ struct State {
     bool beyond_logged[2] = {};
     Vec3 drawn[kN];
     Vec3 blend_o[128];
+    Vec3 blend_r[128][3];        // 0.1.10: ... and its axes (world)
     uint8_t blend_cls[128];
+    int16_t blend_of[128];       // 0.1.10: the bone each blend rides on
     int blends = 0;
     int bones_frame = -1;        // the frame `drawn` and `blend_o` are of
     int fingers_frame = -1;      // the frame her fingers were posed (her own hands can be shown)
@@ -674,7 +677,10 @@ Bone hand_at(int h, const Pose& pose) {
 // bend (the bend axis crossed with its first segment, both as drawn: the same axis finger_points takes in the grip's
 // space), its bend about the spread axis from there on. The thumb swung at its root by `thumb_deg` alike (session 31:
 // laid along a gun's frame, thumb_rest).
-void pose_fingers(Bone* B, int h, const float curl[5], float index_deg = 0.0f, float thumb_deg = 0.0f) {
+// Session 36 (owner message 169): `off`, each joint's curl over its finger's (a finger round a weapon's grip closed
+// joint by joint, sh3vr_body.cpp finger_wrap; finger_points3 bends them alike); none: every joint at its finger's curl.
+void pose_fingers(Bone* B, int h, const float curl[5], float index_deg = 0.0f, float thumb_deg = 0.0f,
+                  const float (*off)[3] = nullptr) {
     const Bone& H = B[sk.hand[h]];
     for (int f = 0; f < 5; f++) {
         Vec3 axis = normalized(apply_dir(H, sk.bend[h][f]));
@@ -692,7 +698,9 @@ void pose_fingers(Bone* B, int h, const float curl[5], float index_deg = 0.0f, f
         for (int j = 0; j < 3; j++) {
             const int b = sk.finger[h][f][j];
             Bone w = compose(sk.rel[b], parent);
-            const float a = c * (c < 0 ? kFingerBack[f == kThumb ? 0 : 1][j] : 1.0f) * deg[j] * kPi / 180.0f;
+            const float o = off && std::isfinite(off[f][j]) ? off[f][j] : 0.0f;
+            const float cj = o != 0.0f ? std::clamp(c + o, kFingerBackMost, 1.0f) : c;
+            const float a = cj * (cj < 0 ? kFingerBack[f == kThumb ? 0 : 1][j] : 1.0f) * deg[j] * kPi / 180.0f;
             if (std::fabs(a) > 1e-4f) {
                 const Quat q = axis_angle(axis, a);
                 for (int i = 0; i < 3; i++) w.r[i] = rotate(q, w.r[i]);
@@ -1013,7 +1021,7 @@ void arm_to(Bone* B, int h, const Pose& pose, const float curl[5], bool ghost) {
     const Vec3 wrist = B[hd].o;
     B[hd] = want;
     if (opt.arms_follow && !ghost) B[hd].o = wrist;
-    if (!ik_off(512)) pose_fingers(B, h, curl, index_spread[h], thumb_spread[h]);
+    if (!ik_off(512)) pose_fingers(B, h, curl, index_spread[h], thumb_spread[h], ghost ? nullptr : finger_joint_off[h]);
 }
 
 void footstep(int side, float strength) {
@@ -1483,6 +1491,8 @@ int ik_heather_bones(float* bones, int n, const Sh3VrModel* m) {
             if (k >= kN) continue;
             const Bone a = load(m->blend_mats + 16 * j);
             st.blend_o[st.blends] = apply(P[k], a.o);
+            for (int i = 0; i < 3; i++) st.blend_r[st.blends][i] = apply_dir(P[k], a.r[i]);
+            st.blend_of[st.blends] = (int16_t)k;
             st.blend_cls[st.blends++] = sk.cls[k];
         }
     st.bones_frame = rt_frame;
@@ -1556,6 +1566,8 @@ bool item_on = false;  // the flashlight's own draw in the hand (sh3.c): a held 
 }
 void ghost_pass(bool on) { ghost_on = on; }
 void item_pass(bool on) { item_on = on; }
+// 0.1.10: a draw of her own pose (not the ghost's faded copy of another, not the flashlight held)
+bool ik_plain_pass() { return !ghost_on && !item_on; }
 
 // The chest lamp (session 12, vr188): a point riding on her chest as the game posed it (the game's light, 0x712C1D0,
 // from its animation) carried to where VR's pose puts her chest (her lean and crouch), so the lamp, the light it
@@ -1685,6 +1697,93 @@ bool ik_mirror_carry(int h, float* bones, int n, bool in_hand) {
         if (ik_hand_carry(h, m, false)) store(mb, compose(load(m), mirror_x));
     }
     return true;
+}
+
+// 0.1.10 (owner 172): hand h's bones as last drawn (world, this frame's pose or the last's): the wrist (its hand bone),
+// the four knuckles (index to little finger) and the thumb's three joints; false with no pose of hers that recent.
+bool ik_hand_drawn(int h, Vec3& wrist, Vec3 knuckle[4], Vec3 thumb[3]) {
+    if (st.bones_frame < rt_frame - 1 || sk.state != 1 || !sk.fingers || h < 0 || h > 1) return false;
+    wrist = st.drawn[sk.hand[h]];
+    for (int f = kIndex; f <= kPinky; f++) knuckle[f - kIndex] = st.drawn[sk.finger[h][f][0]];
+    for (int j = 0; j < 3; j++) thumb[j] = st.drawn[sk.finger[h][kThumb][j]];
+    return true;
+}
+// ... and every finger's joints as last drawn (world: each segment's bone's origin, thumb to little finger)
+bool ik_fingers_drawn(int h, Vec3 joint[5][3]) {
+    if (st.bones_frame < rt_frame - 1 || sk.state != 1 || !sk.fingers || h < 0 || h > 1) return false;
+    for (int f = 0; f < 5; f++)
+        for (int j = 0; j < 3; j++) joint[f][j] = st.drawn[sk.finger[h][f][j]];
+    return true;
+}
+
+// ... which of her hands a bone of a draw's palette is (its origin, world, as body_cut matches them): the hand's own
+// bone, a finger's or a blend riding on one of those; -1 any other, or no pose of hers that recent.
+int ik_hand_of_bone(Vec3 o, bool* own, int* seg, const Vec3* axes) {
+    if (own) *own = false;
+    if (seg) *seg = -1;
+    if (st.bones_frame < rt_frame - 1 || sk.state != 1 || !sk.fingers) return -1;
+    auto at = [&](Vec3 p) {
+        return std::fabs(p.x - o.x) < 0.5f && std::fabs(p.y - o.y) < 0.5f && std::fabs(p.z - o.z) < 0.5f;
+    };
+    // (0.1.10, build 286: a bone of her forearm's, a twist bone, has its origin at her wrist as her hand's bone does: its
+    // skin is told apart by its axes, within 2 degrees, when the draw's are given)
+    auto turned = [&](const Vec3 r[3]) {
+        if (!axes) return true;
+        for (int i = 0; i < 3; i++) {
+            const float la = length(axes[i]), lr = length(r[i]);
+            if (!(la > 1e-6f && lr > 1e-6f) || dot(axes[i], r[i]) < 0.9994f * la * lr) return false;
+        }
+        return true;
+    };
+    for (int h = 0; h < 2; h++) {
+        // (the finger segment bone b is, finger * 3 + segment; -1 none of this hand's)
+        auto seg_of = [&](int b) {
+            for (int f = 0; f < 5; f++)
+                for (int j = 0; j < 3; j++)
+                    if (sk.finger[h][f][j] == b) return f * 3 + j;
+            return -1;
+        };
+        if (at(st.drawn[sk.hand[h]]) && turned(st.out[sk.hand[h]].r)) {
+            if (own) *own = true;  // (the hand's own bone: what moves with it alone, not with a finger)
+            return h;
+        }
+        for (int f = 0; f < 5; f++)
+            for (int j = 0; j < 3; j++)
+                if (at(st.drawn[sk.finger[h][f][j]]) && turned(st.out[sk.finger[h][f][j]].r)) {
+                    if (seg) *seg = f * 3 + j;
+                    return h;
+                }
+        for (int k = 0; k < st.blends; k++) {
+            const int b = st.blend_of[k];
+            if ((b != sk.hand[h] && seg_of(b) < 0) || !at(st.blend_o[k]) || !turned(st.blend_r[k])) continue;
+            if (own) *own = b == sk.hand[h];  // (a blend riding on the hand's bone moves with it)
+            if (seg) *seg = seg_of(b);        // (... on a finger's, with that segment)
+            return h;
+        }
+    }
+    return -1;
+}
+int ik_forearm_of_bone(Vec3 o, const Vec3* axes) {
+    if (st.bones_frame < rt_frame - 1 || sk.state != 1) return -1;
+    if (ik_hand_of_bone(o, nullptr, nullptr, axes) >= 0) return -1;
+    for (int h = 0; h < 2; h++) {
+        // (her forearm's bones: at her elbow, a twist bone at her wrist, and the one most of her forearm's skin is on,
+        // its origin 14% along from her elbow and 0.6 cm off the line (SH3_ARM_DIAG, vr554): their origins within
+        // 1.5 cm of her forearm's line, elbow to wrist; her upper arm's and her hand's lie far off it or are her hand's)
+        const Vec3 E = st.drawn[sk.elbow[h]], W = st.drawn[sk.hand[h]], d = W - E;
+        const float L2 = dot(d, d);
+        if (!(L2 > 1e-6f)) continue;
+        const float t = std::clamp(dot(o - E, d) / L2, 0.0f, 1.0f);
+        if (length(o - (E + d * t)) < 0.015f * kU) return h;
+    }
+    return -1;
+}
+
+// Session 38 (owner 178, the rig's pictures): how far hand h's wrist is bent as last drawn (degrees: her rest pose's hand
+// on her forearm there, straight, against the hand drawn), -1 before her arms are solved.
+float ik_wrist_bend(int h) {
+    if (sk.state != 1 || h < 0 || h > 1) return -1.0f;
+    return st.wrist_bend_deg[h];
 }
 
 // LIST 50: hand h's forearm as drawn this frame (world): elbow to wrist; false before her bones are posed.

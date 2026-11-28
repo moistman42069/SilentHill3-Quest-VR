@@ -207,6 +207,8 @@ static uint32_t event_state;
  * back play (5) or a room's load (2). */
 static int main_level = -1, event_mode = -1;
 static void pickup_watch(void);
+static int event_trigger(int ev);
+int sh3_event_is_door(int ev);
 /* 0.1.8 (owner 152): 1 while the dispatch runs: as it returns it calls 0x599EA0, which draws the item an event gives
  * (0x599B70, a projection of its own); d3d8.c puts the 3D drawn then on the panel with its message */
 static int in_dispatch;
@@ -229,6 +231,15 @@ void sub_004B9E70(void) {
             rt_log("VR: frame %d: the game's event step %u -> %u (event %d, mode %u; her action %u, movement %u)%s",
                    rt_frame, was, event_state, (int)MEM32(0xBA9768u), (unsigned)g_eax, MEM32(0x712C18Cu),
                    MEM32(0x712C190u), told == 600 ? "; no more of these lines" : "");
+    }
+    /* 0.1.10 (owner 170, doors by hand): a room's load after a button's event the doors' test does not count as a
+     * door (sh3_event_is_door: such a door opens as a closing hand meets it, as before), told the first 20 times */
+    if (g_eax == 2u) {
+        const int ev = (int)MEM32(0xBA9768u);
+        static int told;
+        if (ev >= 0 && ev < 0x400 && event_trigger(ev) == 1 && !sh3_event_is_door(ev) && told++ < 20)
+            rt_log("VR: frame %d: a room's load after event %d (the button's), which the doors' test does not count "
+                   "as a door", rt_frame, ev);
     }
     pickup_watch();
 }
@@ -953,6 +964,20 @@ static void keys_settle(uint32_t lent, int found) {
     }
 }
 
+/* 0.1.10 (owner 170: "grabbing the knob/handle/whatever and then pulling it open, which would then start the load into
+ * the next section ... for all doors"): whether event `ev` of the room's table is a door, for a hand to take its handle
+ * and pull it (sh3vr_hand_hover's `door`): the button's (trigger 1) with a room to go to (field 17: 721 of the stage
+ * tables' 2429 button events, every door and gate that loads another room or area; stage 2's entrance, event 5, is
+ * one), or one of the keys' doors above (their scripts load the room: field 17 is 0 there). */
+int sh3_event_is_door(int ev) {
+    const uint32_t tab = MEM32(0x711FCA0u);
+    if (!tab || !MEM32(tab) || ev < 0 || ev >= 0x400 || event_trigger(ev) != 1) return 0;
+    if (event_field(tab, ev, 17)) return 1;
+    for (int i = 0; i < KEY_DOORS; i++)
+        if (MEM32(0x6CF7D0u + 4u * key_doors[i].stage) == tab && key_doors[i].event == ev) return 1;
+    return 0;
+}
+
 /* The ray a hand's action uses (session 11, ask 28: "drawers, objects, handles, doors", the hand at the thing): from
  * her place toward the palm, to 20 cm (98 units) past it, at least 0.5 m (a hand reaching down or close still reaches
  * what is right before her), never past the game's own 1.02 m. */
@@ -1062,7 +1087,7 @@ void sub_004B9940(void) {
                                                              (at[2] - saved[2]) * (at[2] - saved[2])) + 98.0f)),
                            at[0], at[1], at[2], ev);
             }
-            sh3vr_hand_hover(h, ev);
+            sh3vr_hand_hover(h, ev, ev >= 0 && ev < 0x400 && sh3_event_is_door(ev));
         }
         /* 0.1.7 (owner message 143, the hints): what the action button would use within her reach now, every 8 frames
          * while that hint is still to show (sh3vr_tip_wants_use): along her facing, then where the player looks (the

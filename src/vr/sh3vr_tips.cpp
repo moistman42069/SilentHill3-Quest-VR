@@ -41,7 +41,7 @@ namespace {
 // flashlight's is "flashlight_hand" (0.1.7-0.1.8's "flashlight" is left unread), so its new second line, what the
 // chest pocket's grip does, shows once to players who saw the old one too.
 const char* const kTipKeys[kTipCount] = {"start", "flashlight_hand", "use", "item", "held", "gun", "melee", "health",
-                                         "puzzle"};
+                                         "puzzle", "door"};
 constexpr int kReloadGuns = 4;
 const int kReloadItems[kReloadGuns] = {9, 10, 11, 12};
 const char* const kReloadKeys[kReloadGuns] = {"reload_stun_gun", "reload_handgun", "reload_shotgun",
@@ -194,6 +194,11 @@ std::string use_line() {
 }
 std::string item_line() {
     return opt.take_by_hand ? "An item here: press A to take it, or reach out to it and grip" : "An item here: press A to take it";
+}
+// 0.1.10 (owner 170, 171): "Open doors by hand" (with "Take items with your hand"): a hand first on a door's handle
+std::string door_line(bool page) {
+    return std::string(page ? "Doors - grip" : "A door: grip") +
+           " its handle and pull it toward you (or push it away) to open it";
 }
 std::string held_line() {
     return opt.shake_free ? "Shake both controllers hard to break free (or press buttons fast)"
@@ -367,6 +372,13 @@ void tip_event(int kind) {
         if (view_mode != ViewMode::kFirstPerson || !label_free() || !due(kind)) return;
         add(kind, true, kind == kTipUse ? use_line() : item_line(), 1.5);
         break;
+    case kTipDoor:
+        // 0.1.10: a hand first on a door's handle (hand_hover), first person, the label free
+        if (!opt.door_by_hand || !opt.take_by_hand || view_mode != ViewMode::kFirstPerson || !label_free() ||
+            !due(kind))
+            return;
+        add(kind, true, door_line(false), 3.0);
+        break;
     default:
         break;
     }
@@ -422,6 +434,7 @@ void tip_lines(std::vector<std::string>& out) {
     if (!light_hand_line().empty()) out.push_back(light_hand_line());
     out.push_back(use_line());
     out.push_back(item_line());
+    if (opt.take_by_hand && opt.door_by_hand) out.push_back(door_line(true));  // 0.1.10
     if (opt.pointer) {  // 0.1.9 (owner 168)
         out.push_back(std::string(kPuzzleHead) + " - " + puzzle_point());
         out.push_back(std::string(kPuzzleHead) + " - or " + kPuzzlePad);

@@ -1,0 +1,31 @@
+# SH3 Quest VR, the PC rig (session 36, build 275), about 3 minutes. Run with
+# QUEST_SIM_HEADSET=1 QUEST_SIM_ALIGN=7312 QUEST_SIM_GRIP_TILT=50 SH3_KEYS="22:Return,25:Return,28:Return,31:Return,34:Return"
+# SH3_STEER_TO="-14500,21000;-13700,22500;-13406,23244" SH3_HAND_RAY_LOG=8 SH3_HP=100
+# 0.1.10 (owner 170, 171): "Open doors by hand" (on by default). door226's walk to stage 2's entrance (event 5, a door:
+# field 17 34), the left hand at its handle as there. First the hand closes on it and lets go without moving: the
+# handle is taken and let go, nothing opens (she stays). Then it closes again and is pulled 15 cm toward her while
+# held: the door is used where the hand took it, the game's own door and the next area's load follow.
+7740 left_y 1
+8100 left_y 0
+8105 shot j08105-at-the-door
+8110 lh_x 0.200
+8110 lh_y 0.100
+8110 lh_z -0.300
+8118 shot j08118-hand-at-the-handle
+8120 left_grip 1
+8124 shot j08124-handle-taken
+8126 left_grip 0
+8140 shot j08140-let-go-still-here
+8150 left_grip 1
+8156 shot j08156-handle-taken-again
+8160 lh_z -0.150
+8164 shot j08164-pulled
+8175 left_grip 0
+8180 lh_x 0
+8180 lh_y 0
+8180 lh_z 0
+8200 shot j08200-opening
+8260 shot j08260-loading
+8400 shot j08400-next-area
+8500 shot j08500-next-area-later
+8600 quit 0

@@ -8,7 +8,7 @@
 </div>
 <h1 align=center>Silent Hill 3 Quest VR</h1>
 
-<p align=center><b>v0.1.9</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
+<p align=center><b>v0.1.10</b> · standalone Meta Quest 3 (Quest 2, Pro, 3S too) · unofficial fan port · testers wanted</p>
 
 Silent Hill 3 in VR on the Quest, standalone, running your own copy of the PC game. Built directly on
 [sh3-nx](https://github.com/cutarev/sh3-nx) by cutarev (the game's x86 code statically recompiled to C, then to ARM64;
@@ -23,9 +23,12 @@ Everyone is credited in [CREDITS.md](CREDITS.md) and [NOTICE](NOTICE).
 > folder or a .zip and checks it.
 
 **Download**: the APK is on the [Releases](https://github.com/moistman42069/SilentHill3-Quest-VR/releases/latest) page,
-with everything you need to install it ([0.1.9's release notes](docs/RELEASE-NOTES-0.1.9.md): a mirror shows your body as
-you move it, the gun in her hand and her shadow right in the scenes seen from her eyes, a hint for puzzles, no pointer
-over black screens, and a key that 0.1.7 used up without opening its door opens that door again; [0.1.8's](docs/RELEASE-NOTES-0.1.8.md): every weapon held by
+with everything you need to install it ([0.1.10's release notes](docs/RELEASE-NOTES-0.1.10.md): no grip through her
+hand, the handgun held high, each finger wraps the grip of the weapon you hold, and Open doors by hand: grip a door's
+handle and pull; [0.1.9's](docs/RELEASE-NOTES-0.1.9.md):
+a mirror shows your body as you move it, the gun in her hand and her shadow right in the scenes seen from her eyes,
+a hint for puzzles, no pointer over black screens, and a key that 0.1.7 used up without opening its door opens that
+door again; [0.1.8's](docs/RELEASE-NOTES-0.1.8.md): every weapon held by
 Heather's own hand closing on its own shape, her trigger finger on the trigger and pulling it as the gun's trigger
 swings back, the second hand wrapped round each two-hand grip, her thumb along the frame, fingers that stop on the
 weapons, Hold weapons anywhere, Swing strength needed, the shotgun's pump the right way; [0.1.7's](docs/RELEASE-NOTES-0.1.7.md): A opens what you look
@@ -40,9 +43,9 @@ the world, both sticks to recentre; [0.1.4's](docs/RELEASE-NOTES-0.1.4.md): ever
 among them; [0.1.3's](docs/RELEASE-NOTES-0.1.3.md): no screen filters
 or fuzz by default, smooth turning, gentler melee, a softer shadow, no crash on quitting; [0.1.2's](docs/RELEASE-NOTES-0.1.2.md);
 [0.1.0's](docs/RELEASE-NOTES-0.1.0.md), the first release; [0.1.1's](docs/RELEASE-NOTES-0.1.1.md)). In short:
-install SH3QuestVR-0.1.9.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
+install SH3QuestVR-0.1.10.apk (developer mode, SideQuest or adb), copy your game folder or a .zip of it to the
 headset, open SH3 Quest VR, CHOOSE THE GAME FOLDER, then PLAY IN VR. Already on an earlier version? The launcher
-offers 0.1.9 itself (Updates). Reports from a headset are very welcome
+offers 0.1.10 itself (Updates). Reports from a headset are very welcome
 (the launcher's "Save a report to Download" holds the game's own logs).
 
 ## Which copies of Silent Hill 3 work
@@ -89,6 +92,8 @@ More in [0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md#which-copies-of-sile
   the gun points with a guide dot. **Every weapon held by her own hand** closing on its own shape (0.1.8): each hand's
   place fitted against the weapon's own mesh, her fingers round it and stopping on it, her thumb along the frame or
   round the grip, her **trigger finger on the trigger**, pulling it: the gun's trigger swings back as far as you pull.
+  Each finger **wraps the grip** joint by joint, every part of it resting on the weapon, in both hands, and every hold
+  fitted to her hand as the game draws it, **none of it in the weapon**, the handgun held high on its grip (0.1.10).
   **Two-hand grips** on the guns, the pipe, the katana, the maul and the beam saber, the second hand wrapped round
   each, its spot yours to set per weapon; **Hold weapons anywhere** (off to start) takes hold wherever your other hand
   grips the weapon.
@@ -106,7 +111,9 @@ More in [0.1.7's release notes](docs/RELEASE-NOTES-0.1.7.md#which-copies-of-sile
   ammo counts and reload sounds, nothing free.
 - **Hands** with fingers from the controllers that **stop on surfaces** (Half-Life: Alyx style), **ghost hands** in
   walls if you want them (off to start), the head in a wall darkening the view (2 seconds there and the view
-  goes back to Heather), **grabbing** with the hand. **Both sticks clicked together** recentre the view.
+  goes back to Heather), **grabbing** with the hand ("Take items with your hand"). **Open doors by hand** (on to
+  start, 0.1.10): grip a door's handle and pull it toward you (or push it) about 10 cm. **Both sticks clicked
+  together** recentre the view.
 - **A Silent Hill pointer** for every screen: menus, the inventory, the map, memos, puzzles, the VR menu; point and
   pull, the hand ticks on what a pull can choose.
 - **120 Hz** to start (your head's turns redrawn 120 times a second), the game's time step the real time each frame

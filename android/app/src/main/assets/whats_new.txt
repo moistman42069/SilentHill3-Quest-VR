@@ -1,3 +1,22 @@
+0.1.10:
+
+- No more grip through her hand: on 0.1.9 the handgun's grip ran through the back of her palm (each hold was worked
+  out against a simple model of a hand, not her hand as the game draws it). Every weapon's hold is now fitted to her
+  hand as drawn, none of it in the weapon. The handgun is held high on its grip, the web of the hand under the slide,
+  the trigger finger nearly level to the trigger. The other hand stays off the weapon and off her main hand. Two-handed
+  holds look natural: the submachine gun's front hand cups the gun from below (on 0.1.9 it lay over the top), the
+  pipe's and maul's second hand closes every finger round the handle, and the shotgun's trigger finger stays on the
+  trigger's face as you pull. Left-handed has holds of its own, fitted to her left hand.
+- Fingers wrap the grip: each finger on a weapon now closes joint by joint, the knuckle first, then the middle joint,
+  then the last, each part coming to rest on the weapon's own shape and none of it going into it. On 0.1.9 a finger
+  stopped the moment any part of it met the weapon, so the hand looked like a loose fist by the grip. Every weapon,
+  both hands, left-handed too; the trigger finger works as before.
+- Open doors by hand (new option, on): grip a door's handle (or knob, or a gate's bar), then pull it toward you about
+  10 cm (or push it away, or slide it aside): the door opens with the game's own sound and fade. Let go without moving
+  it and nothing opens; a locked door still says so. A hint shows the first time. The door does not swing in the
+  picture: the screen fades, as with A. With "Open doors by hand" off (Hands and weapons), closing your hand on a door
+  opens it at once, as on 0.1.9. A still opens doors as before.
+
 0.1.9:
 
 - A key that 0.1.7 used up without opening its door opens that door again. On 0.1.7, reaching toward a key's door,
